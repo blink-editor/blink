@@ -7,3 +7,8 @@ const editor = CodeMirror(document.body, {
   lineNumbers: true,
   theme: "monokai"
 })
+
+setTimeout(() => {
+	console.log("configuring editor")
+	configureEditorAdapter(editor)
+}, 5000) // TODO
