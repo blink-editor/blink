@@ -17,5 +17,8 @@
 		"electron": "^7.1.0",
 		"eslint": "^6.6.0",
 		"typescript": "^3.7.2"
+	},
+	"dependencies": {
+		"vscode-jsonrpc": "^4.0.0"
 	}
 }
