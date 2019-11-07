@@ -1,6 +1,7 @@
 // Modules to control application life and create native browser window
 import { app, BrowserWindow } from "electron"
 import * as path from "path"
+import StartLanguageServer from "./langserver-start"
 
 // Keep a global reference of the window object, if you don't, the window will
 // be closed automatically when the JavaScript object is garbage collected.
@@ -29,6 +30,8 @@ function createWindow() {
 		// when you should delete the corresponding element.
 		mainWindow = null
 	})
+
+  StartLanguageServer()
 }
 
 // This method will be called when Electron has finished

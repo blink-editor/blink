@@ -4,3 +4,8 @@
 // `nodeIntegration` is turned off. Use `preload.js` to
 // selectively enable features needed in the rendering
 // process.
+
+setTimeout(() => {
+	console.log("connecting to server")
+	;(window as any).ConnectToServer()
+}, 5000) // TODO
