@@ -2,8 +2,8 @@ import { spawn } from "child_process"
 
 export default function() {
   const ls = spawn(
-    "../server/start.sh",
-    null,
+    "sh",
+    ["../server/start.sh"],
     { cwd: "../server/" }
   )
 

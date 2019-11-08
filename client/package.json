@@ -5,7 +5,7 @@
 	"main": "./dist/main.js",
 	"scripts": {
 		"build-ts": "tsc",
-		"build-static": "./copy-static.sh",
+		"build-static": "sh ./copy-static.sh",
 		"build": "npm run build-ts && npm run build-static",
 		"start": "npm run build && electron ./dist/main.js",
 		"test": "echo \"Error: no test specified\" && exit 1"
