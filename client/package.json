@@ -1,25 +1,28 @@
 {
-  "name": "electron-quick-start",
-  "version": "1.0.0",
-  "description": "A minimal Electron application",
-  "main": "main.js",
-  "scripts": {
-    "start": "electron ."
-  },
-  "repository": "https://github.com/electron/electron-quick-start",
-  "keywords": [
-    "Electron",
-    "quick",
-    "start",
-    "tutorial",
-    "demo"
-  ],
-  "author": "GitHub",
-  "license": "CC0-1.0",
-  "devDependencies": {
-    "electron": "^6.0.9"
-  },
-  "dependencies": {
-    "codemirror": "^5.48.4"
-  }
+	"name": "blink",
+	"version": "0.0.1",
+	"description": "Blink",
+	"main": "./dist/main.js",
+	"scripts": {
+		"build-ts": "tsc",
+		"build-static": "sh ./copy-static.sh",
+		"build": "npm run build-ts && npm run build-static",
+		"start": "npm run build && electron ./dist/main.js",
+		"test": "echo \"Error: no test specified\" && exit 1"
+	},
+	"author": "Ray-Bens",
+	"devDependencies": {
+		"@types/codemirror": "0.0.80",
+		"@typescript-eslint/eslint-plugin": "^2.6.1",
+		"@typescript-eslint/parser": "^2.6.1",
+		"electron": "^7.1.0",
+		"eslint": "^6.6.0",
+		"typescript": "^3.7.2"
+	},
+	"dependencies": {
+		"codemirror": "^5.49.2",
+		"lodash.debounce": "^4.0.8",
+		"vscode-jsonrpc": "^4.0.0",
+		"vscode-languageserver-protocol": "^3.14.1"
+	}
 }
