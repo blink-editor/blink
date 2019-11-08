@@ -19,6 +19,7 @@
 		"typescript": "^3.7.2"
 	},
 	"dependencies": {
-		"vscode-jsonrpc": "^4.0.0"
+		"vscode-jsonrpc": "^4.0.0",
+		"vscode-languageserver-protocol": "^3.14.1"
 	}
 }
