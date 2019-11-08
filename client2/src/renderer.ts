@@ -10,7 +10,13 @@
 	window.setTimeout(callback, 0)
 }
 
+const editor = (window as any).CodeMirror.fromTextArea(document.querySelector("textarea"), {
+  mode: "python",
+  lineNumbers: true,
+  theme: "monokai"
+})
+
 setTimeout(() => {
 	console.log("connecting to server")
-	;(window as any).ConnectToServer()
+	;(window as any).ConfigureEditorAdapter(editor)
 }, 5000) // TODO

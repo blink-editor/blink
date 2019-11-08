@@ -2,9 +2,9 @@ import { spawn } from "child_process"
 
 export default function() {
   const ls = spawn(
-    "/Users/bradleywalters/school/cs4000/blink/server/start.sh",
+    "../server/start.sh",
     null,
-    { cwd: "/Users/bradleywalters/school/cs4000/blink/server/" }
+    { cwd: "../server/" }
   )
 
   ls.stdout.on("data", (data) => {

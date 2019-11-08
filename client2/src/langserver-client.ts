@@ -32,6 +32,80 @@ export interface LspClient {
 	on(event: "goTo", callback: (location: lsp.Location | lsp.Location[] | lsp.LocationLink[] | null) => void): void
 	on(event: "error", callback: (error: any) => void): void
 	on(event: "logging", callback: (log: any) => void): void
+
+  off(event: string, listener: (arg: any) => void): void
+
+	/**
+	 * Sends the full text of the document to the server
+	 */
+	sendChange(): void
+	/**
+	 * Requests additional information for a particular character
+	 */
+	getHoverTooltip(position: Position): void
+	/**
+	 * Request possible completions from the server
+	 */
+	getCompletion(
+		location: Position,
+		token: TokenInfo,
+		triggerCharacter?: string,
+		triggerKind?: lsp.CompletionTriggerKind,
+	): void
+	/**
+	 * If the server returns incomplete information for completion items, more information can be requested
+	 */
+	getDetailedCompletion(item: lsp.CompletionItem): void
+	/**
+	 * Request possible signatures for the current method
+	 */
+	getSignatureHelp(position: Position): void
+	/**
+	 * Request all matching symbols in the document scope
+	 */
+	getDocumentHighlights(position: Position): void
+	/**
+	 * Request a link to the definition of the current symbol. The results will not be displayed
+	 * unless they are within the same file URI
+	 */
+	getDefinition(position: Position): void
+	/**
+	 * Request a link to the type definition of the current symbol. The results will not be displayed
+	 * unless they are within the same file URI
+	 */
+	getTypeDefinition(position: Position): void
+	/**
+	 * Request a link to the implementation of the current symbol. The results will not be displayed
+	 * unless they are within the same file URI
+	 */
+	getImplementation(position: Position): void
+	/**
+	 * Request a link to all references to the current symbol. The results will not be displayed
+	 * unless they are within the same file URI
+	 */
+	getReferences(position: Position): void
+
+	getLanguageCompletionCharacters(): string[];
+	getLanguageSignatureCharacters(): string[];
+
+	getDocumentUri(): string;
+
+	/**
+	 * Does the server support go to definition?
+	 */
+	isDefinitionSupported(): boolean;
+	/**
+	 * Does the server support go to type definition?
+	 */
+	isTypeDefinitionSupported(): boolean;
+	/**
+	 * Does the server support go to implementation?
+	 */
+	isImplementationSupported(): boolean;
+	/**
+	 * Does the server support find all references?
+	 */
+	isReferencesSupported(): boolean;
 }
 
 export interface Position {
