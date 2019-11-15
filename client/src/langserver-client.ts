@@ -83,6 +83,7 @@ export interface LspClient {
 	 * Request a link to all references to the current symbol. The results will not be displayed
 	 * unless they are within the same file URI
 	 */
+	getReferences(position: Position, includeDeclaration: boolean): void
 	getReferences(position: Position): void
 
 	getLanguageCompletionCharacters(): string[];
@@ -455,7 +456,7 @@ export class LspClientImpl extends events.EventEmitter implements LspClient {
 			},
 			context: {
 				triggerKind: triggerKind || lsp.CompletionTriggerKind.Invoked,
-				triggerCharacter,
+				triggerCharacter
 			},
 		} as lsp.CompletionParams).then((params: lsp.CompletionList | lsp.CompletionItem[] | null) => {
 			if (!params) {
@@ -603,7 +604,7 @@ export class LspClientImpl extends events.EventEmitter implements LspClient {
 	 * Request a link to all references to the current symbol. The results will not be displayed
 	 * unless they are within the same file URI
 	 */
-	public getReferences(location: Position) {
+	public getReferences(location: Position, includeDeclaration: boolean = false) {
 		if (!this.isInitialized || !this.isReferencesSupported()) {
 			return
 		}
@@ -616,6 +617,9 @@ export class LspClientImpl extends events.EventEmitter implements LspClient {
 				line: location.line,
 				character: location.ch,
 			},
+			context: {
+				includeDeclaration: includeDeclaration
+			}
 		} as lsp.ReferenceParams).then((result: Location[] | null) => {
 			this.emit("goTo", result)
 		})
