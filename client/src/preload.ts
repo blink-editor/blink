@@ -21,8 +21,8 @@ let lspClient: client.LspClient
 	client.createTcpRpcConnection("localhost", 2087, (connection) => {
 		const documentInfo: client.DocumentInfo = {
 			languageId: "python",
-			documentUri: "file://untitled",
-			rootUri: null,
+			documentUri: "file:///untitled",
+			rootUri: "file:///untitled",
 			documentText: () => editor.getValue()
 		}
 

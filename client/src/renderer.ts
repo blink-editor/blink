@@ -11,9 +11,10 @@
 }
 
 const editor = (window as any).CodeMirror.fromTextArea(document.querySelector("textarea"), {
-  mode: "python",
-  lineNumbers: true,
-  theme: "monokai"
+	mode: "python",
+	lineNumbers: true,
+	theme: "monokai",
+	gutters: ["CodeMirror-linenumbers", "CodeMirror-lsp"]
 })
 
 setTimeout(() => {
