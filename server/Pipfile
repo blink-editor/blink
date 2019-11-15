@@ -8,6 +8,7 @@ verify_ssl = true
 [packages]
 jedi = "*"
 python-language-server = {editable = true,path = "./python-language-server"}
+pyflakes = "*"
 
 [requires]
 python_version = "3.7"
