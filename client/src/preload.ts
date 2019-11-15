@@ -1,7 +1,7 @@
 // All of the Node.js APIs are available in the preload process.
 // It has the same sandbox as a Chrome extension.
 import * as client from "./langserver-client"
-import * as CodeMirror from "codemirror"
+import CodeMirror from "codemirror"
 import { CodeMirrorAdapter } from "./codemirror-adapter"
 // css imported in html for now
 // import "./codemirror-lsp.css"

@@ -10,8 +10,10 @@ let mainWindow: BrowserWindow
 function createWindow() {
 	// Create the browser window.
 	mainWindow = new BrowserWindow({
-		width: 800,
-		height: 600,
+		width: 824,
+		height: 826,
+		minHeight: 826,
+		minWidth: 824,
 		webPreferences: {
 			preload: path.join(__dirname, "preload.js"),
 		},
@@ -31,7 +33,7 @@ function createWindow() {
 		mainWindow = null
 	})
 
-  StartLanguageServer()
+	StartLanguageServer()
 }
 
 // This method will be called when Electron has finished
