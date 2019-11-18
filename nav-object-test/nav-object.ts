@@ -12,13 +12,19 @@ interface richSymbol {
 var navObject = {
     symToDefRange: {},
 
-    /* encode a richSymbol into a string key
+    /* 
+     * Encodes a richSymbol into a string key.
+     * @param sym  A [[richSymbol]] object to encode.
+     * @returns    A string that can be used as a unique key.
      */
     encodeSymKey: function(sym: richSymbol) {
         return JSON.stringify([sym.name, sym.kind, sym.uri])
     },
 
-    /* decode a string key into a richSymbol
+    /* 
+     * Decodes a string key into a richSymbol.
+     * @param key  A key, encoded by [[encodeSymKey]], to decode.
+     * @returns    A [[richSymbol]] object containing the data that was encoded in [[key]].
      */
     decodeSymKey(key: string) {
         var parsed = JSON.parse(key)
@@ -26,7 +32,8 @@ var navObject = {
         return sym
     },
 
-    /* rebuilds symToDefRange and defRangeToSym. Call on file load, return, save.
+    /* 
+     * Rebuilds symToDefRange. Should be called on file load, return, save.
      */
     rebuildMaps: function() {
         this.symToDefRange = {}
@@ -43,7 +50,10 @@ var navObject = {
         }
     },
 
-    /* finds the callers of a function whose name is at the position given. Call on navigate, return, save.
+    /* 
+     * Finds the callers of a function whose name is at the position given. Should be called on navigate, return, save.
+     * @param symPos  A position object representing the position of the name of the function to find callers of.
+     * @returns       An array of ranges that enclose the definitions of calling functions.
      */
     findCallers: function(symPos: any) { // pass position
         var output = []
@@ -69,21 +79,22 @@ var navObject = {
             }
             // if no parents to caller, was called from global scope, so skip it, otherwise
             if (bestKey !== null) {
-                console.log(bestKey)
                 output.push(this.symToDefRange[bestKey])
             }
         }
         return output
     },
 
-    /* finds the callers of a function whose name is at the position given. Call on navigate, return, save.
+    /* 
+     * Finds the callers of a function whose name is at the position given. Should be called on navigate, return, save.
+     * @param uri  A string of the documents URI.
+     * @returns    An array of ranges that enclose the definitions of functions being called in the given function.
      */
-    findCallees: function(posParams: any) { // pass textDocumentPositionParams
-        // assuming the function is in its own pseudo-file
+    findCallees: function(uri: any) { // pass documentUri
+        // assuming the function is in its own pseudo-file denoted by uri
         var output = []
-        var uri: string = posParams.textDocument.uri
-        /* request textDocument/completion with cursor at empty location, receive completionItem[] */
         var acceptableSyms: number[] = [1, 2] // add whatever kinds we want
+        /* request textDocument/completion with cursor at empty location, receive completionItem[] */
         var result = [
             { label: "class1", kind: 1 },
             { label: "func1", kind: 2 },
@@ -96,7 +107,6 @@ var navObject = {
                 for (let key in this.symToDefRange) {
                     let decodedKey: richSymbol = this.decodeSymKey(key)
                     if (completion.label === decodedKey.name && completion.kind === decodedKey.kind && uri === decodedKey.uri) {
-                        console.log(key)
                         output.push(this.symToDefRange[key])
                         break
                     }
@@ -106,7 +116,8 @@ var navObject = {
         return output
     }
 }
+
 // test code
 navObject.rebuildMaps()
 console.log(navObject.findCallers({ line: 0, character: 10 }))
-console.log(navObject.findCallees({ textDocument: { uri: "file://file1" } }))
+console.log(navObject.findCallees("file://file1"))
