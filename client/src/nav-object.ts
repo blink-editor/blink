@@ -22,18 +22,19 @@ class NavObject {
 	/*
 	 * Rebuilds symToInfo. Should be called on file load, return, save.
 	 */
-	rebuildMaps() {
+	rebuildMaps(doc: lsp.TextDocumentIdentifier) {
 		this.symToInfo = {}
 
 		const request: lsp.DocumentSymbolParams = {
-		  textDocument: { uri: "" } // TODO
+		  textDocument: doc
 		}
 
 		/* request textDocument/documentSymbol, receive SymbolInformation[] */
 		const result: lsp.SymbolInformation[] = [
-			{ name: "class1", kind: 1, location: { uri: "file://file1", range: { start: { line: 0, character: 0 }, end: { line: 10, character: 0 } } } },
-			{ name: "func1", kind: 2, location: { uri: "file://file1", range: { start: { line: 4, character: 0 }, end: { line: 9, character: 10 } } } }
+			{ name: "class1", kind: 1, location: { uri: "file:///file1", range: { start: { line: 0, character: 0 }, end: { line: 10, character: 0 } } } },
+			{ name: "func1", kind: 2, location: { uri: "file:///file1", range: { start: { line: 4, character: 0 }, end: { line: 9, character: 10 } } } }
 		]
+
 		// add to data structure
 		for (const symInfo of result) {
 			const symKey: string = this.encodeSymKey(symInfo.name, symInfo.kind, symInfo.location.uri)
@@ -46,12 +47,12 @@ class NavObject {
 	 * @param symPos  A position object representing the position of the name of the function to find callers of.
 	 * @returns       An array of SymbolInformation objects with ranges that enclose the definitions of calling functions.
 	 */
-	findCallers(symPos: lsp.Position) { // pass position
+	findCallers(symPos: lsp.TextDocumentPositionParams) { // pass position
 		const output = []
 
 		const request: lsp.ReferenceParams = {
-		  textDocument: { uri: "" }, // TODO
-		  position: symPos,
+		  textDocument: symPos.textDocument,
+		  position: symPos.position,
 		  context: {
 			includeDeclaration: false,
 		  },
@@ -59,9 +60,9 @@ class NavObject {
 
 		/* request textDocument/references, receive Location[] */
 		const result: lsp.Location[] = [
-			{ uri: "file://file1", range: { start: { line: 1, character: 4 }, end: { line: 1, character: 10 } } },
-			{ uri: "file://file1", range: { start: { line: 20, character: 4 }, end: { line: 20, character: 11 } } },
-			{ uri: "file://file1", range: { start: { line: 6, character: 4 }, end: { line: 6, character: 12 } } }
+			{ uri: "file:///file1", range: { start: { line: 1, character: 4 }, end: { line: 1, character: 10 } } },
+			{ uri: "file:///file1", range: { start: { line: 20, character: 4 }, end: { line: 20, character: 11 } } },
+			{ uri: "file:///file1", range: { start: { line: 6, character: 4 }, end: { line: 6, character: 12 } } }
 		]
 
 		// for each reference recieved, find parent scope
@@ -128,6 +129,6 @@ class NavObject {
 
 // test code
 const navObject: NavObject = new NavObject()
-navObject.rebuildMaps()
-console.log(navObject.findCallers({ line: 0, character: 10 }))
+navObject.rebuildMaps({ uri: "file:///untitled" })
+console.log(navObject.findCallers({ textDocument: { uri: "file:///untitled" }, line: 0, character: 10 }))
 console.log(navObject.findCallees({ uri: "file://file1" }))
