@@ -24,7 +24,7 @@ export class ConsoleLogger implements rpc.Logger, rpc.Tracer {
 //documentSymbol
 export interface LspClient {
 	initialize(): void
-	on(event: "documentSymbol", callback: (documentSymbol: lsp.DocumentSymbol) => void): void
+	on(event: "documentSymbol", callback: (symbols: lsp.DocumentSymbol[] | lsp.SymbolInformation[]) => void): void
 	on(event: "completion", callback: (items: lsp.CompletionItem[]) => void): void
 	on(event: "completionResolved", callback: (item: lsp.CompletionItem) => void): void
 	on(event: "hover", callback: (hover: lsp.Hover) => void): void

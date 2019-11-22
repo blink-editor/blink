@@ -5,6 +5,7 @@ import debounce from "lodash.debounce"
 import * as lsp from "vscode-languageserver-protocol"
 import { Location, LocationLink, MarkupContent } from "vscode-languageserver-protocol"
 import { LspClient, Position, TokenInfo } from "./langserver-client"
+import { NavObject } from "./nav-object"
 
 interface IScreenCoord {
 	x: number;
@@ -162,6 +163,7 @@ export class CodeMirrorAdapter extends IEditorAdapter<CodeMirror.Editor> {
 	public options: ITextEditorOptions;
 	public editor: CodeMirror.Editor;
 	public connection: LspClient;
+	public navObject: NavObject;
 
 	private hoverMarker: CodeMirror.TextMarker;
 	private signatureWidget: CodeMirror.LineWidget;
@@ -181,6 +183,7 @@ export class CodeMirrorAdapter extends IEditorAdapter<CodeMirror.Editor> {
 		this.connection = connection;
 		this.options = getFilledDefaults(options);
 		this.editor = editor;
+		this.navObject = new NavObject(connection);
 
 		this.debouncedGetHover = debounce((position: Position) => {
 			this.connection.getHoverTooltip(position);

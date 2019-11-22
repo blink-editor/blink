@@ -1,12 +1,22 @@
 // NOTES:
 // nesting is determined by lines -- this can likely be improved, what if same line?
 // bradley mentioned a better data structure to store ranges -- what is it and will it actually be faster?
-// use SymbolInformation.containerName to find enclosing scope
+// use SymbolInformation.containerName to find enclosing scope?
 
 import * as lsp from "vscode-languageserver-protocol"
+import { LspClient } from "./langserver-client"
 
-class NavObject {
+function isSymbolInformationArray(symbols: lsp.DocumentSymbol[] | lsp.SymbolInformation[]): symbols is lsp.SymbolInformation[] {
+	return (<lsp.SymbolInformation[]>symbols).length === 0 || (<lsp.SymbolInformation[]>symbols)[0].location !== undefined;
+}
+
+export class NavObject {
+
 	symToInfo = {}
+
+	constructor(client: LspClient) {
+		client.on("documentSymbol", x => this.rebuildMaps(x))
+	}
 
 	/*
 	 * Encodes a richSymbol into a string key.
@@ -22,24 +32,19 @@ class NavObject {
 	/*
 	 * Rebuilds symToInfo. Should be called on file load, return, save.
 	 */
-	rebuildMaps(doc: lsp.TextDocumentIdentifier) {
+	rebuildMaps(symbols: lsp.DocumentSymbol[] | lsp.SymbolInformation[]) {
 		this.symToInfo = {}
 
-		const request: lsp.DocumentSymbolParams = {
-		  textDocument: doc
+		if (!isSymbolInformationArray(symbols)) {
+			throw new Error("expected SymbolInformation[], got something else")
 		}
 
-		/* request textDocument/documentSymbol, receive SymbolInformation[] */
-		const result: lsp.SymbolInformation[] = [
-			{ name: "class1", kind: 1, location: { uri: "file:///file1", range: { start: { line: 0, character: 0 }, end: { line: 10, character: 0 } } } },
-			{ name: "func1", kind: 2, location: { uri: "file:///file1", range: { start: { line: 4, character: 0 }, end: { line: 9, character: 10 } } } }
-		]
-
 		// add to data structure
-		for (const symInfo of result) {
+		for (const symInfo of symbols) {
 			const symKey: string = this.encodeSymKey(symInfo.name, symInfo.kind, symInfo.location.uri)
 			this.symToInfo[symKey] = symInfo
 		}
+		console.log(this.symToInfo)
 	}
 
 	/*
@@ -60,9 +65,9 @@ class NavObject {
 
 		/* request textDocument/references, receive Location[] */
 		const result: lsp.Location[] = [
-			{ uri: "file:///file1", range: { start: { line: 1, character: 4 }, end: { line: 1, character: 10 } } },
-			{ uri: "file:///file1", range: { start: { line: 20, character: 4 }, end: { line: 20, character: 11 } } },
-			{ uri: "file:///file1", range: { start: { line: 6, character: 4 }, end: { line: 6, character: 12 } } }
+			{ uri: "file:///untitled", range: { start: { line: 1, character: 4 }, end: { line: 1, character: 10 } } },
+			{ uri: "file:///untitled", range: { start: { line: 20, character: 4 }, end: { line: 20, character: 11 } } },
+			{ uri: "file:///untitled", range: { start: { line: 6, character: 4 }, end: { line: 6, character: 12 } } }
 		]
 
 		// for each reference recieved, find parent scope
@@ -128,7 +133,8 @@ class NavObject {
 }
 
 // test code
-const navObject: NavObject = new NavObject()
-navObject.rebuildMaps({ uri: "file:///untitled" })
-console.log(navObject.findCallers({ textDocument: { uri: "file:///untitled" }, line: 0, character: 10 }))
-console.log(navObject.findCallees({ uri: "file://file1" }))
+// const navObject: NavObject = new NavObject()
+// navObject.rebuildMaps([ { name: "class1", kind: 1, location: { uri: "file:///untitled", range: { start: { line: 0, character: 0 }, end: { line: 10, character: 0 } } } },
+// 	{ name: "func1", kind: 2, location: { uri: "file:///untitled", range: { start: { line: 4, character: 0 }, end: { line: 9, character: 10 } } } } ])
+// console.log(navObject.findCallers({ textDocument: { uri: "file:///untitled" }, position: { line: 0, character: 10 }}))
+// console.log(navObject.findCallees({ uri: "file://untitled" }))
