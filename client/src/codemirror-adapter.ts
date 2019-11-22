@@ -209,6 +209,10 @@ export class CodeMirrorAdapter extends IEditorAdapter<CodeMirror.Editor> {
 		}
 	}
 
+	public handleEnter(cm: CodeMirror.Editor, change: CodeMirror.EditorChange){
+		//console.log("in it");
+	}
+
 	public handleChange(cm: CodeMirror.Editor, change: CodeMirror.EditorChange) {
 		const location = this.editor.getDoc().getCursor('end');
 		this.connection.sendChange();
@@ -217,9 +221,16 @@ export class CodeMirrorAdapter extends IEditorAdapter<CodeMirror.Editor> {
 		const signatureCharacters = this.connection.getLanguageSignatureCharacters();
 
 		const code = this.editor.getDoc().getValue();
+
 		const lines = code.split('\n');
 		const line = lines[location.line];
 		const typedCharacter = line[location.ch - 1];
+
+		// if user enters a new line or removes all text from a line --> call getDocumentSymbol
+		let newLineOrClearLine = new RegExp('^[ \t\n\r]*$')
+		if(newLineOrClearLine.test(line)){
+			this.connection.getDocumentSymbol();
+		}
 
 		if (typeof typedCharacter === 'undefined') {
 			// Line was cleared
@@ -246,6 +257,18 @@ export class CodeMirrorAdapter extends IEditorAdapter<CodeMirror.Editor> {
 		} else {
 			this._removeSignatureWidget();
 		}
+	}
+
+
+/**
+ * Handles all Document Symbol Requests from server.
+ * textDocument/documentSymbol
+ * @param  response DocumentSymbol: Information of all symbols in the given file.
+ * @return          void
+ */
+	public handleDocumentSymbol(response: lsp.DocumentSymbol) {
+		console.log(response);
+		// Note: This is where the depencency graph will gets its data...
 	}
 
 	public handleHover(response: lsp.Hover) {
@@ -422,6 +445,7 @@ export class CodeMirrorAdapter extends IEditorAdapter<CodeMirror.Editor> {
 		// Show-hint addon doesn't remove itself. This could remove other uses in the project
 		document.querySelectorAll('.CodeMirror-hints').forEach((e) => e.remove());
 		this.editor.off('change', this.editorListeners.change);
+		this.editor.off('enter', this.editorListeners.enter);
 		this.editor.off('cursorActivity', this.editorListeners.cursorActivity);
 		this.editor.off('cursorActivity', this.editorListeners.cursorActivity);
 		this.editor.getWrapperElement().removeEventListener('mousemove', this.editorListeners.mouseover);
@@ -439,8 +463,14 @@ export class CodeMirrorAdapter extends IEditorAdapter<CodeMirror.Editor> {
 		this.editor.on('change', changeListener);
 		this.editorListeners.change = changeListener;
 
+		//This is not correct yet
+		const enterListener = debounce(this.handleEnter.bind(this), this.options.acceptSuggestionOnEnter);
+		this.editor.on('enter', enterListener);
+		this.editorListeners.enter = enterListener;
+
 		const self = this;
 		this.connectionListeners = {
+			documentSymbol: this.handleDocumentSymbol.bind(self),
 			hover: this.handleHover.bind(self),
 			highlight: this.handleHighlight.bind(self),
 			completion: this.handleCompletion.bind(self),
@@ -708,7 +738,7 @@ export class CodeMirrorAdapter extends IEditorAdapter<CodeMirror.Editor> {
 			} as CodeMirror.Position;
 
 			this.highlightMarkers.push(this.editor.getDoc().markText(start, end, {
-				css: 'background-color: #dde',
+				css: 'background-color: rgba(99,99,99,0.5)',
 			}));
 		});
 	}

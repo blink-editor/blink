@@ -21,8 +21,10 @@ export class ConsoleLogger implements rpc.Logger, rpc.Tracer {
 	}
 }
 
+//documentSymbol
 export interface LspClient {
 	initialize(): void
+	on(event: "documentSymbol", callback: (documentSymbol: lsp.DocumentSymbol) => void): void
 	on(event: "completion", callback: (items: lsp.CompletionItem[]) => void): void
 	on(event: "completionResolved", callback: (item: lsp.CompletionItem) => void): void
 	on(event: "hover", callback: (hover: lsp.Hover) => void): void
@@ -43,6 +45,8 @@ export interface LspClient {
 	 * Requests additional information for a particular character
 	 */
 	getHoverTooltip(position: Position): void
+
+	getDocumentSymbol(): void
 	/**
 	 * Request possible completions from the server
 	 */
@@ -433,6 +437,27 @@ export class LspClientImpl extends events.EventEmitter implements LspClient {
 		})
 	}
 
+	public getDocumentSymbol(){
+		if(!this.isInitialized){
+			return
+		}
+		if (!(this.serverCapabilities && this.serverCapabilities.documentSymbolProvider)) {
+			return
+		}
+
+		this.connection.sendRequest("textDocument/documentSymbol", {
+			textDocument: {
+				uri: this.documentInfo.documentUri,
+			}
+		} as lsp.DocumentSymbolParams).then((params: lsp.DocumentSymbol | lsp.DocumentSymbol[] | null) => {
+			if (!params) {
+				console.log("Document Symbol Request Returned Null")
+				return
+			}
+			this.emit("documentSymbol", params)
+		})
+	}
+
 	public getCompletion(
 		location: Position,
 		token: TokenInfo,
@@ -507,6 +532,7 @@ export class LspClientImpl extends events.EventEmitter implements LspClient {
 			},
 		} as lsp.TextDocumentPositionParams).then((params: lsp.SignatureHelp) => {
 			this.emit("signature", params)
+			console.log(params)
 		})
 	}
 
