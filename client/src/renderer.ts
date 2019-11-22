@@ -5,6 +5,74 @@
 // selectively enable features needed in the rendering
 // process.
 
+import * as lsp from "vscode-languageserver-protocol"
+
+const file = `def firstFunction():
+	print("first")
+
+
+def secondFunction():
+	print("second")
+
+
+def thirdFunction():
+	print("third")
+
+
+def main():
+	firstFunction()
+	secondFunction()
+	thirdFunction()
+
+`
+
+let activeFunctionName = "main"
+
+let calleesOfActive: lsp.SymbolInformation[] = [
+	{ name: "firstFunction", kind: 1, location: { uri: "file:///untitled", range: { start: { line: 0, character: 0 }, end: { line: 2, character: 0 } } } },
+	{ name: "secondFunction", kind: 1, location: { uri: "file:///untitled", range: { start: { line: 4, character: 0 }, end: { line: 6, character: 0 } } } },
+	{ name: "thirdFunction", kind: 1, location: { uri: "file:///untitled", range: { start: { line: 8, character: 0 }, end: { line: 10, character: 0 } } } },
+]
+
+let callersOfActive: lsp.SymbolInformation[] = []
+
+const extractRangeOfFile = (range: lsp.Range): string => {
+	return `def firstFunction():
+	print("first")
+
+	` // TODO(urgent)
+}
+
+const swapToSymbol = (symbol: lsp.SymbolInformation) => {
+	activeFunctionName = newSymbol.name
+
+	const contents = extractRangeOfFile(newSymbol.range)
+	calleesOfActive = navObject.findCallees(contents)
+
+	callersOfActive = navObject.findCallers({
+		textDocument: { uri: "file:///untitled" },
+		position: { line: newSymbol.range.start.line, character: 5 }, // TODO: not hardcode
+	})
+
+	// TODO: populate panes
+}
+
+const swapToCallee = (index: number) => {
+	if (index >= calleesOfActive.length) {
+		return
+	}
+
+	swapToSymbol(calleesOfActive[index])
+}
+
+const swapToCaller = (index) => {
+	if (index >= callersOfActive.length) {
+		return
+	}
+
+	swapToSymbol(callersOfActive[index])
+}
+
 // TODO: use better polyfill
 ;(window as any).setImmediate = function(callback: (...args: any[]) => void) {
 	window.setTimeout(callback, 0)
@@ -121,7 +189,6 @@ function swapContents(pane1, pane2) {
 	pane1.setValue(paneTemp);
 }
 
-
 // This will need to use the dependency graph to not be hard coded
 editor.on("dblclick", function() {
 	let from = editor.getCursor("from");
@@ -136,79 +203,60 @@ editor.on("dblclick", function() {
 	if (itemName in functionsObject) {
 		// This will need to use the dependency graph to not be hard coded
 
-		if (functionsCurrentLocation.topLeft == itemName) {
-			swapContents(editor, paneRightTop);
-			swapContents(editor, paneTopLeft);
-			emptyTopPanes()
+		// TODO
+		// if (functionsCurrentLocation.topLeft == itemName) {
+		// 	swapContents(editor, paneRightTop);
+		// 	swapContents(editor, paneTopLeft);
+		// 	emptyTopPanes()
 
-		} else if (functionsCurrentLocation.topMid == itemName) {
-			swapContents(editor, paneRightTop);
-			swapContents(editor, paneTopMid);
-			emptyTopPanes()
-		} else if (functionsCurrentLocation.topRight == itemName) {
-			swapContents(editor, paneRightTop);
-			swapContents(editor, paneTopRight);
-			emptyTopPanes()
-		} else {
-			// get text from the right function and put that in the main pane
-			// editor.setValue(functionsObject[itemName]);
-		}
+		// } else if (functionsCurrentLocation.topMid == itemName) {
+		// 	swapContents(editor, paneRightTop);
+		// 	swapContents(editor, paneTopMid);
+		// 	emptyTopPanes()
+		// } else if (functionsCurrentLocation.topRight == itemName) {
+		// 	swapContents(editor, paneRightTop);
+		// 	swapContents(editor, paneTopRight);
+		// 	emptyTopPanes()
+		// } else {
+		// 	// get text from the right function and put that in the main pane
+		// 	// editor.setValue(functionsObject[itemName]);
+		// }
 
 	}
 })
 
-function emptyTopPanes() {
-			paneTopLeft.setValue("")
-			paneTopMid.setValue("")
-			paneTopRight.setValue("")
-			functionsCurrentLocation.topLeft = ""
-			functionsCurrentLocation.topMid = ""
-			functionsCurrentLocation.topRight = ""
-}
-
-// will use dependency graph
-function updateVariables(itemName1, itemName2, str1, str2, str3) {
-	functionsCurrentLocation.topLeft = str1
-	functionsCurrentLocation.topMid = str2
-	functionsCurrentLocation.topRight = str3
-	// delete functionsObject[itemName1];
-	// will need to be generalized
-	// functionsObject[itemName2] = "def main()\n\tfirstFunction()\n\tsecondFunction()\n\tthirdFunction()"
-}
-
-paneRightTop.on("mousedown", function() {
-	paneTopLeft.setValue("def firstFunction():\n\tprint \"This is your first function\"")
-	paneTopMid.setValue("def secondFunction():\n\tprint \"This is your second function\"")
-	paneTopRight.setValue("def thirdFunction():\n\tprint \"This is your third function\"")
-	editor.setValue("def main()\n\tfirstFunction()\n\tsecondFunction()\n\tthirdFunction()")
-	paneRightTop.setValue("");
-	// should abstract into updateVariables
-	functionsCurrentLocation.topLeft = "firstFunction";
-	functionsCurrentLocation.topMid = "secondFunction";
-	functionsCurrentLocation.topRight = "thirdFunction";
-
-})
-
 paneTopLeft.on("mousedown", function() {
 	if (paneTopLeft.getValue() != "") {
-		swapContents(editor, paneRightTop);
-		swapContents(editor, paneTopLeft);
-		emptyTopPanes()
+		swapToCallee(0)
 	}
 })
 
 paneTopMid.on("mousedown", function() {
 	if (paneTopLeft.getValue() != "") {
-		swapContents(editor, paneRightTop);
-		swapContents(editor, paneTopMid);
-		emptyTopPanes()
+		swapToCallee(1)
 	}
 })
 
 paneTopRight.on("mousedown", function() {
 	if (paneTopLeft.getValue() != "") {
-		swapContents(editor, paneRightTop);
-		swapContents(editor, paneTopRight);
-		emptyTopPanes()
+		swapToCallee(2)
+	}
+})
+
+paneRightTop.on("mousedown", () => {
+	if (paneRightTop.getValue() !== "") {
+		swapToCaller(0)
+	}
+})
+
+paneRightMid.on("mousedown", () => {
+	if (paneRightMid.getValue() !== "") {
+		swapToCaller(1)
+	}
+})
+
+paneRightBottom.on("mousedown", () => {
+	if (paneRightBottom.getValue() !== "") {
+		swapToCaller(2)
 	}
 })

@@ -11,8 +11,14 @@ function isSymbolInformationArray(symbols: lsp.DocumentSymbol[] | lsp.SymbolInfo
 }
 
 export class NavObject {
+	private symToInfo: { string: lsp.SymbolInformation } = {}
+	private client: LspClient
 
-	symToInfo = {}
+	constructor(client: LspClient) {
+		client.on("documentSymbol", x => this.rebuildMaps(x))
+
+		this.client = client
+	}
 
 	constructor(client: LspClient) {
 		client.on("documentSymbol", x => this.rebuildMaps(x))
@@ -96,10 +102,12 @@ export class NavObject {
 
 	/*
 	 * Finds the callers of a function whose name is at the position given. Should be called on navigate, return, save.
-	 * @param doc  The pseudo-file document identifier.
+	 * @param contents  The contents of the pseudo-file to find calls in.
 	 * @returns    An array of SymbolInformation objects with ranges that enclose the definitions of functions being called in the given function.
 	 */
-	findCallees(doc: lsp.TextDocumentIdentifier) {
+	findCallees(contents: string): lsp.SymbolInformation[] {
+		// TODO(urgent): rewrite to use contents to create pseudo-file and ask completions
+
 		// assuming the function is in its own pseudo-file denoted by uri
 		const output = []
 		const acceptableKinds: number[] = [1, 2] // add whatever kinds we want
@@ -121,13 +129,14 @@ export class NavObject {
 			if (acceptableKinds.indexOf(completion.kind) >= 0) {
 				// find completion's definition range
 				const testSymKey: string = this.encodeSymKey(completion.label, completion.kind, doc.uri)
-				const desiredInfo = this.symToInfo[testSymKey]
+				const desiredInfo: lsp.SymbolInformation = this.symToInfo[testSymKey]
 				// if not found, ignore it
 				if (desiredInfo) {
 					output.push(desiredInfo)
 				}
 			}
 		}
+
 		return output
 	}
 }
