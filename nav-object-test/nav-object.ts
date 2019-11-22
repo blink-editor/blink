@@ -2,18 +2,9 @@
 // nesting is determined by lines -- this can likely be improved, what if same line?
 // bradley mentioned a better data structure to store ranges -- what is it and will it actually be faster?
 // use SymbolInformation.containerName to find enclosing scope
-// make map into symbolKey->SymbolInformation, not just range
-
-/*
-interface richSymbol {
-    name: string;
-    kind: number; // whatever enum is used by LSP
-    uri: string;  // documentUri
-}
-*/
 
 class NavObject {
-    symToDefRange = {}
+    symToInfo = {}
 
     /* 
      * Encodes a richSymbol into a string key.
@@ -27,37 +18,26 @@ class NavObject {
     }
 
     /* 
-     * Decodes a string key into a richSymbol.
-     * @param key  A key, encoded by [[encodeSymKey]], to decode.
-     * @returns    A [[richSymbol]] object containing the data that was encoded in [[key]].
-     *
-    decodeSymKey(key: string) {
-        var parsed = JSON.parse(key)
-        var sym: richSymbol = { name: parsed[0], kind: parsed[1], uri: parsed[2] }
-        return sym
-    },
-    */
-
-    /* 
-     * Rebuilds symToDefRange. Should be called on file load, return, save.
+     * Rebuilds symToInfo. Should be called on file load, return, save.
      */
     rebuildMaps() {
-        this.symToDefRange = {}
+        this.symToInfo = {}
         /* request textDocument/documentSymbol, receive SymbolInformation[] */
         var result: any[] = [
             { name: "class1", kind: 1, location: { uri: "file://file1", range: { start: { line: 0, character: 0 }, end: { line: 10, character: 0 } } } },
             { name: "func1", kind: 2, location: { uri: "file://file1", range: { start: { line: 4, character: 0 }, end: { line: 9, character: 10 } } } }
         ]
-        for (let docSym of result) {
-            let symKey: string = this.encodeSymKey(docSym.name, docSym.kind, docSym.location.uri)
-            this.symToDefRange[symKey] = docSym.location.range
+        // add to data structure
+        for (let symInfo of result) {
+            let symKey: string = this.encodeSymKey(symInfo.name, symInfo.kind, symInfo.location.uri)
+            this.symToInfo[symKey] = symInfo
         }
     }
 
     /* 
      * Finds the callers of a function whose name is at the position given. Should be called on navigate, return, save.
      * @param symPos  A position object representing the position of the name of the function to find callers of.
-     * @returns       An array of ranges that enclose the definitions of calling functions.
+     * @returns       An array of SymbolInformation objects with ranges that enclose the definitions of calling functions.
      */
     findCallers(symPos: any) { // pass position
         var output = []
@@ -73,8 +53,8 @@ class NavObject {
             var bestScore = null
             var bestKey = null
             // search for tightest enclosing scope for this reference
-            for (let key in this.symToDefRange) {
-                let currRange = this.symToDefRange[key]
+            for (let key in this.symToInfo) {
+                let currRange = this.symToInfo[key].location.range
                 // if currRange within refRange and holds a tighter line bound than best
                 if (currRange.start.line <= currRef.range.start.line && currRange.end.line >= currRef.range.end.line
                     && (currRange.end.line - currRange.start.line < bestScore || bestScore === null)) {
@@ -84,7 +64,7 @@ class NavObject {
             }
             // if no parents to caller, was called from global scope, so ignore it
             if (bestKey !== null) {
-                output.push(this.symToDefRange[bestKey])
+                output.push(this.symToInfo[bestKey])
             }
         }
         return output
@@ -111,10 +91,10 @@ class NavObject {
             if (acceptableSyms.indexOf(completion.kind) >= 0) {
                 // find completion's definition range
                 let testSymKey: string = this.encodeSymKey(completion.label, completion.kind, uri)
-                let desiredRange = this.symToDefRange[testSymKey]
+                let desiredInfo = this.symToInfo[testSymKey]
                 // if not found, ignore it
-                if (desiredRange) {
-                    output.push(desiredRange)
+                if (desiredInfo) {
+                    output.push(desiredInfo)
                 }
             }
         }
