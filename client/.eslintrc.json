@@ -8,6 +8,8 @@
 	"rules": {
 		"semi": ["warn", "never"],
 		"quotes": ["warn", "double"],
+		"no-var": "warn",
+		"prefer-const": "warn",
 		"@typescript-eslint/semi": ["warn", "never"],
 		"@typescript-eslint/member-delimiter-style": [
 			"warn", {
