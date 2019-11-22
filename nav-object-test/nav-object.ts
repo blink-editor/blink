@@ -73,7 +73,7 @@ class NavObject {
     /* 
      * Finds the callers of a function whose name is at the position given. Should be called on navigate, return, save.
      * @param uri  A string of the documents URI.
-     * @returns    An array of ranges that enclose the definitions of functions being called in the given function.
+     * @returns    An array of SymbolInformation objects with ranges that enclose the definitions of functions being called in the given function.
      */
     findCallees(uri: any) { // pass documentUri
         // assuming the function is in its own pseudo-file denoted by uri
