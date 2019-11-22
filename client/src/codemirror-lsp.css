@@ -29,5 +29,5 @@
 }
 
 .CodeMirror-lsp-context *:hover {
-	background-color: #dde;
+	background-color: rgba(99,99,99,0.5);
 }
