@@ -7,21 +7,47 @@ import * as lsp from "vscode-languageserver-protocol"
 import { LspClient } from "./langserver-client"
 
 function isSymbolInformationArray(symbols: lsp.DocumentSymbol[] | lsp.SymbolInformation[]): symbols is lsp.SymbolInformation[] {
-	return (<lsp.SymbolInformation[]>symbols).length === 0 || (<lsp.SymbolInformation[]>symbols)[0].location !== undefined;
+	return (symbols as lsp.SymbolInformation[]).length === 0 || (symbols as lsp.SymbolInformation[])[0].location !== undefined
+}
+
+const completionItemKindToSymbolKind = function(kind: lsp.CompletionItemKind): lsp.SymbolKind | null {
+	switch (kind) {
+  case lsp.CompletionItemKind.Text: return null
+  case lsp.CompletionItemKind.Method: return lsp.SymbolKind.Method
+  case lsp.CompletionItemKind.Function: return lsp.SymbolKind.Function
+  case lsp.CompletionItemKind.Constructor: return lsp.SymbolKind.Constructor
+  case lsp.CompletionItemKind.Field: return lsp.SymbolKind.Field
+  case lsp.CompletionItemKind.Variable: return lsp.SymbolKind.Variable
+  case lsp.CompletionItemKind.Class: return lsp.SymbolKind.Class
+  case lsp.CompletionItemKind.Interface: return lsp.SymbolKind.Interface
+  case lsp.CompletionItemKind.Module: return lsp.SymbolKind.Module
+  case lsp.CompletionItemKind.Property: return lsp.SymbolKind.Property
+  case lsp.CompletionItemKind.Unit: return null
+  case lsp.CompletionItemKind.Value: return null
+  case lsp.CompletionItemKind.Enum: return lsp.SymbolKind.Enum
+  case lsp.CompletionItemKind.Keyword: return null
+  case lsp.CompletionItemKind.Snippet: return null
+  case lsp.CompletionItemKind.Color: return null
+  case lsp.CompletionItemKind.File: return lsp.SymbolKind.File
+  case lsp.CompletionItemKind.Reference: return null
+  case lsp.CompletionItemKind.Folder: return null
+  case lsp.CompletionItemKind.EnumMember: return lsp.SymbolKind.EnumMember
+  case lsp.CompletionItemKind.Constant: return lsp.SymbolKind.Constant
+  case lsp.CompletionItemKind.Struct: return lsp.SymbolKind.Struct
+  case lsp.CompletionItemKind.Event: return lsp.SymbolKind.Event
+  case lsp.CompletionItemKind.Operator: return lsp.SymbolKind.Operator
+  case lsp.CompletionItemKind.TypeParameter: return lsp.SymbolKind.TypeParameter
+	}
 }
 
 export class NavObject {
-	private symToInfo: { string: lsp.SymbolInformation } = {}
+	private symToInfo: { [key: string]: lsp.SymbolInformation } = {}
 	private client: LspClient
 
 	constructor(client: LspClient) {
 		client.on("documentSymbol", x => this.rebuildMaps(x))
 
 		this.client = client
-	}
-
-	constructor(client: LspClient) {
-		client.on("documentSymbol", x => this.rebuildMaps(x))
 	}
 
 	/*
@@ -31,7 +57,7 @@ export class NavObject {
 	 * @param uri   The URI of the file containing the symbol.
 	 * @returns     A string that can be used as a unique key.
 	 */
-	encodeSymKey(name: string, kind: number, uri: string) {
+	encodeSymKey(name: string, kind: lsp.SymbolKind, uri: string) {
 		return JSON.stringify([name, kind, uri])
 	}
 
@@ -47,9 +73,11 @@ export class NavObject {
 
 		// add to data structure
 		for (const symInfo of symbols) {
-			const symKey: string = this.encodeSymKey(symInfo.name, symInfo.kind, symInfo.location.uri)
+			const symModule: string = "" // TODO
+			const symKey: string = this.encodeSymKey(symInfo.name, symInfo.kind, symModule)
 			this.symToInfo[symKey] = symInfo
 		}
+
 		console.log(this.symToInfo)
 	}
 
@@ -58,86 +86,85 @@ export class NavObject {
 	 * @param symPos  A position object representing the position of the name of the function to find callers of.
 	 * @returns       An array of SymbolInformation objects with ranges that enclose the definitions of calling functions.
 	 */
-	findCallers(symPos: lsp.TextDocumentPositionParams) { // pass position
-		const output = []
-
+	findCallers(symPos: lsp.TextDocumentPositionParams): Thenable<lsp.SymbolInformation[]> {
 		const request: lsp.ReferenceParams = {
 		  textDocument: symPos.textDocument,
 		  position: symPos.position,
 		  context: {
-			includeDeclaration: false,
+				includeDeclaration: false,
 		  },
 		}
 
-		/* request textDocument/references, receive Location[] */
-		const result: lsp.Location[] = [
-			{ uri: "file:///untitled", range: { start: { line: 1, character: 4 }, end: { line: 1, character: 10 } } },
-			{ uri: "file:///untitled", range: { start: { line: 20, character: 4 }, end: { line: 20, character: 11 } } },
-			{ uri: "file:///untitled", range: { start: { line: 6, character: 4 }, end: { line: 6, character: 12 } } }
-		]
+		return this.client.getReferencesWithRequest(request)
+			.then((response: lsp.Location[] | null) => {
+				const locations: lsp.Location[] = (response) ? response : []
 
-		// for each reference recieved, find parent scope
-		for (const currRef of result) {
-			let bestScore = null
-			let bestKey = null
+				const output: lsp.SymbolInformation[] = []
 
-			// search for tightest enclosing scope for this reference
-			for (const key in this.symToInfo) {
-				const currRange = this.symToInfo[key].location.range
-				// if currRange within refRange and holds a tighter line bound than best
-				if (currRange.start.line <= currRef.range.start.line && currRange.end.line >= currRef.range.end.line
-					&& (currRange.end.line - currRange.start.line < bestScore || bestScore === null)) {
-						bestScore = currRange.end.line - currRange.start.line
-						bestKey = key
+				// for each reference recieved, find parent scope
+				for (const currRef of locations) {
+					let bestScore: number | null = null
+					let bestKey: string | null = null
+
+					// search for tightest enclosing scope for this reference
+					for (const key in this.symToInfo) {
+						const currRange = this.symToInfo[key].location.range
+						// if currRange within refRange and holds a tighter line bound than best
+						if (currRange.start.line <= currRef.range.start.line && currRange.end.line >= currRef.range.end.line
+							&& (bestScore === null || currRange.end.line - currRange.start.line < bestScore)) {
+								bestScore = currRange.end.line - currRange.start.line
+								bestKey = key
+						}
+					}
+
+					// if no parents to caller, was called from global scope, so ignore it
+					if (bestKey !== null) {
+						output.push(this.symToInfo[bestKey])
+					}
 				}
-			}
 
-			// if no parents to caller, was called from global scope, so ignore it
-			if (bestKey !== null) {
-				output.push(this.symToInfo[bestKey])
-			}
-		}
-		return output
+				return output
+			})
 	}
 
 	/*
-	 * Finds the callers of a function whose name is at the position given. Should be called on navigate, return, save.
+	 * Finds all the symbols referenced within the code string `contents`.
 	 * @param contents  The contents of the pseudo-file to find calls in.
 	 * @returns    An array of SymbolInformation objects with ranges that enclose the definitions of functions being called in the given function.
 	 */
-	findCallees(contents: string): lsp.SymbolInformation[] {
-		// TODO(urgent): rewrite to use contents to create pseudo-file and ask completions
+	findCallees(contents: string): Promise<lsp.SymbolInformation[]> {
+		// const acceptableKinds: lsp.SymbolKind[] = []
 
-		// assuming the function is in its own pseudo-file denoted by uri
-		const output = []
-		const acceptableKinds: number[] = [1, 2] // add whatever kinds we want
+		return this.client.getDocumentCompletions(contents, "python")
+			.then((result: lsp.CompletionList | lsp.CompletionItem[]) => {
+				const completions = ("items" in result) ? result.items : result
 
-		const request: lsp.CompletionParams = {
-		  textDocument: doc,
-		  position: { line: 0, character: 0 }, // TODO
-		}
+				const output: lsp.SymbolInformation[] = []
 
-		/* request textDocument/completion with cursor at empty location, receive completionItem[] */
-		const result: lsp.CompletionItem[] = [
-			{ label: "class1", kind: 1 },
-			{ label: "func1", kind: 2 },
-			{ label: "var1", kind: 3 },
-		]
+				// for each completion received, find matching location
+				for (const completion of completions) {
+					if (completion.kind === undefined) { continue }
+					const kind = completionItemKindToSymbolKind(completion.kind)
+					if (kind === null) { continue }
 
-		// for each completion received, find matching location
-		for (const completion of result) {
-			if (acceptableKinds.indexOf(completion.kind) >= 0) {
-				// find completion's definition range
-				const testSymKey: string = this.encodeSymKey(completion.label, completion.kind, doc.uri)
-				const desiredInfo: lsp.SymbolInformation = this.symToInfo[testSymKey]
-				// if not found, ignore it
-				if (desiredInfo) {
-					output.push(desiredInfo)
+					// find completion's definition range
+					const symModule = "" // TODO: when multiple modules exist we may need (completion.detail?)
+					const testSymKey: string = this.encodeSymKey(completion.label, kind, symModule)
+					const desiredInfo: lsp.SymbolInformation = this.symToInfo[testSymKey]
+					// if not found, ignore it
+					if (desiredInfo) {
+						output.push(desiredInfo)
+					}
 				}
-			}
-		}
 
-		return output
+				return output
+			})
+	}
+
+	findCachedMain(): lsp.SymbolInformation | null {
+		const symModule = "" // TODO: when multiple modules exist we may need
+		const key = this.encodeSymKey("main", lsp.SymbolKind.Function, symModule)
+		return this.symToInfo[key] || null
 	}
 }
 

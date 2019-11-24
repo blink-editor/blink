@@ -2,6 +2,7 @@ import * as net from "net"
 import * as rpc from "vscode-jsonrpc"
 import * as lsp from "vscode-languageserver-protocol"
 import * as events from "events"
+import { clientCapabilities } from "./client-capabilities"
 
 export class ConsoleLogger implements rpc.Logger, rpc.Tracer {
 	error(message: string) {
@@ -111,6 +112,10 @@ export interface LspClient {
 	 * Does the server support find all references?
 	 */
 	isReferencesSupported(): boolean;
+
+	// TODO: refactor
+	getDocumentCompletions(contents: string, languageId: string): Promise<lsp.CompletionList | lsp.CompletionItem[] | null>
+	getReferencesWithRequest(request: lsp.ReferenceParams): Thenable<lsp.Location[] | null>
 }
 
 export interface Position {
@@ -209,7 +214,10 @@ export interface DocumentInfo {
 	languageId: string
 	documentUri: string
 	documentText: (() => string)
-	rootUri: string
+	/**
+	 * The rootUri of the workspace. Is null if no folder is open.
+	 */
+	rootUri: string | null
 }
 
 export class LspClientImpl extends events.EventEmitter implements LspClient {
@@ -290,7 +298,9 @@ export class LspClientImpl extends events.EventEmitter implements LspClient {
 			this.emit("error", e)
 		})
 
-		this.connection.trace(rpc.Trace.Verbose, logger)
+		if (logger !== undefined) {
+			this.connection.trace(rpc.Trace.Verbose, logger)
+		}
 	}
 
 	public initialize() {
@@ -306,80 +316,18 @@ export class LspClientImpl extends events.EventEmitter implements LspClient {
 	}
 
 	public sendInitialize() {
-		interface IFilesServerClientCapabilities {
-			/* ... all fields from the base ClientCapabilities ... */
-
-			/**
-			 * The client provides support for workspace/xfiles.
-			 */
-			xfilesProvider?: boolean
-			/**
-			 * The client provides support for textDocument/xcontent.
-			 */
-			xcontentProvider?: boolean
-		}
-
-		type ExtendedClientCapabilities = lsp.ClientCapabilities & IFilesServerClientCapabilities
 
 		const message: lsp.InitializeParams = {
-			capabilities: {
-				textDocument: {
-					hover: {
-						dynamicRegistration: true,
-						contentFormat: ["plaintext", "markdown"],
-					},
-					synchronization: {
-						dynamicRegistration: true,
-						willSave: false,
-						didSave: false,
-						willSaveWaitUntil: false,
-					},
-					completion: {
-						dynamicRegistration: true,
-						completionItem: {
-							snippetSupport: false,
-							commitCharactersSupport: true,
-							documentationFormat: ["plaintext", "markdown"],
-							deprecatedSupport: false,
-							preselectSupport: false,
-						},
-						contextSupport: false,
-					},
-					signatureHelp: {
-						dynamicRegistration: true,
-						signatureInformation: {
-							documentationFormat: ["plaintext", "markdown"],
-						},
-					},
-					declaration: {
-						dynamicRegistration: true,
-						linkSupport: true,
-					},
-					definition: {
-						dynamicRegistration: true,
-						linkSupport: true,
-					},
-					typeDefinition: {
-						dynamicRegistration: true,
-						linkSupport: true,
-					},
-					implementation: {
-						dynamicRegistration: true,
-						linkSupport: true,
-					},
-				} as ExtendedClientCapabilities,
-				workspace: {
-					didChangeConfiguration: {
-						dynamicRegistration: true,
-					},
-				} as lsp.WorkspaceClientCapabilities,
-				// xfilesProvider: true,
-				// xcontentProvider: true,
-			} as lsp.ClientCapabilities,
+			capabilities: clientCapabilities,
+			// clientInfo: {
+			// 	name: "blink",
+			// 	version: "0.0.1",
+			// },
 			initializationOptions: null,
 			processId: null,
 			rootUri: this.documentInfo.rootUri,
 			workspaceFolders: null,
+			trace: "off",
 		}
 
 		this.connection.sendRequest("initialize", message).then((params: lsp.InitializeResult) => {
@@ -516,6 +464,7 @@ export class LspClientImpl extends events.EventEmitter implements LspClient {
 
 		if (
 			this.serverCapabilities.signatureHelpProvider &&
+			this.serverCapabilities.signatureHelpProvider.triggerCharacters &&
 			!this.serverCapabilities.signatureHelpProvider.triggerCharacters.indexOf(typedCharacter)
 		) {
 			// Not a signature character
@@ -651,12 +600,70 @@ export class LspClientImpl extends events.EventEmitter implements LspClient {
 		})
 	}
 
+	private sendOpenDocument(params: lsp.DidOpenTextDocumentParams): Promise<void> {
+		this.connection.sendNotification("textDocument/didOpen", params)
+		return Promise.resolve()
+	}
+
+	private sendCloseDocument(params: lsp.DidCloseTextDocumentParams): Promise<void> {
+		this.connection.sendNotification("textDocument/didClose", params)
+		return Promise.resolve()
+	}
+
+	public getDocumentCompletions(contents: string, languageId: string): Promise<lsp.CompletionList | lsp.CompletionItem[] | null> {
+		const uri = "untitled:///temp-" + Date.now() // TODO
+
+		// TODO
+		const lineno = contents.split("\n").length
+		const colno = 10
+		const text = contents + "\n locals()."
+
+		const openParams: lsp.DidOpenTextDocumentParams = {
+			textDocument: {
+				uri: uri,
+				languageId: languageId,
+				text: text,
+				version: 0,
+			} as lsp.TextDocumentItem,
+		}
+
+		const completionParams: lsp.CompletionParams = {
+			textDocument: {
+				uri: uri
+			},
+			position: {
+				line: lineno,
+				character: colno,
+			},
+			context: {
+				triggerKind: lsp.CompletionTriggerKind.Invoked
+			}
+		}
+
+		const closeParams: lsp.DidCloseTextDocumentParams = {
+			textDocument: {
+				uri: uri
+			}
+		}
+
+		return this.sendOpenDocument(openParams)
+			.then(() => this.connection.sendRequest("textDocument/completion", completionParams))
+			.then((response: lsp.CompletionList | lsp.CompletionItem[] | null) => {
+				return this.sendCloseDocument(closeParams)
+					.then(() => Promise.resolve(response))
+			})
+	}
+
+	public getReferencesWithRequest(request: lsp.ReferenceParams): Thenable<lsp.Location[] | null> {
+		return this.connection.sendRequest("textDocument/references", request)
+	}
+
 	/**
 	 * The characters that trigger completion automatically.
 	 */
 	public getLanguageCompletionCharacters(): string[] {
 		if (!this.isInitialized) {
-			return
+			return []
 		}
 		if (!(
 			this.serverCapabilities &&
@@ -673,7 +680,7 @@ export class LspClientImpl extends events.EventEmitter implements LspClient {
 	 */
 	public getLanguageSignatureCharacters(): string[] {
 		if (!this.isInitialized) {
-			return
+			return []
 		}
 		if (!(
 			this.serverCapabilities &&

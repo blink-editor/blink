@@ -165,8 +165,8 @@ export class CodeMirrorAdapter extends IEditorAdapter<CodeMirror.Editor> {
 	public connection: LspClient;
 	public navObject: NavObject;
 
-	private hoverMarker: CodeMirror.TextMarker;
-	private signatureWidget: CodeMirror.LineWidget;
+	private hoverMarker?: CodeMirror.TextMarker;
+	private signatureWidget?: CodeMirror.LineWidget;
 	private token: TokenInfo;
 	private markedDiagnostics: CodeMirror.TextMarker[] = [];
 	private highlightMarkers: CodeMirror.TextMarker[] = [];
@@ -411,7 +411,7 @@ export class CodeMirrorAdapter extends IEditorAdapter<CodeMirror.Editor> {
 		}
 
 		const documentUri = this.connection.getDocumentUri();
-		let scrollTo: Position;
+		let scrollTo: Position | null = null;
 
 		if (lsp.Location.is(location)) {
 			if (location.uri !== documentUri) {
@@ -438,7 +438,10 @@ export class CodeMirrorAdapter extends IEditorAdapter<CodeMirror.Editor> {
 				ch: locations[0].targetRange.start.character,
 			};
 		}
-		this.editor.scrollIntoView(scrollTo);
+
+		if (scrollTo !== null) {
+			this.editor.scrollIntoView(scrollTo)
+		}
 	}
 
 	public remove() {
@@ -564,8 +567,8 @@ export class CodeMirrorAdapter extends IEditorAdapter<CodeMirror.Editor> {
 	private _isEventInsideVisible(ev: MouseEvent) {
 		// Only handle mouseovers inside CodeMirror's bounding box
 		let isInsideSizer = false;
-		let target: HTMLElement = ev.target as HTMLElement;
-		while (target !== document.body) {
+		let target: HTMLElement | null = ev.target as HTMLElement;
+		while (target && target !== document.body) {
 			if (target.classList.contains('CodeMirror-sizer')) {
 				isInsideSizer = true;
 				break;
@@ -650,9 +653,9 @@ export class CodeMirrorAdapter extends IEditorAdapter<CodeMirror.Editor> {
 
 	private _handleClickOutside(ev: MouseEvent) {
 		if (this.isShowingContextMenu) {
-			let target: HTMLElement = ev.target as HTMLElement;
+			let target: HTMLElement | null = ev.target as HTMLElement;
 			let isInside = false;
-			while (target !== document.body) {
+			while (target && target !== document.body) {
 				if (target.classList.contains('CodeMirror-lsp-tooltip')) {
 					isInside = true;
 					break;
@@ -705,7 +708,7 @@ export class CodeMirrorAdapter extends IEditorAdapter<CodeMirror.Editor> {
 	private _removeSignatureWidget() {
 		if (this.signatureWidget) {
 			this.signatureWidget.clear();
-			this.signatureWidget = null;
+			this.signatureWidget = undefined;
 		}
 		if (this.tooltip) {
 			this._removeTooltip();
@@ -715,7 +718,7 @@ export class CodeMirrorAdapter extends IEditorAdapter<CodeMirror.Editor> {
 	private _removeHover() {
 		if (this.hoverMarker) {
 			this.hoverMarker.clear();
-			this.hoverMarker = null;
+			this.hoverMarker = undefined;
 		}
 	}
 
