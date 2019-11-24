@@ -58,7 +58,8 @@ export class NavObject {
 	 * @returns     A string that can be used as a unique key.
 	 */
 	encodeSymKey(name: string, kind: lsp.SymbolKind, uri: string) {
-		return JSON.stringify([name, kind, uri])
+		// TODO: use kind and uri when building key
+		return JSON.stringify([name, 0, ""])
 	}
 
 	/*
@@ -135,9 +136,9 @@ export class NavObject {
 	findCallees(contents: string): Promise<lsp.SymbolInformation[]> {
 		// const acceptableKinds: lsp.SymbolKind[] = []
 
-		return this.client.getDocumentCompletions(contents, "python")
-			.then((result: lsp.CompletionList | lsp.CompletionItem[]) => {
-				const completions = ("items" in result) ? result.items : result
+		return this.client.getUsedDocumentSymbols(contents, "python")
+			.then((result: lsp.CompletionItem[] | null) => {
+				const completions = (result) ? result : []
 
 				const output: lsp.SymbolInformation[] = []
 
@@ -156,6 +157,8 @@ export class NavObject {
 						output.push(desiredInfo)
 					}
 				}
+
+				console.log("piece of shit", result)
 
 				return output
 			})

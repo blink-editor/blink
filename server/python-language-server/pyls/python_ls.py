@@ -235,6 +235,9 @@ class PythonLanguageServer(MethodDispatcher):
     def document_symbols(self, doc_uri):
         return flatten(self._hook('pyls_document_symbols', doc_uri))
 
+    def used_document_symbols(self, doc_uri):
+        return flatten(self._hook('pyls_used_document_symbols', doc_uri))
+
     def execute_command(self, command, arguments):
         return self._hook('pyls_execute_command', command=command, arguments=arguments)
 
@@ -315,6 +318,9 @@ class PythonLanguageServer(MethodDispatcher):
 
     def m_text_document__document_symbol(self, textDocument=None, **_kwargs):
         return self.document_symbols(textDocument['uri'])
+
+    def m_text_document__used_document_symbol(self, textDocument=None, **_kwargs):
+        return self.used_document_symbols(textDocument['uri'])
 
     def m_text_document__formatting(self, textDocument=None, _options=None, **_kwargs):
         # For now we're ignoring formatting options.

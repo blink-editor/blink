@@ -114,7 +114,7 @@ export interface LspClient {
 	isReferencesSupported(): boolean;
 
 	// TODO: refactor
-	getDocumentCompletions(contents: string, languageId: string): Promise<lsp.CompletionList | lsp.CompletionItem[] | null>
+	getUsedDocumentSymbols(contents: string, languageId: string): Promise<lsp.CompletionItem[] | null>
 	getReferencesWithRequest(request: lsp.ReferenceParams): Thenable<lsp.Location[] | null>
 }
 
@@ -610,7 +610,7 @@ export class LspClientImpl extends events.EventEmitter implements LspClient {
 		return Promise.resolve()
 	}
 
-	public getDocumentCompletions(contents: string, languageId: string): Promise<lsp.CompletionList | lsp.CompletionItem[] | null> {
+	public getUsedDocumentSymbols(contents: string, languageId: string): Promise<lsp.CompletionItem[] | null> {
 		const uri = "untitled:///temp-" + Date.now() // TODO
 
 		// TODO
@@ -627,17 +627,10 @@ export class LspClientImpl extends events.EventEmitter implements LspClient {
 			} as lsp.TextDocumentItem,
 		}
 
-		const completionParams: lsp.CompletionParams = {
+		const symbolParams: lsp.DocumentSymbolParams = {
 			textDocument: {
 				uri: uri
 			},
-			position: {
-				line: lineno,
-				character: colno,
-			},
-			context: {
-				triggerKind: lsp.CompletionTriggerKind.Invoked
-			}
 		}
 
 		const closeParams: lsp.DidCloseTextDocumentParams = {
@@ -647,8 +640,8 @@ export class LspClientImpl extends events.EventEmitter implements LspClient {
 		}
 
 		return this.sendOpenDocument(openParams)
-			.then(() => this.connection.sendRequest("textDocument/completion", completionParams))
-			.then((response: lsp.CompletionList | lsp.CompletionItem[] | null) => {
+			.then(() => this.connection.sendRequest("textDocument/usedDocumentSymbol", symbolParams))
+			.then((response: lsp.CompletionItem[] | null) => {
 				return this.sendCloseDocument(closeParams)
 					.then(() => Promise.resolve(response))
 			})
