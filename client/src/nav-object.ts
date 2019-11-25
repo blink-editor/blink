@@ -103,17 +103,20 @@ export class NavObject {
 				const output: lsp.SymbolInformation[] = []
 
 				// for each reference recieved, find parent scope
-				for (const currRef of locations) {
+				for (const receivedRef of locations) {
+					let receivedRange: lsp.Range = receivedRef.range
 					let bestScore: number | null = null
 					let bestKey: string | null = null
 
 					// search for tightest enclosing scope for this reference
 					for (const key in this.symToInfo) {
-						const currRange = this.symToInfo[key].location.range
-						// if currRange within refRange and holds a tighter line bound than best
-						if (currRange.start.line <= currRef.range.start.line && currRange.end.line >= currRef.range.end.line
-							&& (bestScore === null || currRange.end.line - currRange.start.line < bestScore)) {
-								bestScore = currRange.end.line - currRange.start.line
+						const cachedRange = this.symToInfo[key].location.range
+						// if currRange is entirely within refRange and holds a tighter line bound than the best so far, it is new best
+						if (((cachedRange.start.line <= receivedRange.start.line && cachedRange.end.line >= receivedRange.end.line)
+								  || ((cachedRange.start.line === receivedRange.start.line && cachedRange.start.character <=receivedRange.start.character)
+								      && (cachedRange.end.line === receivedRange.end.line && cachedRange.end.character >= receivedRange.end.character)))
+							  && (bestScore === null || cachedRange.end.line - cachedRange.start.line < bestScore)) {
+								bestScore = cachedRange.end.line - cachedRange.start.line
 								bestKey = key
 						}
 					}
