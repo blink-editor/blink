@@ -134,8 +134,6 @@ export class NavObject {
 	 * @returns    An array of SymbolInformation objects with ranges that enclose the definitions of functions being called in the given function.
 	 */
 	findCallees(contents: string): Promise<lsp.SymbolInformation[]> {
-		// const acceptableKinds: lsp.SymbolKind[] = []
-
 		return this.client.getUsedDocumentSymbols(contents, "python")
 			.then((result: lsp.CompletionItem[] | null) => {
 				const completions = (result) ? result : []
@@ -157,8 +155,6 @@ export class NavObject {
 						output.push(desiredInfo)
 					}
 				}
-
-				console.log("piece of shit", result)
 
 				return output
 			})

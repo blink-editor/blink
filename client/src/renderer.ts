@@ -143,10 +143,6 @@ class Editor {
 	}
 
 	swapToSymbol(symbol) {
-		console.log("BEFORE:", this.activeFunctionName)
-		console.log("BEFORE:", this.calleesOfActive)
-		console.log("BEFORE:", this.callersOfActive)
-
 		// fetch new callees
 		const contents = extractRangeOfFile(symbol.location.range)
 		const callees = (window as any).FindCallees(contents)
@@ -166,10 +162,6 @@ class Editor {
 				// new callers/callees are fetched ones
 				this.calleesOfActive = callees
 				this.callersOfActive = callers
-
-				console.log("AFTER:", this.activeFunctionName)
-				console.log("AFTER:", this.calleesOfActive)
-				console.log("AFTER:", this.callersOfActive)
 
 				// populate panes
 				this.activeEditorPane.setValue(contents)
