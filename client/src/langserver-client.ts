@@ -25,6 +25,7 @@ export class ConsoleLogger implements rpc.Logger, rpc.Tracer {
 //documentSymbol
 export interface LspClient {
 	initialize(): void
+
 	on(event: "documentSymbol", callback: (symbols: lsp.DocumentSymbol[] | lsp.SymbolInformation[]) => void): void
 	on(event: "completion", callback: (items: lsp.CompletionItem[]) => void): void
 	on(event: "completionResolved", callback: (item: lsp.CompletionItem) => void): void
@@ -91,27 +92,27 @@ export interface LspClient {
 	getReferences(position: Position, includeDeclaration: boolean): void
 	getReferences(position: Position): void
 
-	getLanguageCompletionCharacters(): string[];
-	getLanguageSignatureCharacters(): string[];
+	getLanguageCompletionCharacters(): string[]
+	getLanguageSignatureCharacters(): string[]
 
-	getDocumentUri(): string;
+	getDocumentUri(): string
 
 	/**
 	 * Does the server support go to definition?
 	 */
-	isDefinitionSupported(): boolean;
+	isDefinitionSupported(): boolean
 	/**
 	 * Does the server support go to type definition?
 	 */
-	isTypeDefinitionSupported(): boolean;
+	isTypeDefinitionSupported(): boolean
 	/**
 	 * Does the server support go to implementation?
 	 */
-	isImplementationSupported(): boolean;
+	isImplementationSupported(): boolean
 	/**
 	 * Does the server support find all references?
 	 */
-	isReferencesSupported(): boolean;
+	isReferencesSupported(): boolean
 
 	// TODO: refactor
 	getUsedDocumentSymbols(contents: string, languageId: string): Promise<lsp.CompletionItem[] | null>
