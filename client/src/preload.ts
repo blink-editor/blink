@@ -23,7 +23,7 @@ let adapter: CodeMirrorAdapter
 	client.createTcpRpcConnection("localhost", 2087, (connection) => {
 		const documentInfo: client.DocumentInfo = {
 			languageId: "python",
-			documentUri: "file:///untitled",
+			documentUri: "untitled:///file",
 			rootUri: null,
 			documentText: () => fileText
 		}
