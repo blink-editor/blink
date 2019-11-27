@@ -4,7 +4,7 @@
 import debounce from "lodash.debounce"
 import * as lsp from "vscode-languageserver-protocol"
 import { Location, LocationLink, MarkupContent } from "vscode-languageserver-protocol"
-import { LspClient, Position, TokenInfo } from "./langserver-client"
+import { LspClient } from "./langserver-client"
 import { NavObject } from "./nav-object"
 
 interface IScreenCoord {
@@ -123,6 +123,12 @@ export interface ITextEditorOptions {
   formatOnPaste?: boolean
 }
 
+interface TokenInfo {
+	start: CodeMirror.Position
+	end: CodeMirror.Position
+	text: string
+}
+
 /**
  * An adapter is responsible for connecting a particular text editor with a LSP connection
  * and will send messages over the connection and display responses in the editor
@@ -170,13 +176,19 @@ export class CodeMirrorAdapter extends IEditorAdapter<CodeMirror.Editor> {
 	private token: TokenInfo
 	private markedDiagnostics: CodeMirror.TextMarker[] = []
 	private highlightMarkers: CodeMirror.TextMarker[] = []
-	private hoverCharacter: Position
-	private debouncedGetHover: (position: Position) => void
+	private hoverCharacter: CodeMirror.Position
+	private debouncedGetHover: (position: CodeMirror.Position) => void
 	private connectionListeners: { [key: string]: () => void } = {}
 	private editorListeners: { [key: string]: () => void } = {}
 	private documentListeners: { [key: string]: () => void } = {}
 	private tooltip: HTMLElement
 	private isShowingContextMenu: boolean = false
+
+	// TODO: refactor
+	public onChange: (text: string) => string
+	public getLineOffset: () => number
+	public wholeFileText: string
+	public onReanalyze: () => void
 
 	constructor(connection: LspClient, options: ITextEditorOptions, editor: CodeMirror.Editor) {
 		super(connection, options, editor)
@@ -185,11 +197,25 @@ export class CodeMirrorAdapter extends IEditorAdapter<CodeMirror.Editor> {
 		this.editor = editor
 		this.navObject = new NavObject(connection)
 
-		this.debouncedGetHover = debounce((position: Position) => {
-			this.connection.getHoverTooltip(position)
+		this.debouncedGetHover = debounce((position: CodeMirror.Position) => {
+			this.connection.getHoverTooltip(this._docPositionToLsp(position))
 		}, this.options.quickSuggestionsDelay)
 
 		this._addListeners()
+	}
+
+	private _docPositionToLsp(pos: CodeMirror.Position): lsp.Position {
+		return {
+			line: pos.line + this.getLineOffset(),
+			character: pos.ch,
+		}
+	}
+
+	private _lspPositionToDoc(pos: lsp.Position): CodeMirror.Position {
+		return {
+			line: pos.line - this.getLineOffset(),
+			ch: pos.character,
+		}
 	}
 
 	public handleMouseOver(ev: MouseEvent) {
@@ -197,7 +223,7 @@ export class CodeMirrorAdapter extends IEditorAdapter<CodeMirror.Editor> {
 			return
 		}
 
-		const docPosition: Position = this.editor.coordsChar({
+		const docPosition: CodeMirror.Position = this.editor.coordsChar({
 			left: ev.clientX,
 			top: ev.clientY,
 		}, "window")
@@ -212,65 +238,57 @@ export class CodeMirrorAdapter extends IEditorAdapter<CodeMirror.Editor> {
 		}
 	}
 
-	public handleEnter(cm: CodeMirror.Editor, change: CodeMirror.EditorChange){
-		//console.log("in it")
-	}
-
 	public handleChange(cm: CodeMirror.Editor, change: CodeMirror.EditorChange) {
-		const location = this.editor.getDoc().getCursor("end")
-		this.connection.sendChange()
+		// call the onChange method to get the whole file
+		const editorCode = this.editor.getValue()
+		const lspCode = this.onChange(editorCode)
+		this.wholeFileText = lspCode
+
+		// send the change to the server so it's up to date
+		this.connection.sendChange({ text: lspCode })
+
+		const editorLocation = this.editor.getDoc().getCursor("end")
+		const lspLocation: lsp.Position = this._docPositionToLsp(editorLocation)
+
+		const editorLines = editorCode.split("\n")
+		const editorLine = editorLines[editorLocation.line]
+		const typedCharacter = editorLine[editorLocation.ch - 1]
 
 		const completionCharacters = this.connection.getLanguageCompletionCharacters()
 		const signatureCharacters = this.connection.getLanguageSignatureCharacters()
-
-		const code = this.editor.getDoc().getValue()
-
-		const lines = code.split("\n")
-		const line = lines[location.line]
-		const typedCharacter = line[location.ch - 1]
-
-		// if user enters a new line or removes all text from a line --> call getDocumentSymbol
-		let newLineOrClearLine = new RegExp("^[ \t\n\r]*$")
-		if(newLineOrClearLine.test(line)){
-			this.connection.getDocumentSymbol()
-		}
 
 		if (typeof typedCharacter === "undefined") {
 			// Line was cleared
 			this._removeSignatureWidget()
 		} else if (completionCharacters.indexOf(typedCharacter) > -1) {
-			this.token = this._getTokenEndingAtPosition(code, location, completionCharacters)
+			this.token = this._getTokenEndingAtPosition(editorCode, editorLocation, completionCharacters)
 			this.connection.getCompletion(
-				location,
-				this.token,
+				lspLocation,
 				completionCharacters.find((c) => c === typedCharacter),
 				lsp.CompletionTriggerKind.TriggerCharacter,
 			)
 		} else if (signatureCharacters.indexOf(typedCharacter) > -1) {
-			this.token = this._getTokenEndingAtPosition(code, location, signatureCharacters)
-			this.connection.getSignatureHelp(location)
+			this.token = this._getTokenEndingAtPosition(editorCode, editorLocation, signatureCharacters)
+			this.connection.getSignatureHelp(lspLocation)
 		} else if (!/\W/.test(typedCharacter)) {
 			this.connection.getCompletion(
-				location,
-				this.token,
-				",
+				lspLocation,
+				"",
 				lsp.CompletionTriggerKind.Invoked,
 			)
-			this.token = this._getTokenEndingAtPosition(code, location, completionCharacters.concat(signatureCharacters))
+			this.token = this._getTokenEndingAtPosition(editorCode, editorLocation, completionCharacters.concat(signatureCharacters))
 		} else {
 			this._removeSignatureWidget()
 		}
 	}
 
-
-/**
- * Handles all Document Symbol Requests from server.
- * textDocument/documentSymbol
- * @param  response DocumentSymbol: Information of all symbols in the given file.
- * @return          void
- */
+	/**
+	 * Handles all Document Symbol responses from server.
+	 * textDocument/documentSymbol
+	 * @param  response DocumentSymbol: Information of all symbols in the given file.
+	 * @return          void
+	 */
 	public handleDocumentSymbol(response: lsp.DocumentSymbol) {
-		console.log(response)
 		// Note: This is where the depencency graph will gets its data...
 	}
 
@@ -282,17 +300,12 @@ export class CodeMirrorAdapter extends IEditorAdapter<CodeMirror.Editor> {
 			return
 		}
 
-		let start = this.hoverCharacter
-		let end = this.hoverCharacter
+		let start: CodeMirror.Position = this.hoverCharacter
+		let end: CodeMirror.Position = this.hoverCharacter
+
 		if (response.range) {
-			start = {
-				line: response.range.start.line,
-				ch: response.range.start.character,
-			} as CodeMirror.Position
-			end = {
-				line: response.range.end.line,
-				ch: response.range.end.character,
-			} as CodeMirror.Position
+			start = this._lspPositionToDoc(response.range.start)
+			end = this._lspPositionToDoc(response.range.end)
 
 			this.hoverMarker = this.editor.getDoc().markText(start, end, {
 				css: "text-decoration: underline",
@@ -362,14 +375,8 @@ export class CodeMirrorAdapter extends IEditorAdapter<CodeMirror.Editor> {
 		})
 		this.markedDiagnostics = []
 		response.diagnostics.forEach((diagnostic: lsp.Diagnostic) => {
-			const start = {
-				line: diagnostic.range.start.line,
-				ch: diagnostic.range.start.character,
-			} as CodeMirror.Position
-			const end = {
-				line: diagnostic.range.end.line,
-				ch: diagnostic.range.end.character,
-			} as CodeMirror.Position
+			const start = this._lspPositionToDoc(diagnostic.range.start)
+			const end = this._lspPositionToDoc(diagnostic.range.end)
 
 			this.markedDiagnostics.push(this.editor.getDoc().markText(start, end, {
 				title: diagnostic.message,
@@ -403,7 +410,7 @@ export class CodeMirrorAdapter extends IEditorAdapter<CodeMirror.Editor> {
 		})
 	}
 
-	public handleGoTo(location: Location | Location[] | LocationLink[] | null) {
+	public handleGoTo(location: lsp.Location | lsp.Location[] | lsp.LocationLink[] | null) {
 		this._removeTooltip()
 
 		if (!location) {
@@ -411,37 +418,41 @@ export class CodeMirrorAdapter extends IEditorAdapter<CodeMirror.Editor> {
 		}
 
 		const documentUri = this.connection.getDocumentUri()
-		let scrollTo: Position | null = null
+		let scrollTo: CodeMirror.Position | null = null
 
 		if (lsp.Location.is(location)) {
 			if (location.uri !== documentUri) {
 				return
 			}
 			this._highlightRanges([location.range])
-			scrollTo = {
-				line: location.range.start.line,
-				ch: location.range.start.character,
-			}
+			scrollTo = this._lspPositionToDoc(location.range.start)
+			this.editor.setCursor(scrollTo)
 		} else if ((location as any[]).every((l) => lsp.Location.is(l))) {
-			const locations = (location as Location[]).filter((l) => l.uri === documentUri)
+			const locations = (location as lsp.Location[]).filter((l) => l.uri === documentUri)
 
 			this._highlightRanges(locations.map((l) => l.range))
-			scrollTo = {
-				line: locations[0].range.start.line,
-				ch: locations[0].range.start.character,
-			}
+			scrollTo = this._lspPositionToDoc(locations[0].range.start)
 		} else if ((location as any[]).every((l) => lsp.LocationLink.is(l))) {
-			const locations = (location as LocationLink[]).filter((l) => l.targetUri === documentUri)
+			const locations = (location as lsp.LocationLink[]).filter((l) => l.targetUri === documentUri)
 			this._highlightRanges(locations.map((l) => l.targetRange))
-			scrollTo = {
-				line: locations[0].targetRange.start.line,
-				ch: locations[0].targetRange.start.character,
-			}
+			scrollTo = this._lspPositionToDoc(locations[0].targetRange.start)
 		}
 
 		if (scrollTo !== null) {
 			this.editor.scrollIntoView(scrollTo)
 		}
+	}
+
+	public reanalyze() {
+		// create a once-listener for documentSymbol completion
+		const listener = () => {
+			this.connection.off("documentSymbol", listener)
+
+			this.onReanalyze()
+		}
+		this.connection.on("documentSymbol", listener)
+
+		this.connection.getDocumentSymbol()
 	}
 
 	public remove() {
@@ -451,7 +462,6 @@ export class CodeMirrorAdapter extends IEditorAdapter<CodeMirror.Editor> {
 		// Show-hint addon doesn't remove itself. This could remove other uses in the project
 		document.querySelectorAll(".CodeMirror-hints").forEach((e) => e.remove())
 		this.editor.off("change", this.editorListeners.change)
-		this.editor.off("enter", this.editorListeners.enter)
 		this.editor.off("cursorActivity", this.editorListeners.cursorActivity)
 		this.editor.off("cursorActivity", this.editorListeners.cursorActivity)
 		this.editor.getWrapperElement().removeEventListener("mousemove", this.editorListeners.mouseover)
@@ -468,11 +478,6 @@ export class CodeMirrorAdapter extends IEditorAdapter<CodeMirror.Editor> {
 		const changeListener = debounce(this.handleChange.bind(this), this.options.debounceSuggestionsWhileTyping)
 		this.editor.on("change", changeListener)
 		this.editorListeners.change = changeListener
-
-		//This is not correct yet
-		const enterListener = debounce(this.handleEnter.bind(this), this.options.acceptSuggestionOnEnter)
-		this.editor.on("enter", enterListener)
-		this.editorListeners.enter = enterListener
 
 		const self = this
 		this.connectionListeners = {
@@ -494,7 +499,8 @@ export class CodeMirrorAdapter extends IEditorAdapter<CodeMirror.Editor> {
 		this.editorListeners.mouseover = mouseOverListener
 
 		const debouncedCursor = debounce(() => {
-			this.connection.getDocumentHighlights(this.editor.getDoc().getCursor("start"))
+			const pos = this._docPositionToLsp(this.editor.getDoc().getCursor("start"))
+			return this.connection.getDocumentHighlights(pos)
 		}, this.options.quickSuggestionsDelay)
 
 		const rightClickHandler = this._handleRightClick.bind(this)
@@ -509,7 +515,7 @@ export class CodeMirrorAdapter extends IEditorAdapter<CodeMirror.Editor> {
 		this.documentListeners.clickOutside = clickOutsideListener
 	}
 
-	private _getTokenEndingAtPosition(code: string, location: Position, splitCharacters: string[]): TokenInfo {
+	private _getTokenEndingAtPosition(code: string, location: CodeMirror.Position, splitCharacters: string[]): TokenInfo {
 		const lines = code.split("\n")
 		const line = lines[location.line]
 		const typedCharacter = line[location.ch - 1]
@@ -580,7 +586,7 @@ export class CodeMirrorAdapter extends IEditorAdapter<CodeMirror.Editor> {
 	}
 
 	private _isEventOnCharacter(ev: MouseEvent) {
-		const docPosition: Position = this.editor.coordsChar({
+		const docPosition: CodeMirror.Position = this.editor.coordsChar({
 			left: ev.clientX,
 			top: ev.clientY,
 		}, "window")
@@ -592,55 +598,39 @@ export class CodeMirrorAdapter extends IEditorAdapter<CodeMirror.Editor> {
 	}
 
 	private _handleRightClick(ev: MouseEvent) {
-		if (!this._isEventInsideVisible(ev) || !this._isEventOnCharacter(ev)) {
-			return
+		const docPosition: CodeMirror.Position = this.editor.coordsChar({
+			left: ev.clientX,
+			top: ev.clientY,
+		}, "window")
+
+		const entries: HTMLElement[] = [
+			this.reanalyzeContextEntry()
+		]
+
+		if (this._isEventInsideVisible(ev) && this._isEventOnCharacter(ev)) {
+			if (this.connection.isDefinitionSupported()) {
+				entries.push(this.definitionContextEntry(docPosition))
+			}
+
+			if (this.connection.isTypeDefinitionSupported()) {
+				entries.push(this.typeDefinitionContextEntry(docPosition))
+			}
+
+			if (this.connection.isReferencesSupported()) {
+				entries.push(this.referencesContextEntry(docPosition))
+			}
 		}
 
-		if (
-			!this.connection.isDefinitionSupported() &&
-			!this.connection.isTypeDefinitionSupported() &&
-			!this.connection.isReferencesSupported() &&
-			!this.connection.isImplementationSupported()
-		) {
+		if (entries.length === 0) {
 			return
 		}
 
 		ev.preventDefault()
 
-		const docPosition: Position = this.editor.coordsChar({
-			left: ev.clientX,
-			top: ev.clientY,
-		}, "window")
-
 		const htmlElement = document.createElement("div")
 		htmlElement.classList.add("CodeMirror-lsp-context")
 
-		if (this.connection.isDefinitionSupported()) {
-			const goToDefinition = document.createElement("div")
-			goToDefinition.innerText = "Go to Definition"
-			goToDefinition.addEventListener("click", () => {
-				this.connection.getDefinition(docPosition)
-			})
-			htmlElement.appendChild(goToDefinition)
-		}
-
-		if (this.connection.isTypeDefinitionSupported()) {
-			const goToTypeDefinition = document.createElement("div")
-			goToTypeDefinition.innerText = "Go to Type Definition"
-			goToTypeDefinition.addEventListener("click", () => {
-				this.connection.getTypeDefinition(docPosition)
-			})
-			htmlElement.appendChild(goToTypeDefinition)
-		}
-
-		if (this.connection.isReferencesSupported()) {
-			const getReferences = document.createElement("div")
-			getReferences.innerText = "Find all References"
-			getReferences.addEventListener("click", () => {
-				this.connection.getReferences(docPosition)
-			})
-			htmlElement.appendChild(getReferences)
-		}
+		entries.forEach(htmlElement.appendChild.bind(htmlElement))
 
 		const coords = this.editor.charCoords(docPosition, "page")
 		this._showTooltip(htmlElement, {
@@ -649,6 +639,42 @@ export class CodeMirrorAdapter extends IEditorAdapter<CodeMirror.Editor> {
 		})
 
 		this.isShowingContextMenu = true
+	}
+
+	private reanalyzeContextEntry(): HTMLDivElement {
+		const reanalyze = document.createElement("div")
+		reanalyze.innerText = "Reanalzye"
+		reanalyze.addEventListener("click", () => {
+			this.reanalyze()
+		})
+		return reanalyze
+	}
+
+	private definitionContextEntry(docPosition: CodeMirror.Position): HTMLDivElement {
+		const goToDefinition = document.createElement("div")
+		goToDefinition.innerText = "Go to Definition"
+		goToDefinition.addEventListener("click", () => {
+			this.connection.getDefinition(this._docPositionToLsp(docPosition))
+		})
+		return goToDefinition
+	}
+
+	private typeDefinitionContextEntry(docPosition: CodeMirror.Position): HTMLDivElement {
+		const goToTypeDefinition = document.createElement("div")
+		goToTypeDefinition.innerText = "Go to Type Definition"
+		goToTypeDefinition.addEventListener("click", () => {
+			this.connection.getTypeDefinition(this._docPositionToLsp(docPosition))
+		})
+		return goToTypeDefinition
+	}
+
+	private referencesContextEntry(docPosition: CodeMirror.Position): HTMLDivElement {
+		const getReferences = document.createElement("div")
+		getReferences.innerText = "Find all References"
+		getReferences.addEventListener("click", () => {
+			this.connection.getReferences(this._docPositionToLsp(docPosition))
+		})
+		return getReferences
 	}
 
 	private _handleClickOutside(ev: MouseEvent) {
@@ -734,14 +760,8 @@ export class CodeMirrorAdapter extends IEditorAdapter<CodeMirror.Editor> {
 		}
 
 		items.forEach((item) => {
-			const start = {
-				line: item.start.line,
-				ch: item.start.character,
-			} as CodeMirror.Position
-			const end = {
-				line: item.end.line,
-				ch: item.end.character,
-			} as CodeMirror.Position
+			const start = this._lspPositionToDoc(item.start)
+			const end = this._lspPositionToDoc(item.end)
 
 			this.highlightMarkers.push(this.editor.getDoc().markText(start, end, {
 				css: "background-color: rgba(99,99,99,0.5)",

@@ -5,36 +5,48 @@
 // selectively enable features needed in the rendering
 // process.
 
-const file = `def firstFunction():
-	print("first")
+let file = `def firstFunction():
+    print("first")
 
 
 def secondFunction():
-	print("second")
+    print("second")
 
 
 def thirdFunction():
-	print("third")
+    print("third")
 
 
 def main():
-	firstFunction()
-	secondFunction()
-	thirdFunction()
+    firstFunction()
+    secondFunction()
+    thirdFunction()
 
 
 def test():
-	main()
+    main()
 
 `
 
 const extractRangeOfFile = (range): string => {
-	const lines = file.split("\n").slice(range.start.line, range.end.line)
-	// if (lines.length > 0) {
-	// 	lines[0] = lines[0].slice(range.start.character)
-	// 	lines[lines.length - 1] = lines[lines.length - 1].slice(null, range.end.character)
-	// }
+	const allLines = file.split("\n")
+	const lines = allLines.slice(range.start.line, range.end.line)
+	// extract only from first included character of first line
+	if (lines.length > 0) {
+		lines[0] = lines[0].slice(range.start.character, undefined)
+	}
+	// extract only up to last included character of last line
+	if (range.end.line < allLines.length) {
+		lines.push(allLines[range.end.line].slice(undefined, range.end.character))
+	}
 	return lines.join("\n")
+}
+
+const applyFileChange = (change) => {
+	const startString = extractRangeOfFile({ start: { line: 0, character: 0, }, end: change.range.start })
+	const endString = extractRangeOfFile({ start: change.range.end, end: { line: file.split("\n").length + 1, character: 0 } })
+	file = startString + change.text + endString
+	return file
 }
 
 // TODO: use better polyfill
@@ -48,7 +60,7 @@ class Editor {
 
 	activeEditorPane: CodeMirror.Editor
 
-	activeFunctionName: string | null = null
+	activeSymbol: any | null = null
 	calleesOfActive: any[] = []
 	callersOfActive: any[] = []
 
@@ -110,18 +122,39 @@ class Editor {
 		// in 5 seconds, attempt to connect the active editor to the language server
 		setTimeout(() => {
 			console.log("connecting to server")
-			;(window as any).ConfigureEditorAdapter(this.activeEditorPane, file)
-
-			// initially select main once done
-			setTimeout(() => {
-				;(window as any).FindMain()
-					.then((main) => {
-						if (main) {
-							this.swapToSymbol(main)
-						} else {
-							console.error("no main detected")
-						}
+			;(window as any).ConfigureEditorAdapter(
+				this.activeEditorPane,
+				file,
+				(text) => {
+					const oldLines = file.split("\n").length
+					file = applyFileChange({
+						range: this.activeSymbol?.location.range,
+						text: text
 					})
+					const newLines = file.split("\n").length
+					if (oldLines !== newLines) {
+						// TODO: maybe fire off document symbol request
+						// setTimeout(() => {
+						// 	;(window as any).reanalyze()
+						// }, 1000)
+						this.activeSymbol.location.range.end.line += (newLines - oldLines)
+					}
+					return file
+				},
+				() => this.activeSymbol?.location.range.start.line ?? 0,
+				(main) => {
+					if (main) {
+						console.log("reanalyzed and obtained new main symbol", main)
+						this.swapToSymbol(main)
+					} else {
+						console.error("no main detected")
+					}
+				}
+			)
+
+			// kick off reanalysis to find main initially
+			setTimeout(() => {
+				;(window as any).Reanalyze()
 			}, 5000) // TODO
 		}, 5000) // TODO
 	}
@@ -157,7 +190,7 @@ class Editor {
 		Promise.all([callees, callers])
 			.then(([callees, callers]) => {
 				// newly active function is switched to
-				this.activeFunctionName = symbol.name
+				this.activeSymbol = symbol
 
 				// new callers/callees are fetched ones
 				this.calleesOfActive = callees

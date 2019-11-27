@@ -17,7 +17,7 @@ let adapter: CodeMirrorAdapter
 
 ;(window as any).CodeMirror = CodeMirror
 
-;(window as any).ConfigureEditorAdapter = function(editor, fileText) {
+;(window as any).ConfigureEditorAdapter = function(editor, fileText, onChange, getLineOffset, onReanalyze) {
 	const logger = new client.ConsoleLogger()
 
 	client.createTcpRpcConnection("localhost", 2087, (connection) => {
@@ -25,7 +25,7 @@ let adapter: CodeMirrorAdapter
 			languageId: "python",
 			documentUri: "untitled:///file",
 			rootUri: null,
-			documentText: () => fileText
+			initialText: fileText
 		}
 
 		lspClient = new client.LspClientImpl(connection, documentInfo, logger)
@@ -36,6 +36,15 @@ let adapter: CodeMirrorAdapter
 			// UI-related options go here, allowing you to control the automatic features of the LSP, i.e.
 			suggestOnTriggerCharacters: false
 		}, editor)
+
+		adapter.wholeFileText = documentInfo.initialText
+		adapter.onChange = onChange
+		adapter.getLineOffset = getLineOffset
+		adapter.onReanalyze = () => {
+			setTimeout(() => {
+				onReanalyze(adapter.navObject.findCachedMain())
+			}, 50)
+		}
 
 		// You can also provide your own hooks:
 		lspClient.on("error", (e) => {
@@ -58,20 +67,8 @@ let adapter: CodeMirrorAdapter
 	return adapter.navObject.findCallers(pos)
 }
 
-;(window as any).FindMain = function(): Thenable<lsp.SymbolInformation | null> {
-	if (!adapter || !lspClient) { return Promise.resolve(null) }
+;(window as any).Reanalyze = function(): void {
+	if (!adapter || !lspClient) { return }
 
-	return new Promise((resolve) => {
-		// create a once-listener for documentsymbol completion
-		// then check for a cached main
-		function listener() {
-			resolve(adapter.navObject.findCachedMain())
-
-			lspClient.off("documentSymbol", listener)
-		}
-		lspClient.on("documentSymbol", listener)
-
-		// fire off a document symbol request in case there isn't one
-		lspClient.getDocumentSymbol()
-	})
+	adapter.reanalyze()
 }
