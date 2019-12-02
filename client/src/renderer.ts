@@ -25,27 +25,38 @@ def main():
 
 def test():
     main()
-
 `
 
 const extractRangeOfFile = (range): string => {
 	const allLines = file.split("\n")
-	const lines = allLines.slice(range.start.line, range.end.line)
-	// extract only from first included character of first line
-	if (lines.length > 0) {
+
+	if (range.start.line === range.end.line) {
+		return allLines[range.start.line].slice(range.start.character, range.end.character)
+	}
+
+	if (range.end.character === 0) {
+		const lines = allLines.slice(range.start.line, range.end.line).concat([""])
 		lines[0] = lines[0].slice(range.start.character, undefined)
+		return lines.join("\n")
 	}
-	// extract only up to last included character of last line
-	if (range.end.line < allLines.length) {
-		lines.push(allLines[range.end.line].slice(undefined, range.end.character))
-	}
+
+	const lines = allLines.slice(range.start.line, range.end.line + 1)
+
+	lines[0] = lines[0].slice(range.start.character, undefined)
+	lines[lines.length - 1] = lines[lines.length - 1].slice(undefined, range.end.character)
+
 	return lines.join("\n")
 }
 
 const applyFileChange = (change) => {
 	const startString = extractRangeOfFile({ start: { line: 0, character: 0, }, end: change.range.start })
-	const endString = extractRangeOfFile({ start: change.range.end, end: { line: file.split("\n").length + 1, character: 0 } })
+
+	const allLines = file.split("\n")
+	const lastLine = allLines[allLines.length - 1]
+	const endString = extractRangeOfFile({ start: change.range.end, end: { line: allLines.length - 1, character: lastLine.length } })
+
 	file = startString + change.text + endString
+
 	return file
 }
 
@@ -61,6 +72,7 @@ class Editor {
 	activeEditorPane: CodeMirror.Editor
 
 	activeSymbol: any | null = null
+	activeEditorOwnedRange: any | null
 	calleesOfActive: any[] = []
 	callersOfActive: any[] = []
 
@@ -126,7 +138,7 @@ class Editor {
 				this.activeEditorPane,
 				file,
 				this.onFileChanged.bind(this),
-				() => this.activeSymbol?.location.range.start.line ?? 0,
+				() => this.activeEditorOwnedRange?.start.line ?? 0,
 				this.onNavObjectUpdated.bind(this)
 			)
 
@@ -144,24 +156,29 @@ class Editor {
 	 * @param text  The changed contents of the active editor pane.
 	 */
 	onFileChanged(text) {
-		const oldLines = file.split("\n").length
+		const oldLineCount = file.split("\n").length
 
 		// replace the contents of the symbol's range with the new contents
 		file = applyFileChange({
-			range: this.activeSymbol?.location.range,
+			range: this.activeEditorOwnedRange,
 			text: text
 		})
 
 		// if the number of lines occupied changes, fix up the known location
 		// of the symbol so that e.g. the above substitution range is correct
-		const newLines = file.split("\n").length
-		if (oldLines !== newLines) {
+		const newLineCount = file.split("\n").length
+		if (newLineCount !== oldLineCount) {
 			// TODO: maybe reanalyze
 			// setTimeout(() => {
 			// 	;(window as any).reanalyze()
 			// }, 1000)
-			this.activeSymbol.location.range.end.line += (newLines - oldLines)
+			this.activeEditorOwnedRange.end.line += (newLineCount - oldLineCount)
 		}
+
+		// if the number of characters on the last line changes, fix up known location
+		// of the symbol so that e.g. the above substitution range is correct
+		const textLines = text.split("\n")
+		this.activeEditorOwnedRange.end.character = textLines[textLines.length - 1].length
 
 		return file
 	}
@@ -250,6 +267,7 @@ class Editor {
 			.then(([callees, callers]) => {
 				// newly active function is switched to
 				this.activeSymbol = symbol
+				this.activeEditorOwnedRange = JSON.parse(JSON.stringify(symbol.location.range))
 
 				// new callers/callees are fetched ones
 				this.calleesOfActive = callees
