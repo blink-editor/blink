@@ -3,40 +3,39 @@
 // bradley mentioned a better data structure to store ranges -- what is it and will it actually be faster?
 // use SymbolInformation.containerName to find enclosing scope?
 
+
 import * as lsp from "vscode-languageserver-protocol"
 import { LspClient } from "./langserver-client"
 
-function isSymbolInformationArray(symbols: lsp.DocumentSymbol[] | lsp.SymbolInformation[]): symbols is lsp.SymbolInformation[] {
-	return (symbols as lsp.SymbolInformation[]).length === 0 || (symbols as lsp.SymbolInformation[])[0].location !== undefined
-}
 
 const completionItemKindToSymbolKind = function(kind: lsp.CompletionItemKind): lsp.SymbolKind | null {
 	switch (kind) {
-  case lsp.CompletionItemKind.Text: return null
-  case lsp.CompletionItemKind.Method: return lsp.SymbolKind.Method
-  case lsp.CompletionItemKind.Function: return lsp.SymbolKind.Function
-  case lsp.CompletionItemKind.Constructor: return lsp.SymbolKind.Constructor
-  case lsp.CompletionItemKind.Field: return lsp.SymbolKind.Field
-  case lsp.CompletionItemKind.Variable: return lsp.SymbolKind.Variable
-  case lsp.CompletionItemKind.Class: return lsp.SymbolKind.Class
-  case lsp.CompletionItemKind.Interface: return lsp.SymbolKind.Interface
-  case lsp.CompletionItemKind.Module: return lsp.SymbolKind.Module
-  case lsp.CompletionItemKind.Property: return lsp.SymbolKind.Property
-  case lsp.CompletionItemKind.Unit: return null
-  case lsp.CompletionItemKind.Value: return null
-  case lsp.CompletionItemKind.Enum: return lsp.SymbolKind.Enum
-  case lsp.CompletionItemKind.Keyword: return null
-  case lsp.CompletionItemKind.Snippet: return null
-  case lsp.CompletionItemKind.Color: return null
-  case lsp.CompletionItemKind.File: return lsp.SymbolKind.File
-  case lsp.CompletionItemKind.Reference: return null
-  case lsp.CompletionItemKind.Folder: return null
-  case lsp.CompletionItemKind.EnumMember: return lsp.SymbolKind.EnumMember
-  case lsp.CompletionItemKind.Constant: return lsp.SymbolKind.Constant
-  case lsp.CompletionItemKind.Struct: return lsp.SymbolKind.Struct
-  case lsp.CompletionItemKind.Event: return lsp.SymbolKind.Event
-  case lsp.CompletionItemKind.Operator: return lsp.SymbolKind.Operator
-  case lsp.CompletionItemKind.TypeParameter: return lsp.SymbolKind.TypeParameter
+		case lsp.CompletionItemKind.Text: return null
+		case lsp.CompletionItemKind.Method: return lsp.SymbolKind.Method
+		case lsp.CompletionItemKind.Function: return lsp.SymbolKind.Function
+		case lsp.CompletionItemKind.Constructor: return lsp.SymbolKind.Constructor
+		case lsp.CompletionItemKind.Field: return lsp.SymbolKind.Field
+		case lsp.CompletionItemKind.Variable: return lsp.SymbolKind.Variable
+		case lsp.CompletionItemKind.Class: return lsp.SymbolKind.Class
+		case lsp.CompletionItemKind.Interface: return lsp.SymbolKind.Interface
+		case lsp.CompletionItemKind.Module: return lsp.SymbolKind.Module
+		case lsp.CompletionItemKind.Property: return lsp.SymbolKind.Property
+		case lsp.CompletionItemKind.Unit: return null
+		case lsp.CompletionItemKind.Value: return null
+		case lsp.CompletionItemKind.Enum: return lsp.SymbolKind.Enum
+		case lsp.CompletionItemKind.Keyword: return null
+		case lsp.CompletionItemKind.Snippet: return null
+		case lsp.CompletionItemKind.Color: return null
+		case lsp.CompletionItemKind.File: return lsp.SymbolKind.File
+		case lsp.CompletionItemKind.Reference: return null
+		case lsp.CompletionItemKind.Folder: return null
+		case lsp.CompletionItemKind.EnumMember: return lsp.SymbolKind.EnumMember
+		case lsp.CompletionItemKind.Constant: return lsp.SymbolKind.Constant
+		case lsp.CompletionItemKind.Struct: return lsp.SymbolKind.Struct
+		case lsp.CompletionItemKind.Event: return lsp.SymbolKind.Event
+		case lsp.CompletionItemKind.Operator: return lsp.SymbolKind.Operator
+		case lsp.CompletionItemKind.TypeParameter: return lsp.SymbolKind.TypeParameter
+		default: return null
 	}
 }
 
@@ -46,12 +45,11 @@ export class NavObject {
 
 	constructor(client: LspClient) {
 		client.on("documentSymbol", x => this.rebuildMaps(x))
-
 		this.client = client
 	}
 
 	/*
-	 * Encodes a richSymbol into a string key.
+	 * Encodes a symbol information into a string key.
 	 * @param name  The name of the symbol.
 	 * @param kind  The type of the symbol.
 	 * @param uri   The URI of the file containing the symbol.
@@ -66,8 +64,12 @@ export class NavObject {
 	 * Rebuilds symToInfo. Should be called on file load, return, save.
 	 */
 	rebuildMaps(symbols: lsp.DocumentSymbol[] | lsp.SymbolInformation[]) {
-		this.symToInfo = {}
 
+		function isSymbolInformationArray(symbols: lsp.DocumentSymbol[] | lsp.SymbolInformation[]): symbols is lsp.SymbolInformation[] {
+			return (symbols as lsp.SymbolInformation[]).length === 0 || (symbols as lsp.SymbolInformation[])[0].location !== undefined
+		}
+
+		this.symToInfo = {}
 		if (!isSymbolInformationArray(symbols)) {
 			throw new Error("expected SymbolInformation[], got something else")
 		}
@@ -99,7 +101,6 @@ export class NavObject {
 		return this.client.getReferencesWithRequest(request)
 			.then((response: lsp.Location[] | null) => {
 				const locations: lsp.Location[] = (response) ? response : []
-
 				const output: lsp.SymbolInformation[] = []
 
 				// for each reference recieved, find parent scope
@@ -111,6 +112,7 @@ export class NavObject {
 					// search for tightest enclosing scope for this reference
 					for (const key in this.symToInfo) {
 						const cachedRange = this.symToInfo[key].location.range
+
 						// if currRange is entirely within refRange and holds a tighter line bound than the best so far, it is new best
 						if (((cachedRange.start.line <= receivedRange.start.line && cachedRange.end.line >= receivedRange.end.line)
 								  || ((cachedRange.start.line === receivedRange.start.line && cachedRange.start.character <=receivedRange.start.character)
@@ -140,7 +142,6 @@ export class NavObject {
 		return this.client.getUsedDocumentSymbols(contents, "python")
 			.then((result: lsp.CompletionItem[] | null) => {
 				const completions = (result) ? result : []
-
 				const output: lsp.SymbolInformation[] = []
 
 				// for each completion received, find matching location
@@ -153,6 +154,7 @@ export class NavObject {
 					const symModule = "" // TODO: when multiple modules exist we may need (completion.detail?)
 					const testSymKey: string = this.encodeSymKey(completion.label, kind, symModule)
 					const desiredInfo: lsp.SymbolInformation = this.symToInfo[testSymKey]
+
 					// if not found, ignore it
 					if (desiredInfo) {
 						output.push(desiredInfo)
@@ -169,10 +171,3 @@ export class NavObject {
 		return this.symToInfo[key] || null
 	}
 }
-
-// test code
-// const navObject: NavObject = new NavObject()
-// navObject.rebuildMaps([ { name: "class1", kind: 1, location: { uri: "file:///untitled", range: { start: { line: 0, character: 0 }, end: { line: 10, character: 0 } } } },
-// 	{ name: "func1", kind: 2, location: { uri: "file:///untitled", range: { start: { line: 4, character: 0 }, end: { line: 9, character: 10 } } } } ])
-// console.log(navObject.findCallers({ textDocument: { uri: "file:///untitled" }, position: { line: 0, character: 10 }}))
-// console.log(navObject.findCallees({ uri: "file://untitled" }))
