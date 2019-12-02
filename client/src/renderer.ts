@@ -125,31 +125,9 @@ class Editor {
 			;(window as any).ConfigureEditorAdapter(
 				this.activeEditorPane,
 				file,
-				(text) => {
-					const oldLines = file.split("\n").length
-					file = applyFileChange({
-						range: this.activeSymbol?.location.range,
-						text: text
-					})
-					const newLines = file.split("\n").length
-					if (oldLines !== newLines) {
-						// TODO: maybe fire off document symbol request
-						// setTimeout(() => {
-						// 	;(window as any).reanalyze()
-						// }, 1000)
-						this.activeSymbol.location.range.end.line += (newLines - oldLines)
-					}
-					return file
-				},
+				this.onFileChanged.bind(this),
 				() => this.activeSymbol?.location.range.start.line ?? 0,
-				(main) => {
-					if (main) {
-						console.log("reanalyzed and obtained new main symbol", main)
-						this.swapToSymbol(main)
-					} else {
-						console.error("no main detected")
-					}
-				}
+				this.onNavObjectUpdated.bind(this)
 			)
 
 			// kick off reanalysis to find main initially
@@ -157,6 +135,87 @@ class Editor {
 				;(window as any).Reanalyze()
 			}, 5000) // TODO
 		}, 5000) // TODO
+	}
+
+	/**
+	 * Called by the CodeMirror adapter when the contents of the
+	 * the active editor pane have changed.
+	 *
+	 * @param text  The changed contents of the active editor pane.
+	 */
+	onFileChanged(text) {
+		const oldLines = file.split("\n").length
+
+		// replace the contents of the symbol's range with the new contents
+		file = applyFileChange({
+			range: this.activeSymbol?.location.range,
+			text: text
+		})
+
+		// if the number of lines occupied changes, fix up the known location
+		// of the symbol so that e.g. the above substitution range is correct
+		const newLines = file.split("\n").length
+		if (oldLines !== newLines) {
+			// TODO: maybe reanalyze
+			// setTimeout(() => {
+			// 	;(window as any).reanalyze()
+			// }, 1000)
+			this.activeSymbol.location.range.end.line += (newLines - oldLines)
+		}
+
+		return file
+	}
+
+	/**
+	 * Called by the CodeMirror adapter when the nav object's symbol cache
+	 * is updated.
+	 *
+	 * @param lookup  A method that can look up symbols in the new nav object.
+	 */
+	onNavObjectUpdated(lookup) {
+		// a `SymbolKey` that represents the main function
+		const mainKey = {
+			name: "main",
+			kind: 12, // lsp.SymbolKind.Function
+			module: "", // TODO
+		}
+
+		let symbol
+
+		if (this.activeSymbol) {
+			// if we have an active symbol, try to look up its new version
+			const activeSymbolKey = {
+				name: this.activeSymbol.name,
+				kind: 12, // TODO
+				module: "", // TODO
+			}
+
+			const activeSymbol = lookup(activeSymbolKey)
+
+			if (activeSymbol && activeSymbolKey != mainKey) {
+				// if we found the updated version, good
+				symbol = activeSymbol
+			} else {
+				const keystr = JSON.stringify(activeSymbolKey)
+				console.log(`did not find active symbol with key ${keystr}, trying main`)
+
+				// otherwise, try to look up and go back to `main`
+				symbol = lookup(mainKey)
+			}
+		} else {
+			// otherwise, start by looking up main
+			symbol = lookup(mainKey)
+		}
+
+		if (symbol) {
+			// we got a symbol, be it the active one or main
+			console.log("reanalyzed and obtained new active symbol", symbol)
+			this.swapToSymbol(symbol)
+		} else {
+			// we did not find the active symbol or main
+			const keystr = JSON.stringify(mainKey)
+			console.error(`no main symbol detected for key ${keystr}`)
+		}
 	}
 
 	swapToCallee(index) {

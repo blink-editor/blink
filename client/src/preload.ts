@@ -42,7 +42,7 @@ let adapter: CodeMirrorAdapter
 		adapter.getLineOffset = getLineOffset
 		adapter.onReanalyze = () => {
 			setTimeout(() => {
-				onReanalyze(adapter.navObject.findCachedMain())
+				onReanalyze((key) => adapter.navObject.findCachedSymbol(key))
 			}, 50)
 		}
 

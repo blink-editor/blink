@@ -39,6 +39,12 @@ const completionItemKindToSymbolKind = function(kind: lsp.CompletionItemKind): l
 	}
 }
 
+interface SymbolKey {
+	name: string
+	kind: lsp.SymbolKind
+	module: string
+}
+
 export class NavObject {
 	private symToInfo: { [key: string]: lsp.SymbolInformation } = {}
 	private client: LspClient
@@ -49,15 +55,13 @@ export class NavObject {
 	}
 
 	/*
-	 * Encodes a symbol information into a string key.
-	 * @param name  The name of the symbol.
-	 * @param kind  The type of the symbol.
-	 * @param uri   The URI of the file containing the symbol.
-	 * @returns     A string that can be used as a unique key.
+	 * Encodes symbol information into a string key.
+	 * @param key  The SymbolKey to encode.
+	 * @returns    A string that can be used as a unique key.
 	 */
-	encodeSymKey(name: string, kind: lsp.SymbolKind, uri: string) {
-		// TODO: use kind and uri when building key
-		return JSON.stringify([name, 0, ""])
+	symbolKeyToString(key: SymbolKey) {
+		// TODO: use kind and module when building key
+		return JSON.stringify([key.name, 0, ""])
 	}
 
 	/*
@@ -76,8 +80,11 @@ export class NavObject {
 
 		// add to data structure
 		for (const symInfo of symbols) {
-			const symModule: string = "" // TODO
-			const symKey: string = this.encodeSymKey(symInfo.name, symInfo.kind, symModule)
+			const symKey: string = this.symbolKeyToString({
+				name: symInfo.name,
+				kind: symInfo.kind,
+				module: "", // TODO: we'll need this later
+			})
 			this.symToInfo[symKey] = symInfo
 		}
 
@@ -151,8 +158,11 @@ export class NavObject {
 					if (kind === null) { continue }
 
 					// find completion's definition range
-					const symModule = "" // TODO: when multiple modules exist we may need (completion.detail?)
-					const testSymKey: string = this.encodeSymKey(completion.label, kind, symModule)
+					const testSymKey: string = this.symbolKeyToString({
+						name: completion.label,
+						kind: kind,
+						module: "", // TODO: when multiple modules exist we may need (completion.detail?)
+					})
 					const desiredInfo: lsp.SymbolInformation = this.symToInfo[testSymKey]
 
 					// if not found, ignore it
@@ -165,9 +175,7 @@ export class NavObject {
 			})
 	}
 
-	findCachedMain(): lsp.SymbolInformation | null {
-		const symModule = "" // TODO: when multiple modules exist we may need
-		const key = this.encodeSymKey("main", lsp.SymbolKind.Function, symModule)
-		return this.symToInfo[key] || null
+	findCachedSymbol(key: SymbolKey): lsp.SymbolInformation | null {
+		return this.symToInfo[this.symbolKeyToString(key)] || null
 	}
 }
