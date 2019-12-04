@@ -317,3 +317,12 @@ function openFile() {
 			;(window as any).ChangeFile(file)
 		})
 }
+
+function saveFile() {
+	;(window as any).openSaveDialogForEditor(file)
+		.then((result) => {
+			if (result) {
+				console.log("Successfully saved file")
+			}
+		})
+}

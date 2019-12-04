@@ -103,3 +103,17 @@ let adapter: CodeMirrorAdapter
 
 	adapter.reanalyze()
 }
+
+;(window as any).openSaveDialogForEditor = function(fileText: string): Thenable<string | undefined> {
+	const dialog = require("electron").remote.dialog
+
+	return dialog.showSaveDialog({})
+		.then((result) => {
+			if (!result.filePath) {
+				return Promise.resolve(undefined)
+			}
+
+			return promisify(fs.writeFile)(result.filePath, fileText, { encoding: "utf8" })
+				.then(() => "success")
+		})
+}
