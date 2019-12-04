@@ -127,7 +127,15 @@ class Editor {
 			mode: "python",
 			lineNumbers: true,
 			theme: "monokai",
-			gutters: ["CodeMirror-linenumbers", "CodeMirror-lsp"]
+			gutters: ["CodeMirror-linenumbers", "CodeMirror-lsp"],
+			indentUnit: 4,
+			indentWithTabs: false,
+			extraKeys: {
+				Tab: (cm) => {
+					if (cm.somethingSelected()) cm.execCommand("indentMore")
+					else cm.execCommand("insertSoftTab")
+				}
+			},
 		})
 		this.activeEditorPane.setSize("100%", "46.35em")
 

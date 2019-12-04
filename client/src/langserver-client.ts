@@ -329,7 +329,16 @@ export class LspClientImpl extends events.EventEmitter implements LspClient {
 			}
 			this.connection.sendNotification("initialized")
 			this.connection.sendNotification("workspace/didChangeConfiguration", {
-				settings: {},
+				settings: {
+					// TODO: make settings language-server-agnostic
+					pyls: {
+						plugins: {
+							pycodestyle: {
+								enabled: false
+							}
+						}
+					}
+				},
 			})
 			this.connection.sendNotification("textDocument/didOpen", textDocumentMessage)
 		}, (e) => {
