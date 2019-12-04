@@ -10,6 +10,7 @@ interface Globals {
 	// events
 	events: GlobalEvents
 	serverConnected?: boolean
+	clientInitialized?: boolean
 
 	// helper functions
 	ConfigureEditorAdapter: any

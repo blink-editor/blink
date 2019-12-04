@@ -66,6 +66,13 @@ globals.ConfigureEditorAdapter = function(editor, fileText, onChange, getLineOff
 			console.error(e)
 		})
 
+		lspClient.once("initialized", () => {
+			setTimeout(() => {
+				globals.events.emit("client-initialized")
+				globals.clientInitialized = true
+			}, 50)
+		})
+
 		// To clean up the adapter and connection:
 		// adapter.remove()
 		// lspClient.close()

@@ -36,8 +36,11 @@ export interface LspClient {
 	on(event: "goTo", callback: (location: lsp.Location | lsp.Location[] | lsp.LocationLink[] | null) => void): void
 	on(event: "error", callback: (error: any) => void): void
 	on(event: "logging", callback: (log: any) => void): void
+	on(event: "initialized", callback: () => void): void
 
-  off(event: string, listener: (arg: any) => void): void
+	once(event: string, listener: (arg: any) => void): void
+
+	off(event: string, listener: (arg: any) => void): void
 
 	/**
 	 * Sends a change to the document to the server
@@ -332,6 +335,7 @@ export class LspClientImpl extends events.EventEmitter implements LspClient {
 				settings: {},
 			})
 			this.connection.sendNotification("textDocument/didOpen", textDocumentMessage)
+			this.emit("initialized")
 		}, (e) => {
 		})
 	}

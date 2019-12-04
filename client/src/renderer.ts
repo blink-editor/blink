@@ -155,9 +155,13 @@ class Editor {
 		)
 
 		// kick off reanalysis to find main initially
-		setTimeout(() => {
+		if (globals.clientInitialized) {
 			globals.Reanalyze()
-		}, 3000) // TODO
+		} else {
+			globals.events.once("client-initialized", () => {
+				globals.Reanalyze()
+			})
+		}
 	}
 
 	/**
