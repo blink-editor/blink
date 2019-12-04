@@ -89,7 +89,8 @@ def uri_with(uri, scheme=None, netloc=None, path=None, params=None, query=None, 
     return urlunparse((
         scheme or old_scheme,
         netloc or old_netloc,
-        path or old_path,
+        # windows compatibility fix for go to definition
+        (path or old_path) if old_scheme == "file" else "//" + old_path,
         params or old_params,
         query or old_query,
         fragment or old_fragment

@@ -2,6 +2,7 @@ import * as net from "net"
 import * as rpc from "vscode-jsonrpc"
 import * as lsp from "vscode-languageserver-protocol"
 import * as events from "events"
+import { clientCapabilities } from "./client-capabilities"
 
 export class ConsoleLogger implements rpc.Logger, rpc.Tracer {
 	error(message: string) {
@@ -24,7 +25,8 @@ export class ConsoleLogger implements rpc.Logger, rpc.Tracer {
 //documentSymbol
 export interface LspClient {
 	initialize(): void
-	on(event: "documentSymbol", callback: (documentSymbol: lsp.DocumentSymbol) => void): void
+
+	on(event: "documentSymbol", callback: (symbols: lsp.DocumentSymbol[] | lsp.SymbolInformation[]) => void): void
 	on(event: "completion", callback: (items: lsp.CompletionItem[]) => void): void
 	on(event: "completionResolved", callback: (item: lsp.CompletionItem) => void): void
 	on(event: "hover", callback: (hover: lsp.Hover) => void): void
@@ -38,21 +40,21 @@ export interface LspClient {
   off(event: string, listener: (arg: any) => void): void
 
 	/**
-	 * Sends the full text of the document to the server
+	 * Sends a change to the document to the server
 	 */
-	sendChange(): void
+	sendChange(change: lsp.TextDocumentContentChangeEvent): void
+
 	/**
 	 * Requests additional information for a particular character
 	 */
-	getHoverTooltip(position: Position): void
+	getHoverTooltip(position: lsp.Position): void
 
 	getDocumentSymbol(): void
 	/**
 	 * Request possible completions from the server
 	 */
 	getCompletion(
-		location: Position,
-		token: TokenInfo,
+		position: lsp.Position,
 		triggerCharacter?: string,
 		triggerKind?: lsp.CompletionTriggerKind,
 	): void
@@ -63,65 +65,58 @@ export interface LspClient {
 	/**
 	 * Request possible signatures for the current method
 	 */
-	getSignatureHelp(position: Position): void
+	getSignatureHelp(position: lsp.Position): void
 	/**
 	 * Request all matching symbols in the document scope
 	 */
-	getDocumentHighlights(position: Position): void
+	getDocumentHighlights(position: lsp.Position): void
 	/**
 	 * Request a link to the definition of the current symbol. The results will not be displayed
 	 * unless they are within the same file URI
 	 */
-	getDefinition(position: Position): void
+	getDefinition(position: lsp.Position): void
 	/**
 	 * Request a link to the type definition of the current symbol. The results will not be displayed
 	 * unless they are within the same file URI
 	 */
-	getTypeDefinition(position: Position): void
+	getTypeDefinition(position: lsp.Position): void
 	/**
 	 * Request a link to the implementation of the current symbol. The results will not be displayed
 	 * unless they are within the same file URI
 	 */
-	getImplementation(position: Position): void
+	getImplementation(position: lsp.Position): void
 	/**
 	 * Request a link to all references to the current symbol. The results will not be displayed
 	 * unless they are within the same file URI
 	 */
-	getReferences(position: Position, includeDeclaration: boolean): void
-	getReferences(position: Position): void
+	getReferences(position: lsp.Position, includeDeclaration: boolean): void
+	getReferences(position: lsp.Position): void
 
-	getLanguageCompletionCharacters(): string[];
-	getLanguageSignatureCharacters(): string[];
+	getLanguageCompletionCharacters(): string[]
+	getLanguageSignatureCharacters(): string[]
 
-	getDocumentUri(): string;
+	getDocumentUri(): string
 
 	/**
 	 * Does the server support go to definition?
 	 */
-	isDefinitionSupported(): boolean;
+	isDefinitionSupported(): boolean
 	/**
 	 * Does the server support go to type definition?
 	 */
-	isTypeDefinitionSupported(): boolean;
+	isTypeDefinitionSupported(): boolean
 	/**
 	 * Does the server support go to implementation?
 	 */
-	isImplementationSupported(): boolean;
+	isImplementationSupported(): boolean
 	/**
 	 * Does the server support find all references?
 	 */
-	isReferencesSupported(): boolean;
-}
+	isReferencesSupported(): boolean
 
-export interface Position {
-	line: number
-	ch: number
-}
-
-export interface TokenInfo {
-	start: Position
-	end: Position
-	text: string
+	// TODO: refactor
+	getUsedDocumentSymbols(contents: string, languageId: string): Promise<lsp.CompletionItem[] | null>
+	getReferencesWithRequest(request: lsp.ReferenceParams): Thenable<lsp.Location[] | null>
 }
 
 export function createTcpRpcConnection(
@@ -208,8 +203,11 @@ function unregisterServerCapability(
 export interface DocumentInfo {
 	languageId: string
 	documentUri: string
-	documentText: (() => string)
-	rootUri: string
+	initialText: string
+	/**
+	 * The rootUri of the workspace. Is null if no folder is open.
+	 */
+	rootUri: string | null
 }
 
 export class LspClientImpl extends events.EventEmitter implements LspClient {
@@ -237,10 +235,6 @@ export class LspClientImpl extends events.EventEmitter implements LspClient {
 
 		// this.connection.onDispose(() => {
 		// 	logger?.log("onDispose")
-		// })
-
-		// this.connection.onError((event) => {
-		// 	logger?.log(`onError (${event})`)
 		// })
 
 		// this.connection.onUnhandledNotification((message) => {
@@ -290,7 +284,9 @@ export class LspClientImpl extends events.EventEmitter implements LspClient {
 			this.emit("error", e)
 		})
 
-		this.connection.trace(rpc.Trace.Verbose, logger)
+		if (logger !== undefined) {
+			this.connection.trace(rpc.Trace.Verbose, logger)
+		}
 	}
 
 	public initialize() {
@@ -306,80 +302,18 @@ export class LspClientImpl extends events.EventEmitter implements LspClient {
 	}
 
 	public sendInitialize() {
-		interface IFilesServerClientCapabilities {
-			/* ... all fields from the base ClientCapabilities ... */
-
-			/**
-			 * The client provides support for workspace/xfiles.
-			 */
-			xfilesProvider?: boolean
-			/**
-			 * The client provides support for textDocument/xcontent.
-			 */
-			xcontentProvider?: boolean
-		}
-
-		type ExtendedClientCapabilities = lsp.ClientCapabilities & IFilesServerClientCapabilities
 
 		const message: lsp.InitializeParams = {
-			capabilities: {
-				textDocument: {
-					hover: {
-						dynamicRegistration: true,
-						contentFormat: ["plaintext", "markdown"],
-					},
-					synchronization: {
-						dynamicRegistration: true,
-						willSave: false,
-						didSave: false,
-						willSaveWaitUntil: false,
-					},
-					completion: {
-						dynamicRegistration: true,
-						completionItem: {
-							snippetSupport: false,
-							commitCharactersSupport: true,
-							documentationFormat: ["plaintext", "markdown"],
-							deprecatedSupport: false,
-							preselectSupport: false,
-						},
-						contextSupport: false,
-					},
-					signatureHelp: {
-						dynamicRegistration: true,
-						signatureInformation: {
-							documentationFormat: ["plaintext", "markdown"],
-						},
-					},
-					declaration: {
-						dynamicRegistration: true,
-						linkSupport: true,
-					},
-					definition: {
-						dynamicRegistration: true,
-						linkSupport: true,
-					},
-					typeDefinition: {
-						dynamicRegistration: true,
-						linkSupport: true,
-					},
-					implementation: {
-						dynamicRegistration: true,
-						linkSupport: true,
-					},
-				} as ExtendedClientCapabilities,
-				workspace: {
-					didChangeConfiguration: {
-						dynamicRegistration: true,
-					},
-				} as lsp.WorkspaceClientCapabilities,
-				// xfilesProvider: true,
-				// xcontentProvider: true,
-			} as lsp.ClientCapabilities,
+			capabilities: clientCapabilities,
+			// clientInfo: {
+			// 	name: "blink",
+			// 	version: "0.0.1",
+			// },
 			initializationOptions: null,
 			processId: null,
 			rootUri: this.documentInfo.rootUri,
 			workspaceFolders: null,
+			trace: "off",
 		}
 
 		this.connection.sendRequest("initialize", message).then((params: lsp.InitializeResult) => {
@@ -389,7 +323,7 @@ export class LspClientImpl extends events.EventEmitter implements LspClient {
 				textDocument: {
 					uri: this.documentInfo.documentUri,
 					languageId: this.documentInfo.languageId,
-					text: this.documentInfo.documentText(),
+					text: this.documentInfo.initialText,
 					version: this.documentVersion,
 				} as lsp.TextDocumentItem,
 			}
@@ -398,12 +332,11 @@ export class LspClientImpl extends events.EventEmitter implements LspClient {
 				settings: {},
 			})
 			this.connection.sendNotification("textDocument/didOpen", textDocumentMessage)
-			this.sendChange()
 		}, (e) => {
 		})
 	}
 
-	public sendChange() {
+	public sendChange(change: lsp.TextDocumentContentChangeEvent) {
 		if (!this.isInitialized) {
 			return
 		}
@@ -412,15 +345,13 @@ export class LspClientImpl extends events.EventEmitter implements LspClient {
 				uri: this.documentInfo.documentUri,
 				version: this.documentVersion,
 			} as lsp.VersionedTextDocumentIdentifier,
-			contentChanges: [{
-				text: this.documentInfo.documentText(),
-			}],
+			contentChanges: [change],
 		}
 		this.connection.sendNotification("textDocument/didChange", textDocumentChange)
 		this.documentVersion++
 	}
 
-	public getHoverTooltip(location: Position) {
+	public getHoverTooltip(position: lsp.Position) {
 		if (!this.isInitialized) {
 			return
 		}
@@ -428,10 +359,7 @@ export class LspClientImpl extends events.EventEmitter implements LspClient {
 			textDocument: {
 				uri: this.documentInfo.documentUri,
 			},
-			position: {
-				line: location.line,
-				character: location.ch,
-			},
+			position: position,
 		} as lsp.TextDocumentPositionParams).then((params: lsp.Hover) => {
 			this.emit("hover", params)
 		})
@@ -459,8 +387,7 @@ export class LspClientImpl extends events.EventEmitter implements LspClient {
 	}
 
 	public getCompletion(
-		location: Position,
-		token: TokenInfo,
+		position: lsp.Position,
 		triggerCharacter?: string,
 		triggerKind?: lsp.CompletionTriggerKind,
 	) {
@@ -475,10 +402,7 @@ export class LspClientImpl extends events.EventEmitter implements LspClient {
 			textDocument: {
 				uri: this.documentInfo.documentUri,
 			},
-			position: {
-				line: location.line,
-				character: location.ch,
-			},
+			position: position,
 			context: {
 				triggerKind: triggerKind || lsp.CompletionTriggerKind.Invoked,
 				triggerCharacter
@@ -502,7 +426,7 @@ export class LspClientImpl extends events.EventEmitter implements LspClient {
 			})
 	}
 
-	public getSignatureHelp(location: Position) {
+	public getSignatureHelp(position: lsp.Position) {
 		if (!this.isInitialized) {
 			return
 		}
@@ -510,26 +434,11 @@ export class LspClientImpl extends events.EventEmitter implements LspClient {
 			return
 		}
 
-		const code = this.documentInfo.documentText()
-		const lines = code.split("\n")
-		const typedCharacter = lines[location.line][location.ch]
-
-		if (
-			this.serverCapabilities.signatureHelpProvider &&
-			!this.serverCapabilities.signatureHelpProvider.triggerCharacters.indexOf(typedCharacter)
-		) {
-			// Not a signature character
-			return
-		}
-
 		this.connection.sendRequest("textDocument/signatureHelp", {
 			textDocument: {
 				uri: this.documentInfo.documentUri,
 			},
-			position: {
-				line: location.line,
-				character: location.ch,
-			},
+			position: position,
 		} as lsp.TextDocumentPositionParams).then((params: lsp.SignatureHelp) => {
 			this.emit("signature", params)
 			console.log(params)
@@ -539,7 +448,7 @@ export class LspClientImpl extends events.EventEmitter implements LspClient {
 	/**
 	 * Request the locations of all matching document symbols
 	 */
-	public getDocumentHighlights(location: Position) {
+	public getDocumentHighlights(position: lsp.Position) {
 		if (!this.isInitialized) {
 			return
 		}
@@ -551,10 +460,7 @@ export class LspClientImpl extends events.EventEmitter implements LspClient {
 			textDocument: {
 				uri: this.documentInfo.documentUri,
 			},
-			position: {
-				line: location.line,
-				character: location.ch,
-			},
+			position: position,
 		} as lsp.TextDocumentPositionParams).then((params: lsp.DocumentHighlight[]) => {
 			this.emit("highlight", params)
 		})
@@ -564,7 +470,7 @@ export class LspClientImpl extends events.EventEmitter implements LspClient {
 	 * Request a link to the definition of the current symbol. The results will not be displayed
 	 * unless they are within the same file URI
 	 */
-	public getDefinition(location: Position) {
+	public getDefinition(position: lsp.Position) {
 		if (!this.isInitialized || !this.isDefinitionSupported()) {
 			return
 		}
@@ -573,10 +479,7 @@ export class LspClientImpl extends events.EventEmitter implements LspClient {
 			textDocument: {
 				uri: this.documentInfo.documentUri,
 			},
-			position: {
-				line: location.line,
-				character: location.ch,
-			},
+			position: position,
 		} as lsp.TextDocumentPositionParams).then((result: lsp.Location | lsp.Location[] | lsp.LocationLink[] | null) => {
 			this.emit("goTo", result)
 		})
@@ -586,7 +489,7 @@ export class LspClientImpl extends events.EventEmitter implements LspClient {
 	 * Request a link to the type definition of the current symbol. The results will not be displayed
 	 * unless they are within the same file URI
 	 */
-	public getTypeDefinition(location: Position) {
+	public getTypeDefinition(position: lsp.Position) {
 		if (!this.isInitialized || !this.isTypeDefinitionSupported()) {
 			return
 		}
@@ -595,10 +498,7 @@ export class LspClientImpl extends events.EventEmitter implements LspClient {
 			textDocument: {
 				uri: this.documentInfo.documentUri,
 			},
-			position: {
-				line: location.line,
-				character: location.ch,
-			},
+			position: position,
 		} as lsp.TextDocumentPositionParams).then((result: lsp.Location | lsp.Location[] | lsp.LocationLink[] | null) => {
 			this.emit("goTo", result)
 		})
@@ -608,7 +508,7 @@ export class LspClientImpl extends events.EventEmitter implements LspClient {
 	 * Request a link to the implementation of the current symbol. The results will not be displayed
 	 * unless they are within the same file URI
 	 */
-	public getImplementation(location: Position) {
+	public getImplementation(position: lsp.Position) {
 		if (!this.isInitialized || !this.isImplementationSupported()) {
 			return
 		}
@@ -617,10 +517,7 @@ export class LspClientImpl extends events.EventEmitter implements LspClient {
 			textDocument: {
 				uri: this.documentInfo.documentUri,
 			},
-			position: {
-				line: location.line,
-				character: location.ch,
-			},
+			position: position,
 		} as lsp.TextDocumentPositionParams).then((result: lsp.Location | lsp.Location[] | lsp.LocationLink[] | null) => {
 			this.emit("goTo", result)
 		})
@@ -630,7 +527,7 @@ export class LspClientImpl extends events.EventEmitter implements LspClient {
 	 * Request a link to all references to the current symbol. The results will not be displayed
 	 * unless they are within the same file URI
 	 */
-	public getReferences(location: Position, includeDeclaration: boolean = false) {
+	public getReferences(position: lsp.Position, includeDeclaration: boolean = false) {
 		if (!this.isInitialized || !this.isReferencesSupported()) {
 			return
 		}
@@ -639,10 +536,7 @@ export class LspClientImpl extends events.EventEmitter implements LspClient {
 			textDocument: {
 				uri: this.documentInfo.documentUri,
 			},
-			position: {
-				line: location.line,
-				character: location.ch,
-			},
+			position: position,
 			context: {
 				includeDeclaration: includeDeclaration
 			}
@@ -651,12 +545,58 @@ export class LspClientImpl extends events.EventEmitter implements LspClient {
 		})
 	}
 
+	private sendOpenDocument(params: lsp.DidOpenTextDocumentParams): Promise<void> {
+		this.connection.sendNotification("textDocument/didOpen", params)
+		return Promise.resolve()
+	}
+
+	private sendCloseDocument(params: lsp.DidCloseTextDocumentParams): Promise<void> {
+		this.connection.sendNotification("textDocument/didClose", params)
+		return Promise.resolve()
+	}
+
+	public getUsedDocumentSymbols(contents: string, languageId: string): Promise<lsp.CompletionItem[] | null> {
+		const uri = "untitled:///temp-" + Date.now() // TODO
+
+		const openParams: lsp.DidOpenTextDocumentParams = {
+			textDocument: {
+				uri: uri,
+				languageId: languageId,
+				text: contents,
+				version: 0,
+			} as lsp.TextDocumentItem,
+		}
+
+		const symbolParams: lsp.DocumentSymbolParams = {
+			textDocument: {
+				uri: uri
+			},
+		}
+
+		const closeParams: lsp.DidCloseTextDocumentParams = {
+			textDocument: {
+				uri: uri
+			}
+		}
+
+		return this.sendOpenDocument(openParams)
+			.then(() => this.connection.sendRequest("textDocument/usedDocumentSymbol", symbolParams))
+			.then((response: lsp.CompletionItem[] | null) => {
+				return this.sendCloseDocument(closeParams)
+					.then(() => Promise.resolve(response))
+			})
+	}
+
+	public getReferencesWithRequest(request: lsp.ReferenceParams): Thenable<lsp.Location[] | null> {
+		return this.connection.sendRequest("textDocument/references", request)
+	}
+
 	/**
 	 * The characters that trigger completion automatically.
 	 */
 	public getLanguageCompletionCharacters(): string[] {
 		if (!this.isInitialized) {
-			return
+			return []
 		}
 		if (!(
 			this.serverCapabilities &&
@@ -673,7 +613,7 @@ export class LspClientImpl extends events.EventEmitter implements LspClient {
 	 */
 	public getLanguageSignatureCharacters(): string[] {
 		if (!this.isInitialized) {
-			return
+			return []
 		}
 		if (!(
 			this.serverCapabilities &&

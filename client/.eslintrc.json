@@ -8,6 +8,8 @@
 	"rules": {
 		"semi": ["warn", "never"],
 		"quotes": ["warn", "double"],
+		"no-var": "warn",
+		"prefer-const": "warn",
 		"@typescript-eslint/semi": ["warn", "never"],
 		"@typescript-eslint/member-delimiter-style": [
 			"warn", {
@@ -21,6 +23,7 @@
 		"@typescript-eslint/no-empty-function": "off",
 		"@typescript-eslint/no-inferrable-types": "off",
 		"@typescript-eslint/no-unused-vars": "warn",
-		"@typescript-eslint/interface-name-prefix": "off"
+		"@typescript-eslint/interface-name-prefix": "off",
+		"@typescript-eslint/consistent-type-assertions": "warn"
 	}
 }

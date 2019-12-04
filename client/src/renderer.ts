@@ -5,210 +5,286 @@
 // selectively enable features needed in the rendering
 // process.
 
+let file = `def firstFunction():
+    print("first")
+
+
+def secondFunction():
+    print("second")
+
+
+def thirdFunction():
+    print("third")
+
+
+def main():
+    firstFunction()
+    secondFunction()
+    thirdFunction()
+
+
+def test():
+    main()
+`
+
+const extractRangeOfFile = (range): string => {
+	const allLines = file.split("\n")
+
+	if (range.start.line === range.end.line) {
+		return allLines[range.start.line].slice(range.start.character, range.end.character)
+	}
+
+	if (range.end.character === 0) {
+		const lines = allLines.slice(range.start.line, range.end.line).concat([""])
+		lines[0] = lines[0].slice(range.start.character, undefined)
+		return lines.join("\n")
+	}
+
+	const lines = allLines.slice(range.start.line, range.end.line + 1)
+
+	lines[0] = lines[0].slice(range.start.character, undefined)
+	lines[lines.length - 1] = lines[lines.length - 1].slice(undefined, range.end.character)
+
+	return lines.join("\n")
+}
+
+const applyFileChange = (change) => {
+	const startString = extractRangeOfFile({ start: { line: 0, character: 0, }, end: change.range.start })
+
+	const allLines = file.split("\n")
+	const lastLine = allLines[allLines.length - 1]
+	const endString = extractRangeOfFile({ start: change.range.end, end: { line: allLines.length - 1, character: lastLine.length } })
+
+	file = startString + change.text + endString
+
+	return file
+}
+
 // TODO: use better polyfill
 ;(window as any).setImmediate = function(callback: (...args: any[]) => void) {
 	window.setTimeout(callback, 0)
 }
 
-let editor
+class Editor {
+	calleePanes: [CodeMirror.Editor, CodeMirror.Editor, CodeMirror.Editor]
+	callerPanes: [CodeMirror.Editor, CodeMirror.Editor, CodeMirror.Editor]
 
-setTimeout(() => {
-	console.log("connecting to server")
-	;(window as any).ConfigureEditorAdapter(editor)
-}, 5000) // TODO
+	activeEditorPane: CodeMirror.Editor
 
+	activeSymbol: any | null = null
+	activeEditorOwnedRange: any | null
+	calleesOfActive: any[] = []
+	callersOfActive: any[] = []
 
+	constructor() {
+		// creates a CodeMirror editor configured to look like a preview pane
+		const createPane = function(id, wrapping) {
+			const pane = (window as any).CodeMirror(document.getElementById(id), {
+				mode: "python",
+				lineNumbers: true,
+				theme: "monokai",
+				readOnly: "nocursor",
+				lineWrapping: wrapping
+			})
 
-// this is for demonstration, but dependency graph will replace
-let functionsObject = {
-	"firstFunction": "def firstFunction():\n\tprint \"This is your first function\"",
-	"secondFunction": "def secondFunction():\n\tprint \"This is your second function\"",
-	"thirdFunction": "def thirdFunction():\n\tprint \"This is your third function\""
-}
+			pane.setSize("100%", "200px")
 
-// Keep track of what function is in what pane
-let functionsCurrentLocation = {
-	topLeft: "firstFunction",
-	topMid: "secondFunction",
-	topRight: "thirdFunction",
-	rightTop: "",
-	rightMid: "",
-	rightBottom: ""
-}
-
-
-function addToFunctions(functionName, functionText) {
-	functionsObject[functionName] = functionText;
-}
-
-
-const paneTopLeft = CodeMirror(document.getElementById('top-left-pane'), {
-	mode: "python",
-	lineNumbers: true,
-	theme: "monokai",
-	readOnly: "nocursor",
-	value: "def firstFunction():\n\tprint \"This is your first function\"",
-	lineWrapping: true
-})
-
-
-paneTopLeft.setSize("100%", "200px")
-
-const paneTopMid = CodeMirror(document.getElementById('top-mid-pane'), {
-	mode: "python",
-	lineNumbers: true,
-	theme: "monokai",
-	readOnly: "nocursor",
-	value: "def secondFunction():\n\tprint \"This is your second function\"",
-	lineWrapping: true
-})
-
-paneTopMid.setSize("100%", "200px")
-
-const paneTopRight = CodeMirror(document.getElementById('top-right-pane'), {
-	mode: "python",
-	lineNumbers: true,
-	theme: "monokai",
-	readOnly: "nocursor",
-	value: "def thirdFunction():\n\tprint \"This is your third function\"",
-	lineWrapping: true
-})
-
-paneTopRight.setSize("100%", "200px")
-
-const paneRightTop = CodeMirror(document.getElementById('side-top-pane'), {
-	mode: "python",
-	lineNumbers: true,
-	theme: "monokai",
-	readOnly: "nocursor"
-})
-paneRightTop.setSize("100%", "200px")
-
-const paneRightMid = CodeMirror(document.getElementById('side-mid-pane'), {
-	mode: "python",
-	lineNumbers: true,
-	theme: "monokai",
-	readOnly: "nocursor"
-})
-paneRightMid.setSize("100%", "200px")
-
-
-
-const paneRightBottom = CodeMirror(document.getElementById('side-bottom-pane'), {
-	mode: "python",
-	lineNumbers: true,
-	theme: "monokai",
-	readOnly: "nocursor"
-})
-paneRightBottom.setSize("100%", "201px")
-
-editor = CodeMirror(document.getElementById('main-pane'), {
-	mode: "python",
-	lineNumbers: true,
-	theme: "monokai",
-	gutters: ["CodeMirror-linenumbers", "CodeMirror-lsp"],
-	value: "def main()\n\tfirstFunction()\n\tsecondFunction()\n\tthirdFunction()"
-})
-
-editor.setSize("100%", "46.35em")
-// editor.setSize("100%", "100%")
-
-function swapContents(pane1, pane2) {
-	// var paneTemp = pane2;
-	// pane1.setValue(pane2.getValue());
-	let paneTemp = pane2.getValue();
-	pane2.setValue(pane1.getValue());
-	pane1.setValue(paneTemp);
-}
-
-
-// This will need to use the dependency graph to not be hard coded
-editor.on("dblclick", function() {
-	let from = editor.getCursor("from");
-	let lineNo =  from.line;
-	let chFrom = from.ch;
-	let chTo = editor.getCursor("to").ch;
-	let lineText = editor.getLine(lineNo);
-
-
-	let itemName = lineText.slice(chFrom, chTo);
-
-	if (itemName in functionsObject) {
-		// This will need to use the dependency graph to not be hard coded
-
-		if (functionsCurrentLocation.topLeft == itemName) {
-			swapContents(editor, paneRightTop);
-			swapContents(editor, paneTopLeft);
-			emptyTopPanes()
-
-		} else if (functionsCurrentLocation.topMid == itemName) {
-			swapContents(editor, paneRightTop);
-			swapContents(editor, paneTopMid);
-			emptyTopPanes()
-		} else if (functionsCurrentLocation.topRight == itemName) {
-			swapContents(editor, paneRightTop);
-			swapContents(editor, paneTopRight);
-			emptyTopPanes()
-		} else {
-			// get text from the right function and put that in the main pane
-			// editor.setValue(functionsObject[itemName]);
+			return pane
 		}
 
-	}
-})
+		// create callee preview panes (top)
+		this.calleePanes = [
+			createPane("top-left-pane", true),
+			createPane("top-mid-pane", true),
+			createPane("top-right-pane", true),
+		]
 
-function emptyTopPanes() {
-			paneTopLeft.setValue("")
-			paneTopMid.setValue("")
-			paneTopRight.setValue("")
-			functionsCurrentLocation.topLeft = ""
-			functionsCurrentLocation.topMid = ""
-			functionsCurrentLocation.topRight = ""
+		// create caller preview panes (side)
+		this.callerPanes = [
+			createPane("side-top-pane", false),
+			createPane("side-mid-pane", false),
+			createPane("side-bottom-pane", false),
+		]
+
+		// configure click handlers for switching to panes
+		this.calleePanes.forEach((pane, index) => {
+			pane.on("mousedown", () => {
+				if (pane.getValue() !== "") {
+					this.swapToCallee(index)
+				}
+			})
+		})
+		this.callerPanes.forEach((pane, index) => {
+			pane.on("mousedown", () => {
+				if (pane.getValue() !== "") {
+					this.swapToCaller(index)
+				}
+			})
+		})
+
+		// create active editor pane
+		this.activeEditorPane = (window as any).CodeMirror(document.getElementById("main-pane"), {
+			mode: "python",
+			lineNumbers: true,
+			theme: "monokai",
+			gutters: ["CodeMirror-linenumbers", "CodeMirror-lsp"]
+		})
+		this.activeEditorPane.setSize("100%", "46.35em")
+
+		// in 5 seconds, attempt to connect the active editor to the language server
+		setTimeout(() => {
+			console.log("connecting to server")
+			;(window as any).ConfigureEditorAdapter(
+				this.activeEditorPane,
+				file,
+				this.onFileChanged.bind(this),
+				() => this.activeEditorOwnedRange?.start.line ?? 0,
+				this.onNavObjectUpdated.bind(this)
+			)
+
+			// kick off reanalysis to find main initially
+			setTimeout(() => {
+				;(window as any).Reanalyze()
+			}, 5000) // TODO
+		}, 5000) // TODO
+	}
+
+	/**
+	 * Called by the CodeMirror adapter when the contents of the
+	 * the active editor pane have changed.
+	 *
+	 * @param text  The changed contents of the active editor pane.
+	 */
+	onFileChanged(text) {
+		const oldLineCount = file.split("\n").length
+
+		// replace the contents of the symbol's range with the new contents
+		file = applyFileChange({
+			range: this.activeEditorOwnedRange,
+			text: text
+		})
+
+		// if the number of lines occupied changes, fix up the known location
+		// of the symbol so that e.g. the above substitution range is correct
+		const newLineCount = file.split("\n").length
+		if (newLineCount !== oldLineCount) {
+			// TODO: maybe reanalyze
+			// setTimeout(() => {
+			// 	;(window as any).reanalyze()
+			// }, 1000)
+			this.activeEditorOwnedRange.end.line += (newLineCount - oldLineCount)
+		}
+
+		// if the number of characters on the last line changes, fix up known location
+		// of the symbol so that e.g. the above substitution range is correct
+		const textLines = text.split("\n")
+		this.activeEditorOwnedRange.end.character = textLines[textLines.length - 1].length
+
+		return file
+	}
+
+	/**
+	 * Called by the CodeMirror adapter when the nav object's symbol cache
+	 * is updated.
+	 *
+	 * @param lookup  A method that can look up symbols in the new nav object.
+	 */
+	onNavObjectUpdated(lookup) {
+		// a `SymbolKey` that represents the main function
+		const mainKey = {
+			name: "main",
+			kind: 12, // lsp.SymbolKind.Function
+			module: "", // TODO
+		}
+
+		let symbol
+
+		if (this.activeSymbol) {
+			// if we have an active symbol, try to look up its new version
+			const activeSymbolKey = {
+				name: this.activeSymbol.name,
+				kind: 12, // TODO
+				module: "", // TODO
+			}
+
+			const activeSymbol = lookup(activeSymbolKey)
+
+			if (activeSymbol && activeSymbolKey != mainKey) {
+				// if we found the updated version, good
+				symbol = activeSymbol
+			} else {
+				const keystr = JSON.stringify(activeSymbolKey)
+				console.log(`did not find active symbol with key ${keystr}, trying main`)
+
+				// otherwise, try to look up and go back to `main`
+				symbol = lookup(mainKey)
+			}
+		} else {
+			// otherwise, start by looking up main
+			symbol = lookup(mainKey)
+		}
+
+		if (symbol) {
+			// we got a symbol, be it the active one or main
+			console.log("reanalyzed and obtained new active symbol", symbol)
+			this.swapToSymbol(symbol)
+		} else {
+			// we did not find the active symbol or main
+			const keystr = JSON.stringify(mainKey)
+			console.error(`no main symbol detected for key ${keystr}`)
+		}
+	}
+
+	swapToCallee(index) {
+		if (index >= this.calleesOfActive.length) {
+			return
+		}
+
+		this.swapToSymbol(this.calleesOfActive[index])
+	}
+
+	swapToCaller(index) {
+		if (index >= this.callersOfActive.length) {
+			return
+		}
+
+		this.swapToSymbol(this.callersOfActive[index])
+	}
+
+	swapToSymbol(symbol) {
+		// fetch new callees
+		const contents = extractRangeOfFile(symbol.location.range)
+		const callees = (window as any).FindCallees(contents)
+
+		// fetch new callers
+		const callers = (window as any).FindCallers({
+			textDocument: { uri: symbol.location.uri },
+			position: { line: symbol.location.range.start.line, character: 5 }, // TODO: not hardcode
+		})
+
+		// don't update any panes / props until done
+		Promise.all([callees, callers])
+			.then(([callees, callers]) => {
+				// newly active function is switched to
+				this.activeSymbol = symbol
+				this.activeEditorOwnedRange = JSON.parse(JSON.stringify(symbol.location.range))
+
+				// new callers/callees are fetched ones
+				this.calleesOfActive = callees
+				this.callersOfActive = callers
+
+				// populate panes
+				this.activeEditorPane.setValue(contents)
+				this.calleePanes.forEach((pane) => pane.setValue(""))
+				callees.slice(null, 3).forEach((calleeSym, index) => {
+					this.calleePanes[index].setValue(extractRangeOfFile(calleeSym.location.range))
+				})
+				this.callerPanes.forEach((pane) => pane.setValue(""))
+				callers.slice(null, 3).forEach((callerSym, index) => {
+					this.callerPanes[index].setValue(extractRangeOfFile(callerSym.location.range))
+				})
+			})
+	}
 }
 
-// will use dependency graph
-function updateVariables(itemName1, itemName2, str1, str2, str3) {
-	functionsCurrentLocation.topLeft = str1
-	functionsCurrentLocation.topMid = str2
-	functionsCurrentLocation.topRight = str3
-	// delete functionsObject[itemName1];
-	// will need to be generalized
-	// functionsObject[itemName2] = "def main()\n\tfirstFunction()\n\tsecondFunction()\n\tthirdFunction()"
-}
-
-paneRightTop.on("mousedown", function() {
-	paneTopLeft.setValue("def firstFunction():\n\tprint \"This is your first function\"")
-	paneTopMid.setValue("def secondFunction():\n\tprint \"This is your second function\"")
-	paneTopRight.setValue("def thirdFunction():\n\tprint \"This is your third function\"")
-	editor.setValue("def main()\n\tfirstFunction()\n\tsecondFunction()\n\tthirdFunction()")
-	paneRightTop.setValue("");
-	// should abstract into updateVariables
-	functionsCurrentLocation.topLeft = "firstFunction";
-	functionsCurrentLocation.topMid = "secondFunction";
-	functionsCurrentLocation.topRight = "thirdFunction";
-
-})
-
-paneTopLeft.on("mousedown", function() {
-	if (paneTopLeft.getValue() != "") {
-		swapContents(editor, paneRightTop);
-		swapContents(editor, paneTopLeft);
-		emptyTopPanes()
-	}
-})
-
-paneTopMid.on("mousedown", function() {
-	if (paneTopLeft.getValue() != "") {
-		swapContents(editor, paneRightTop);
-		swapContents(editor, paneTopMid);
-		emptyTopPanes()
-	}
-})
-
-paneTopRight.on("mousedown", function() {
-	if (paneTopLeft.getValue() != "") {
-		swapContents(editor, paneRightTop);
-		swapContents(editor, paneTopRight);
-		emptyTopPanes()
-	}
-})
+const editor = new Editor()
