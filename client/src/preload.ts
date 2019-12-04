@@ -72,10 +72,6 @@ globals.ConfigureEditorAdapter = function(editor, fileText, onChange, getLineOff
 				globals.clientInitialized = true
 			}, 50)
 		})
-
-		// To clean up the adapter and connection:
-		// adapter.remove()
-		// lspClient.close()
 	}, logger)
 }
 

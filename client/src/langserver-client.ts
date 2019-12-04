@@ -313,7 +313,7 @@ export class LspClientImpl extends events.EventEmitter implements LspClient {
 			// 	version: "0.0.1",
 			// },
 			initializationOptions: null,
-			processId: null,
+			processId: process.pid,
 			rootUri: this.documentInfo.rootUri,
 			workspaceFolders: null,
 			trace: "off",

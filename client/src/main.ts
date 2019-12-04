@@ -4,15 +4,19 @@ import "process"
 import * as path from "path"
 import { ServerManager, ServerManagerImpl } from "./server-manager"
 
+interface Instance {
+	window: Electron.BrowserWindow
+	serverManager: ServerManager
+}
+
 class Application {
-	private windows = new Map<number, Electron.BrowserWindow>()
-	private serverManager: ServerManager
+	private instances = new Map<number, Instance>()
 
 	constructor(app: Electron.App, process: NodeJS.Process) {
 		// This method will be called when Electron has finished
 		// initialization and is ready to create browser windows.
 		// Some APIs can only be used after this event occurs.
-		app.on("ready", this.ready.bind(this))
+		app.on("ready", this.createInstance.bind(this))
 
 		// catch various events that signify application termination
 		// in order to guarantee we shut down child processes
@@ -21,38 +25,34 @@ class Application {
 		process.on("SIGTERM", this.terminate.bind(this))
 		app.on("before-quit", this.terminate.bind(this))
 
-		if (process.platform === "darwin") {
-			app.on("activate", () => {
-				// On macOS it's common to re-create a window in the app when the
-				// dock icon is clicked and there are no other windows open.
-				if (this.windows.size == 0) {
-					this.createWindow()
-				}
-			})
-		} else {
-			// Quit when all windows are closed.
+		// Quit when all windows are closed.
+		app.on("window-all-closed", () => {
 			// On macOS it is common for applications and their menu bar
 			// to stay active until the user quits explicitly with Cmd + Q
-			app.on("window-all-closed", () => app.quit())
-		}
+			if (process.platform !== "darwin") {
+				app.quit()
+			}
+		})
+
+		app.on("activate", () => {
+			// On macOS it's common to re-create a window in the app when the
+			// dock icon is clicked and there are no other windows open.
+			if (this.instances.size == 0) {
+				this.createInstance()
+			}
+		})
 	}
 
 	ready() {
-		this.serverManager = new ServerManagerImpl()
-		this.serverManager.spawn(() => {
-			// notify our windows that the server is connected
-			this.windows.forEach((w) => w.webContents.send("server-connected"))
-		})
-
-		this.createWindow()
+		this.createInstance()
 	}
 
 	terminate() {
-		// Kill the server when the application terminates.
-		this.serverManager.kill()
+		// Kill the servers when the application terminates.
+		this.instances.clear()
 	}
 
-	createWindow() {
+	createInstance() {
 		// Create the browser window.
 		const window = new BrowserWindow({
 			width: 824,
@@ -74,14 +74,19 @@ class Application {
 		// Emitted when the window is closed.
 		const windowId = window.id
 		window.on("closed", () => {
-			this.windows.delete(windowId)
+			this.instances.delete(windowId)
 		})
 
-		this.windows.set(windowId, window)
+		const serverManager = new ServerManagerImpl()
 
-		if (this.serverManager.running) {
-			window.webContents.send("server-connected")
+		const instance = {
+			window: window,
+			serverManager: serverManager,
 		}
+
+		this.instances.set(windowId, instance)
+
+		serverManager.spawn(() => window.webContents.send("server-connected"))
 	}
 }
 
