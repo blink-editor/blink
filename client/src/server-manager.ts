@@ -1,56 +1,65 @@
 import { spawn, ChildProcess } from "child_process"
 
+export enum ServerState {
+	Started,
+	Running,
+	Killed,
+}
+
 /**
  * Abstracts spawning and shutting down the backing server.
  */
 export interface ServerManager {
 	/**
-	 * If the server is currently running.
+	 * The current state of the server.
 	 */
-	running: boolean
+	readonly state: ServerState
 
 	/**
-	 * Starts the server.
-	 * Must not be called sequentially without calling kill() in between.
+	 * Starts the server. Does nothing if already up.
 	 *
 	 * @param  callback  Called when the server has started.
 	 */
 	spawn(callback: () => void): void
 
 	/**
-	 * Kills the server.
-	 * May be called multiple times without first calling spawn().
+	 * Kills the server. Does nothing if already killed.
 	 */
 	kill(): void
 }
 
 export class ServerManagerImpl {
+	public state: ServerState = ServerState.Killed
 	private serverProcess?: ChildProcess = undefined
 
 	public spawn(callback) {
+		if (this.state !== ServerState.Killed) {
+			return
+		}
+
 		const ls = spawn(
 			"sh",
 			["../server/start.sh"],
 			{ cwd: "../server/" }
 		)
 
-		// the first time we receive output, we set notified = true
-		// and call the provided callback function
-		let notified = false
+		this.state = ServerState.Started
 
 		ls.stdout.on("data", (data) => {
-			if (!notified) {
+			// the first time we receive output, we update our
+			// state and call the provided callback function
+			if (this.state == ServerState.Started) {
+				this.state = ServerState.Running
 				callback()
-				notified = true
 			}
 
 			console.log(`stdout: ${data}`)
 		})
 
 		ls.stderr.on("data", (data) => {
-			if (!notified) {
+			if (this.state == ServerState.Started) {
+				this.state = ServerState.Running
 				callback()
-				notified = true
 			}
 
 			console.error(`stderr: ${data}`)
@@ -58,17 +67,19 @@ export class ServerManagerImpl {
 
 		ls.on("close", (code) => {
 			console.log(`language server child process exited with code ${code}`)
+			this.state = ServerState.Killed
 		})
 
 		this.serverProcess = ls
 	}
 
 	public kill() {
+		if (this.state === ServerState.Killed) {
+			return
+		}
+
 		this.serverProcess?.kill()
 		this.serverProcess = undefined
-	}
-
-	public get running(): boolean {
-		return this.serverProcess !== undefined
+		this.state = ServerState.Killed
 	}
 }

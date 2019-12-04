@@ -32,6 +32,14 @@ ipcRenderer.once("server-connected", () => {
 	globals.serverConnected = true
 })
 
+/**
+ * Will nag the main process to start the server for us if
+ * the server isn't currently up for some reason.
+ */
+globals.TryStartingServer = function() {
+	ipcRenderer.send("try-starting-server")
+}
+
 globals.ConfigureEditorAdapter = function(editor, fileText, onChange, getLineOffset, onReanalyze) {
 	const logger = new client.ConsoleLogger()
 

@@ -13,6 +13,7 @@ interface Globals {
 	clientInitialized?: boolean
 
 	// helper functions
+	TryStartingServer: () => void
 	ConfigureEditorAdapter: any
 	FindCallees: (contents: string) => Thenable<any> // TODO
 	FindCallers: (pos: any) => Thenable<any> // TODO

@@ -133,6 +133,9 @@ class Editor {
 		})
 		this.activeEditorPane.setSize("100%", "46.35em")
 
+		// begin the connection to the server
+		globals.TryStartingServer()
+
 		if (globals.serverConnected) {
 			this.connectToServer()
 		} else {

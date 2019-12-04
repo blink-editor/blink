@@ -1,10 +1,11 @@
 // Modules to control application life and create native browser window
-import { app, App, BrowserWindow } from "electron"
+import { app, App, BrowserWindow, ipcMain } from "electron"
 import "process"
 import * as path from "path"
 import { ServerManager, ServerManagerImpl } from "./server-manager"
 
 interface Instance {
+	id: number
 	window: Electron.BrowserWindow
 	serverManager: ServerManager
 }
@@ -39,6 +40,13 @@ class Application {
 			// dock icon is clicked and there are no other windows open.
 			if (this.instances.size == 0) {
 				this.createInstance()
+			}
+		})
+
+		ipcMain.on("try-starting-server", (event) => {
+			const instance = this.instances.get(event.sender.id)
+			if (instance) {
+				this._spawnServerForInstance(instance)
 			}
 		})
 	}
@@ -80,13 +88,22 @@ class Application {
 		const serverManager = new ServerManagerImpl()
 
 		const instance = {
+			id: windowId,
 			window: window,
 			serverManager: serverManager,
 		}
 
 		this.instances.set(windowId, instance)
 
-		serverManager.spawn(() => window.webContents.send("server-connected"))
+		this._spawnServerForInstance(instance)
+	}
+
+	_spawnServerForInstance(instance: Instance) {
+		instance.serverManager.spawn(() => {
+			if (this.instances.get(instance.id)) {
+				instance.window.webContents.send("server-connected")
+			}
+		})
 	}
 }
 
