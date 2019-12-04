@@ -1,5 +1,7 @@
 // All of the Node.js APIs are available in the preload process.
 // It has the same sandbox as a Chrome extension.
+import { promisify } from "util"
+import * as fs from "fs"
 import * as client from "./langserver-client"
 import * as lsp from "vscode-languageserver-protocol"
 import CodeMirror from "codemirror"
@@ -69,6 +71,35 @@ let adapter: CodeMirrorAdapter
 
 ;(window as any).Reanalyze = function(): void {
 	if (!adapter || !lspClient) { return }
+
+	adapter.reanalyze()
+}
+
+// 2
+;(window as any).openFileDialogForEditor = function(): Thenable<string | undefined> {
+	const dialog = require("electron").remote.dialog
+
+	return dialog.showOpenDialog({
+		properties : ["openFile", "openDirectory"]
+	})
+		.then((result) => {
+			if (result.filePaths.length < 1) {
+				return Promise.resolve(undefined)
+			}
+
+			return promisify(fs.readFile)(result.filePaths[0], { encoding: "utf8" })
+		})
+}
+
+;(window as any).ChangeFile = function(newFile) {
+	adapter.wholeFileText = newFile
+
+	// dummy change to force sending new file
+	adapter.handleChange(adapter.editor, {
+		from: { line: 0, ch: 0 },
+		to: { line: 0, ch: 0 },
+		text: []
+	})
 
 	adapter.reanalyze()
 }

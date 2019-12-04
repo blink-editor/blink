@@ -107,3 +107,8 @@ body > .CodeMirror {
 	background-image: linear-gradient(180deg,#727273 10%,#727273 100%);
 	background-size: cover;
 }
+
+#open-file {
+	background: #727273;
+	border: 0px;
+}
