@@ -5,6 +5,8 @@
 // selectively enable features needed in the rendering
 // process.
 
+const globals: Globals = window["globals"]
+
 let file = `def firstFunction():
     print("first")
 
@@ -78,8 +80,8 @@ class Editor {
 
 	constructor() {
 		// creates a CodeMirror editor configured to look like a preview pane
-		const createPane = function(id, wrapping) {
-			const pane = (window as any).CodeMirror(document.getElementById(id), {
+		const createPane = function(id, wrapping): CodeMirror.Editor {
+			const pane = globals.CodeMirror(document.getElementById(id), {
 				mode: "python",
 				lineNumbers: true,
 				theme: "monokai",
@@ -123,7 +125,7 @@ class Editor {
 		})
 
 		// create active editor pane
-		this.activeEditorPane = (window as any).CodeMirror(document.getElementById("main-pane"), {
+		this.activeEditorPane = globals.CodeMirror(document.getElementById("main-pane"), {
 			mode: "python",
 			lineNumbers: true,
 			theme: "monokai",
@@ -131,22 +133,31 @@ class Editor {
 		})
 		this.activeEditorPane.setSize("100%", "46.35em")
 
-		// in 5 seconds, attempt to connect the active editor to the language server
-		setTimeout(() => {
-			console.log("connecting to server")
-			;(window as any).ConfigureEditorAdapter(
-				this.activeEditorPane,
-				file,
-				this.onFileChanged.bind(this),
-				() => this.activeEditorOwnedRange?.start.line ?? 0,
-				this.onNavObjectUpdated.bind(this)
-			)
+		if (globals.serverConnected) {
+			this.connectToServer()
+		} else {
+			globals.events.once("server-connected", this.connectToServer.bind(this))
+		}
+	}
 
-			// kick off reanalysis to find main initially
-			setTimeout(() => {
-				;(window as any).Reanalyze()
-			}, 5000) // TODO
-		}, 5000) // TODO
+	/**
+	 * Attempts to connect the editor to the language server.
+	 */
+	connectToServer() {
+		console.log("connecting to server")
+
+		globals.ConfigureEditorAdapter(
+			this.activeEditorPane,
+			file,
+			this.onFileChanged.bind(this),
+			() => this.activeEditorOwnedRange?.start.line ?? 0,
+			this.onNavObjectUpdated.bind(this)
+		)
+
+		// kick off reanalysis to find main initially
+		setTimeout(() => {
+			globals.Reanalyze()
+		}, 3000) // TODO
 	}
 
 	/**
@@ -170,7 +181,7 @@ class Editor {
 		if (newLineCount !== oldLineCount) {
 			// TODO: maybe reanalyze
 			// setTimeout(() => {
-			// 	;(window as any).reanalyze()
+			// 	globals.reanalyze()
 			// }, 1000)
 			this.activeEditorOwnedRange.end.line += (newLineCount - oldLineCount)
 		}
@@ -254,10 +265,10 @@ class Editor {
 	swapToSymbol(symbol) {
 		// fetch new callees
 		const contents = extractRangeOfFile(symbol.location.range)
-		const callees = (window as any).FindCallees(contents)
+		const callees = globals.FindCallees(contents)
 
 		// fetch new callers
-		const callers = (window as any).FindCallers({
+		const callers = globals.FindCallers({
 			textDocument: { uri: symbol.location.uri },
 			position: { line: symbol.location.range.start.line, character: 5 }, // TODO: not hardcode
 		})
