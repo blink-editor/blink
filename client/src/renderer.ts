@@ -185,6 +185,10 @@ class Editor {
 	 * @param text  The changed contents of the active editor pane.
 	 */
 	onFileChanged(text) {
+		if (!this.activeEditorOwnedRange) {
+			return file
+		}
+
 		const oldLineCount = file.split("\n").length
 
 		// replace the contents of the symbol's range with the new contents
@@ -317,3 +321,29 @@ class Editor {
 }
 
 const editor = new Editor()
+
+// 1
+function openFile() {
+	;(window as any).openFileDialogForEditor()
+		.then((text: string | undefined) => {
+			// 3
+			if (!text) {
+				console.error("Error: No file selected")
+				return
+			}
+
+			file = text
+			editor.activeSymbol = null
+			editor.activeEditorOwnedRange = null
+			;(window as any).ChangeFile(file)
+		})
+}
+
+function saveFile() {
+	;(window as any).openSaveDialogForEditor(file)
+		.then((result) => {
+			if (result) {
+				console.log("Successfully saved file")
+			}
+		})
+}

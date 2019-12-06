@@ -1,5 +1,7 @@
 // All of the Node.js APIs are available in the preload process.
 // It has the same sandbox as a Chrome extension.
+import { promisify } from "util"
+import * as fs from "fs"
 import * as client from "./langserver-client"
 import * as lsp from "vscode-languageserver-protocol"
 import * as events from "events"
@@ -98,4 +100,47 @@ globals.Reanalyze = function(): void {
 	if (!adapter || !lspClient) { return }
 
 	adapter.reanalyze()
+}
+
+// 2
+;(window as any).openFileDialogForEditor = function(): Thenable<string | undefined> {
+	const dialog = require("electron").remote.dialog
+
+	return dialog.showOpenDialog({
+		properties : ["openFile"]
+	})
+		.then((result) => {
+			if (result.filePaths.length < 1) {
+				return Promise.resolve(undefined)
+			}
+
+			return promisify(fs.readFile)(result.filePaths[0], { encoding: "utf8" })
+		})
+}
+
+;(window as any).ChangeFile = function(newFile) {
+	adapter.wholeFileText = newFile
+
+	// dummy change to force sending new file
+	adapter.handleChange(adapter.editor, {
+		from: { line: 0, ch: 0 },
+		to: { line: 0, ch: 0 },
+		text: []
+	})
+
+	adapter.reanalyze()
+}
+
+;(window as any).openSaveDialogForEditor = function(fileText: string): Thenable<string | undefined> {
+	const dialog = require("electron").remote.dialog
+
+	return dialog.showSaveDialog({})
+		.then((result) => {
+			if (!result.filePath) {
+				return Promise.resolve(undefined)
+			}
+
+			return promisify(fs.writeFile)(result.filePath, fileText, { encoding: "utf8" })
+				.then(() => "success")
+		})
 }
