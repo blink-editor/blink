@@ -80,7 +80,7 @@ let adapter: CodeMirrorAdapter
 	const dialog = require("electron").remote.dialog
 
 	return dialog.showOpenDialog({
-		properties : ["openFile", "openDirectory"]
+		properties : ["openFile"]
 	})
 		.then((result) => {
 			if (result.filePaths.length < 1) {
