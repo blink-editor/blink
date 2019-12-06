@@ -40,7 +40,7 @@ globals.TryStartingServer = function() {
 	ipcRenderer.send("try-starting-server")
 }
 
-globals.ConfigureEditorAdapter = function(editor, fileText, onChange, getLineOffset, onReanalyze) {
+globals.ConfigureEditorAdapter = function(editor, fileText, onChange, getLineOffset, onReanalyze, onShouldSwap) {
 	const logger = new client.ConsoleLogger()
 
 	client.createTcpRpcConnection("localhost", 2087, (connection) => {
@@ -62,6 +62,7 @@ globals.ConfigureEditorAdapter = function(editor, fileText, onChange, getLineOff
 
 		adapter.wholeFileText = documentInfo.initialText
 		adapter.onChange = onChange
+		adapter.onShouldSwap = onShouldSwap
 		adapter.getLineOffset = getLineOffset
 		adapter.onReanalyze = () => {
 			setTimeout(() => {

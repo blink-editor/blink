@@ -162,7 +162,10 @@ class Editor {
 			file,
 			this.onFileChanged.bind(this),
 			() => this.activeEditorOwnedRange?.start.line ?? 0,
-			this.onNavObjectUpdated.bind(this)
+			this.onNavObjectUpdated.bind(this),
+			(sym) => {
+				this.swapToSymbol(sym)
+			}
 		)
 
 		// kick off reanalysis to find main initially
