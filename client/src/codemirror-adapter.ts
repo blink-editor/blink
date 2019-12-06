@@ -189,6 +189,7 @@ export class CodeMirrorAdapter extends IEditorAdapter<CodeMirror.Editor> {
 	public getLineOffset: () => number
 	public wholeFileText: string
 	public onReanalyze: () => void
+	public onShouldSwap: (sym: lsp.SymbolInformation) => void
 
 	constructor(connection: LspClient, options: ITextEditorOptions, editor: CodeMirror.Editor) {
 		super(connection, options, editor)
@@ -410,9 +411,28 @@ export class CodeMirrorAdapter extends IEditorAdapter<CodeMirror.Editor> {
 		})
 	}
 
+	public handleGoToDef(location: lsp.Location | lsp.Location[] | lsp.LocationLink[] | null) {
+		this._removeTooltip()
+		if (!location) {
+			return
+		}
+
+		const documentUri = this.connection.getDocumentUri()
+		if(lsp.Location.is(location)){
+			const locatedSymbol = this.navObject.bestSymbolForLocation(location)
+			if(locatedSymbol){
+				this.onShouldSwap(locatedSymbol)
+			}
+		}else if(lsp.Location.is(location[0])){
+			const locatedSymbol = this.navObject.bestSymbolForLocation(location[0])
+			if(locatedSymbol){
+				this.onShouldSwap(locatedSymbol)
+			}
+		}
+	}
+
 	public handleGoTo(location: lsp.Location | lsp.Location[] | lsp.LocationLink[] | null) {
 		this._removeTooltip()
-
 		if (!location) {
 			return
 		}
@@ -488,6 +508,7 @@ export class CodeMirrorAdapter extends IEditorAdapter<CodeMirror.Editor> {
 			signature: this.handleSignature.bind(self),
 			diagnostic: this.handleDiagnostic.bind(self),
 			goTo: this.handleGoTo.bind(self),
+			goToDef: this.handleGoToDef.bind(self)
 		}
 
 		Object.keys(this.connectionListeners).forEach((key) => {
@@ -612,6 +633,18 @@ export class CodeMirrorAdapter extends IEditorAdapter<CodeMirror.Editor> {
 				entries.push(this.definitionContextEntry(docPosition))
 			}
 
+			const htmlElement = document.createElement('div');
+			htmlElement.classList.add('CodeMirror-lsp-context');
+
+			if (this.connection.isDefinitionSupported()) {
+				const goToDefinition = document.createElement('div');
+				goToDefinition.innerText = 'Go to Definition';
+				goToDefinition.addEventListener('click', () => {
+					//this.connection.getDefinition(docPosition);
+					this.connection.getDocumentSymbol();
+				});
+				htmlElement.appendChild(goToDefinition);
+			}
 			if (this.connection.isTypeDefinitionSupported()) {
 				entries.push(this.typeDefinitionContextEntry(docPosition))
 			}

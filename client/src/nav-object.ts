@@ -91,6 +91,37 @@ export class NavObject {
 		console.log(this.symToInfo)
 	}
 
+	/**
+	 * Finds the innermost symbol at a given location
+	 * @param loc location of desired symbol
+	 */
+	bestSymbolForLocation(loc: lsp.Location): lsp.SymbolInformation | null {
+		let bestScore: number | null = null
+		let bestKey: string | null = null
+
+		const range = loc.range
+
+		// search for tightest enclosing scope for this reference
+		for (const key in this.symToInfo) {
+			const cachedRange = this.symToInfo[key].location.range
+
+			// if currRange is entirely within refRange and holds a tighter line bound than the best so far, it is new best
+			if (((cachedRange.start.line <= range.start.line && cachedRange.end.line >= range.end.line)
+					  || ((cachedRange.start.line === range.start.line && cachedRange.start.character <= range.start.character)
+					      && (cachedRange.end.line === range.end.line && cachedRange.end.character >= range.end.character)))
+				  && (bestScore === null || cachedRange.end.line - cachedRange.start.line < bestScore)) {
+					bestScore = cachedRange.end.line - cachedRange.start.line
+					bestKey = key
+			}
+		}
+
+		if (bestKey) {
+			return this.symToInfo[bestKey]
+		}
+
+		return null
+	}
+
 	/*
 	 * Finds the callers of a function whose name is at the position given. Should be called on navigate, return, save.
 	 * @param symPos  A position object representing the position of the name of the function to find callers of.
@@ -112,27 +143,11 @@ export class NavObject {
 
 				// for each reference recieved, find parent scope
 				for (const receivedRef of locations) {
-					let receivedRange: lsp.Range = receivedRef.range
-					let bestScore: number | null = null
-					let bestKey: string | null = null
-
-					// search for tightest enclosing scope for this reference
-					for (const key in this.symToInfo) {
-						const cachedRange = this.symToInfo[key].location.range
-
-						// if currRange is entirely within refRange and holds a tighter line bound than the best so far, it is new best
-						if (((cachedRange.start.line <= receivedRange.start.line && cachedRange.end.line >= receivedRange.end.line)
-								  || ((cachedRange.start.line === receivedRange.start.line && cachedRange.start.character <=receivedRange.start.character)
-								      && (cachedRange.end.line === receivedRange.end.line && cachedRange.end.character >= receivedRange.end.character)))
-							  && (bestScore === null || cachedRange.end.line - cachedRange.start.line < bestScore)) {
-								bestScore = cachedRange.end.line - cachedRange.start.line
-								bestKey = key
-						}
-					}
+					const symbol = this.bestSymbolForLocation(receivedRef)
 
 					// if no parents to caller, was called from global scope, so ignore it
-					if (bestKey !== null) {
-						output.push(this.symToInfo[bestKey])
+					if (symbol !== null) {
+						output.push(symbol)
 					}
 				}
 

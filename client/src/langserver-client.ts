@@ -34,6 +34,7 @@ export interface LspClient {
 	on(event: "highlight", callback: (highlights: lsp.DocumentHighlight[]) => void): void
 	on(event: "signature", callback: (signatures: lsp.SignatureHelp) => void): void
 	on(event: "goTo", callback: (location: lsp.Location | lsp.Location[] | lsp.LocationLink[] | null) => void): void
+	on(event: "goToDef", callback: (location: lsp.Location | lsp.Location[] | lsp.LocationLink[] | null) => void): void
 	on(event: "error", callback: (error: any) => void): void
 	on(event: "logging", callback: (log: any) => void): void
 	on(event: "initialized", callback: () => void): void
@@ -382,6 +383,7 @@ export class LspClientImpl extends events.EventEmitter implements LspClient {
 		if(!this.isInitialized){
 			return
 		}
+
 		if (!(this.serverCapabilities && this.serverCapabilities.documentSymbolProvider)) {
 			return
 		}
@@ -454,7 +456,6 @@ export class LspClientImpl extends events.EventEmitter implements LspClient {
 			position: position,
 		} as lsp.TextDocumentPositionParams).then((params: lsp.SignatureHelp) => {
 			this.emit("signature", params)
-			console.log(params)
 		})
 	}
 
@@ -494,7 +495,7 @@ export class LspClientImpl extends events.EventEmitter implements LspClient {
 			},
 			position: position,
 		} as lsp.TextDocumentPositionParams).then((result: lsp.Location | lsp.Location[] | lsp.LocationLink[] | null) => {
-			this.emit("goTo", result)
+			this.emit("goToDef", result)
 		})
 	}
 
