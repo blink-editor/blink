@@ -2,6 +2,8 @@
 // It has the same sandbox as a Chrome extension.
 import * as client from "./langserver-client"
 import * as lsp from "vscode-languageserver-protocol"
+import * as events from "events"
+import { ipcRenderer } from "electron"
 import CodeMirror from "codemirror"
 import { CodeMirrorAdapter } from "./codemirror-adapter"
 // css imported in html for now
@@ -12,12 +14,33 @@ import "codemirror/mode/python/python"
 import "codemirror/addon/hint/show-hint"
 // import "codemirror/addon/hint/show-hint.css"
 
+class GlobalEventsImpl extends events.EventEmitter implements GlobalEvents {}
+
 let lspClient: client.LspClient
 let adapter: CodeMirrorAdapter
 
-;(window as any).CodeMirror = CodeMirror
+const globals = {
+	CodeMirror: CodeMirror,
+} as Globals
 
-;(window as any).ConfigureEditorAdapter = function(editor, fileText, onChange, getLineOffset, onReanalyze) {
+window["globals"] = globals
+
+globals.events = new GlobalEventsImpl()
+
+ipcRenderer.once("server-connected", () => {
+	globals.events.emit("server-connected")
+	globals.serverConnected = true
+})
+
+/**
+ * Will nag the main process to start the server for us if
+ * the server isn't currently up for some reason.
+ */
+globals.TryStartingServer = function() {
+	ipcRenderer.send("try-starting-server")
+}
+
+globals.ConfigureEditorAdapter = function(editor, fileText, onChange, getLineOffset, onReanalyze) {
 	const logger = new client.ConsoleLogger()
 
 	client.createTcpRpcConnection("localhost", 2087, (connection) => {
@@ -51,23 +74,26 @@ let adapter: CodeMirrorAdapter
 			console.error(e)
 		})
 
-		// To clean up the adapter and connection:
-		// adapter.remove()
-		// lspClient.close()
+		lspClient.once("initialized", () => {
+			setTimeout(() => {
+				globals.events.emit("client-initialized")
+				globals.clientInitialized = true
+			}, 50)
+		})
 	}, logger)
 }
 
-;(window as any).FindCallees = function(contents: string): Thenable<lsp.SymbolInformation[]> {
+globals.FindCallees = function(contents: string): Thenable<lsp.SymbolInformation[]> {
 	if (!adapter) { return Promise.resolve([]) }
 	return adapter.navObject.findCallees(contents)
 }
 
-;(window as any).FindCallers = function(pos: lsp.TextDocumentPositionParams): Thenable<lsp.SymbolInformation[]> {
+globals.FindCallers = function(pos: lsp.TextDocumentPositionParams): Thenable<lsp.SymbolInformation[]> {
 	if (!adapter) { return Promise.resolve([]) }
 	return adapter.navObject.findCallers(pos)
 }
 
-;(window as any).Reanalyze = function(): void {
+globals.Reanalyze = function(): void {
 	if (!adapter || !lspClient) { return }
 
 	adapter.reanalyze()
