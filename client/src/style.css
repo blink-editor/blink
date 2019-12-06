@@ -97,7 +97,8 @@ body > .CodeMirror {
 }
 
 #top-pane-container {
-	width: 90%;
+	width: calc(100% - 6.5rem - 0.1%); /* 6.5rem = sidebar width */
+	max-width: 100%;
 	margin: 0;
 	padding: 0;
 }

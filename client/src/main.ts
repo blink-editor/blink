@@ -63,10 +63,12 @@ class Application {
 	createInstance() {
 		// Create the browser window.
 		const window = new BrowserWindow({
-			width: 824,
-			height: 826,
-			minHeight: 826,
-			minWidth: 824,
+			width: 1200,
+			height: 824,
+			minWidth: 1200,
+			minHeight: 824,
+			maxWidth: 1200,
+			maxHeight: 824,
 			webPreferences: {
 				// contextIsolation: true,
 				preload: path.join(__dirname, "preload.js"),
