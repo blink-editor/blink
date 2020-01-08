@@ -7,29 +7,7 @@
 
 const globals: Globals = window["globals"]
 
-let file = `def firstFunction():
-    print("first")
-
-
-def secondFunction():
-    print("second")
-
-
-def thirdFunction():
-    print("third")
-
-
-def main():
-    firstFunction()
-    secondFunction()
-    thirdFunction()
-
-
-def test():
-    main()
-`
-
-const extractRangeOfFile = (range): string => {
+const extractRangeOfFile = (file, range): string => {
 	const allLines = file.split("\n")
 
 	if (range.start.line === range.end.line) {
@@ -50,12 +28,18 @@ const extractRangeOfFile = (range): string => {
 	return lines.join("\n")
 }
 
-const applyFileChange = (change) => {
-	const startString = extractRangeOfFile({ start: { line: 0, character: 0, }, end: change.range.start })
+const applyFileChange = (file, change) => {
+	const startString = extractRangeOfFile(file, {
+		start: { line: 0, character: 0, },
+		end: change.range.start
+	})
 
 	const allLines = file.split("\n")
 	const lastLine = allLines[allLines.length - 1]
-	const endString = extractRangeOfFile({ start: change.range.end, end: { line: allLines.length - 1, character: lastLine.length } })
+	const endString = extractRangeOfFile(file, {
+		start: change.range.end,
+		end: { line: allLines.length - 1, character: lastLine.length }
+	})
 
 	file = startString + change.text + endString
 
@@ -77,6 +61,42 @@ class Editor {
 	activeEditorOwnedRange: any | null
 	calleesOfActive: any[] = []
 	callersOfActive: any[] = []
+
+	file: string = `def firstFunction():
+    print("first")
+
+
+def secondFunction():
+    print("second")
+
+
+def thirdFunction():
+    print("third")
+
+
+class Dog():
+    def __init__(self): pass
+
+    def foo(self):
+        class Helper():
+            def __init__(self):
+                pass
+            def bar(self):
+                return 5
+        return Helper().bar()
+
+
+def main():
+    a = Dog()
+    a.foo()
+    firstFunction()
+    secondFunction()
+    thirdFunction()
+
+
+def test():
+    main()
+`
 
 	constructor() {
 		// creates a CodeMirror editor configured to look like a preview pane
@@ -159,7 +179,7 @@ class Editor {
 
 		globals.ConfigureEditorAdapter(
 			this.activeEditorPane,
-			file,
+			this.file,
 			this.onFileChanged.bind(this),
 			() => this.activeEditorOwnedRange?.start.line ?? 0,
 			this.onNavObjectUpdated.bind(this),
@@ -186,20 +206,20 @@ class Editor {
 	 */
 	onFileChanged(text) {
 		if (!this.activeEditorOwnedRange) {
-			return file
+			return this.file
 		}
 
-		const oldLineCount = file.split("\n").length
+		const oldLineCount = this.file.split("\n").length
 
 		// replace the contents of the symbol's range with the new contents
-		file = applyFileChange({
+		this.file = applyFileChange(this.file, {
 			range: this.activeEditorOwnedRange,
 			text: text
 		})
 
 		// if the number of lines occupied changes, fix up the known location
 		// of the symbol so that e.g. the above substitution range is correct
-		const newLineCount = file.split("\n").length
+		const newLineCount = this.file.split("\n").length
 		if (newLineCount !== oldLineCount) {
 			// TODO: maybe reanalyze
 			// setTimeout(() => {
@@ -213,7 +233,7 @@ class Editor {
 		const textLines = text.split("\n")
 		this.activeEditorOwnedRange.end.character = textLines[textLines.length - 1].length
 
-		return file
+		return this.file
 	}
 
 	/**
@@ -286,13 +306,14 @@ class Editor {
 
 	swapToSymbol(symbol) {
 		// fetch new callees
-		const contents = extractRangeOfFile(symbol.location.range)
+		const contents = extractRangeOfFile(this.file, symbol.location.range)
 		const callees = globals.FindCallees(contents)
 
 		// fetch new callers
 		const callers = globals.FindCallers({
 			textDocument: { uri: symbol.location.uri },
-			position: { line: symbol.location.range.start.line, character: 5 }, // TODO: not hardcode
+			// TODO: not hardcode
+			position: { line: symbol.location.range.start.line, character: 5 },
 		})
 
 		// don't update any panes / props until done
@@ -310,13 +331,20 @@ class Editor {
 				this.activeEditorPane.setValue(contents)
 				this.calleePanes.forEach((pane) => pane.setValue(""))
 				callees.slice(null, 3).forEach((calleeSym, index) => {
-					this.calleePanes[index].setValue(extractRangeOfFile(calleeSym.location.range))
+					this.calleePanes[index].setValue(extractRangeOfFile(this.file, calleeSym.location.range))
 				})
 				this.callerPanes.forEach((pane) => pane.setValue(""))
 				callers.slice(null, 3).forEach((callerSym, index) => {
-					this.callerPanes[index].setValue(extractRangeOfFile(callerSym.location.range))
+					this.callerPanes[index].setValue(extractRangeOfFile(this.file, callerSym.location.range))
 				})
 			})
+	}
+
+	setFile(text: string) {
+		this.file = text
+		this.activeSymbol = null
+		this.activeEditorOwnedRange = null
+		;(window as any).ChangeFile(this.file)
 	}
 }
 
@@ -332,15 +360,12 @@ function openFile() {
 				return
 			}
 
-			file = text
-			editor.activeSymbol = null
-			editor.activeEditorOwnedRange = null
-			;(window as any).ChangeFile(file)
+			editor.setFile(text)
 		})
 }
 
 function saveFile() {
-	;(window as any).openSaveDialogForEditor(file)
+	;(window as any).openSaveDialogForEditor(editor.file)
 		.then((result) => {
 			if (result) {
 				console.log("Successfully saved file")
