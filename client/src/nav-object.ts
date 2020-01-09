@@ -69,6 +69,7 @@ export class NavObject {
 	 */
 	rebuildMaps(symbols: lsp.DocumentSymbol[] | lsp.SymbolInformation[]) {
 
+		// Used to check that the gien parameter is type symbolInformation[]
 		function isSymbolInformationArray(symbols: lsp.DocumentSymbol[] | lsp.SymbolInformation[]): symbols is lsp.SymbolInformation[] {
 			return (symbols as lsp.SymbolInformation[]).length === 0 || (symbols as lsp.SymbolInformation[])[0].location !== undefined
 		}
@@ -83,12 +84,12 @@ export class NavObject {
 			const symKey: string = this.symbolKeyToString({
 				name: symInfo.name,
 				kind: symInfo.kind,
-				module: "", // TODO: we'll need this later
+				module: symInfo.location.uri,
 			})
+			console.log("SYMINFO_LOCATION")
+			console.log(symInfo.location.uri)
 			this.symToInfo[symKey] = symInfo
 		}
-
-		console.log(this.symToInfo)
 	}
 
 	/**
@@ -105,11 +106,12 @@ export class NavObject {
 		for (const key in this.symToInfo) {
 			const cachedRange = this.symToInfo[key].location.range
 
-			// if currRange is entirely within refRange and holds a tighter line bound than the best so far, it is new best
-			if (((cachedRange.start.line <= range.start.line && cachedRange.end.line >= range.end.line)
+			// test if cachedRange is the tightest known bound around range
+			if (((cachedRange.start.line <= range.start.line && cachedRange.end.line >= range.end.line) // range entirely within cachedRange (inclusive)
 					  || ((cachedRange.start.line === range.start.line && cachedRange.start.character <= range.start.character)
 					      && (cachedRange.end.line === range.end.line && cachedRange.end.character >= range.end.character)))
-				  && (bestScore === null || cachedRange.end.line - cachedRange.start.line < bestScore)) {
+					&& (bestScore === null || cachedRange.end.line - cachedRange.start.line < bestScore) // tightest line bound so far
+					&& (this.symToInfo[key].kind !== lsp.SymbolKind.Variable)) { // not a variable declaration // TODO: Test
 					bestScore = cachedRange.end.line - cachedRange.start.line
 					bestKey = key
 			}
