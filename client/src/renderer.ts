@@ -307,7 +307,7 @@ def test():
 	swapToSymbol(symbol) {
 		// fetch new callees
 		const contents = extractRangeOfFile(this.file, symbol.location.range)
-		const callees = globals.FindCallees(contents)
+		const callees = globals.FindCallees(symbol)
 
 		// fetch new callers
 		const callers = globals.FindCallers({

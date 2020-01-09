@@ -86,9 +86,9 @@ globals.ConfigureEditorAdapter = function(editor, fileText, onChange, getLineOff
 	}, logger)
 }
 
-globals.FindCallees = function(contents: string): Thenable<lsp.SymbolInformation[]> {
+globals.FindCallees = function(symbol: lsp.SymbolInformation): Thenable<lsp.SymbolInformation[]> {
 	if (!adapter) { return Promise.resolve([]) }
-	return adapter.navObject.findCallees(contents)
+	return adapter.navObject.findCallees(symbol)
 }
 
 globals.FindCallers = function(pos: lsp.TextDocumentPositionParams): Thenable<lsp.SymbolInformation[]> {

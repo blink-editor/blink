@@ -156,27 +156,54 @@ export class NavObject {
 	}
 
 	/*
-	 * Finds all the symbols referenced within the code string `contents`.
-	 * @param contents  The contents of the pseudo-file to find calls in.
+	 * Finds all the symbols referenced within the given symbol scope.
+	 * @param symbol  The symbol to find calls in.
 	 * @returns    An array of SymbolInformation objects with ranges that enclose the definitions of functions being called in the given function.
 	 */
-	findCallees(contents: string): Promise<lsp.SymbolInformation[]> {
-		return this.client.getUsedDocumentSymbols(contents, "python")
-			.then((result: lsp.CompletionItem[] | null) => {
-				const completions = (result) ? result : []
+	findCallees(parentSymbol: lsp.SymbolInformation): Thenable<lsp.SymbolInformation[]> {
+		return this.client.getUsedDocumentSymbols()
+			.then((result: lsp.DocumentSymbol[] | lsp.SymbolInformation[] | null) => {
+				function isSymbolInformationArray(symbols: lsp.DocumentSymbol[] | lsp.SymbolInformation[]): symbols is lsp.SymbolInformation[] {
+					return (symbols as lsp.SymbolInformation[]).length === 0 || (symbols as lsp.SymbolInformation[])[0].location !== undefined
+				}
+
+				if (result === null || !isSymbolInformationArray(result)) {
+					throw new Error("expected SymbolInformation[], got something else")
+				}
+
 				const output: lsp.SymbolInformation[] = []
 
 				// for each completion received, find matching location
-				for (const completion of completions) {
-					if (completion.kind === undefined) { continue }
-					const kind = completionItemKindToSymbolKind(completion.kind)
+				for (const symbol of result) {
+					if (symbol.kind === undefined) { continue }
+					const kind: lsp.SymbolKind = symbol.kind
 					if (kind === null) { continue }
+
+					// since we're using the whole-document usedDocumentSymbols
+					// just to get callees of a specific function, we need to filter out
+					// used document symbols that are not used within the function we care about.
+					// TODO: we should treat usedDocumentSymbols like documentSymbols, i.e.
+					// we should store it as long as we can then invalidate when necessary
+					// TODO: we may also want to use an existing "call graph" API
+					// https://github.com/microsoft/language-server-protocol/issues/468
+					const usageRange: lsp.Range = (symbol as any)["rayBensUsageRange"]
+					if (!(usageRange.start.line >= parentSymbol.location.range.start.line
+							&& usageRange.end.line <= parentSymbol.location.range.end.line)) {
+						continue
+					}
+
+					// TODO: see above, but we also want to filter out things
+					// defined within the parent symbol scope
+					if (symbol.location.range.start.line >= parentSymbol.location.range.start.line
+							&& symbol.location.range.end.line <= parentSymbol.location.range.end.line) {
+						continue
+					}
 
 					// find completion's definition range
 					const testSymKey: string = this.symbolKeyToString({
-						name: completion.label,
+						name: symbol.name,
 						kind: kind,
-						module: "", // TODO: when multiple modules exist we may need (completion.detail?)
+						module: (symbol as any)["rayBensModule"],
 					})
 					const desiredInfo: lsp.SymbolInformation = this.symToInfo[testSymKey]
 

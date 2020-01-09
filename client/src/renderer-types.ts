@@ -15,7 +15,7 @@ interface Globals {
 	// helper functions
 	TryStartingServer: () => void
 	ConfigureEditorAdapter: any
-	FindCallees: (contents: string) => Thenable<any> // TODO
+	FindCallees: (symbol: any) => Thenable<any> // TODO
 	FindCallers: (pos: any) => Thenable<any> // TODO
 	Reanalyze: () => void
 }

@@ -119,7 +119,7 @@ export interface LspClient {
 	isReferencesSupported(): boolean
 
 	// TODO: refactor
-	getUsedDocumentSymbols(contents: string, languageId: string): Promise<lsp.CompletionItem[] | null>
+	getUsedDocumentSymbols(): Thenable<lsp.DocumentSymbol[] | lsp.SymbolInformation[] | null>
 	getReferencesWithRequest(request: lsp.ReferenceParams): Thenable<lsp.Location[] | null>
 }
 
@@ -569,36 +569,14 @@ export class LspClientImpl extends events.EventEmitter implements LspClient {
 		return Promise.resolve()
 	}
 
-	public getUsedDocumentSymbols(contents: string, languageId: string): Promise<lsp.CompletionItem[] | null> {
-		const uri = "untitled:///temp-" + Date.now() // TODO
-
-		const openParams: lsp.DidOpenTextDocumentParams = {
+	public getUsedDocumentSymbols(): Thenable<lsp.DocumentSymbol[] | lsp.SymbolInformation[] | null> {
+		return this.connection.sendRequest("textDocument/usedDocumentSymbol", {
 			textDocument: {
-				uri: uri,
-				languageId: languageId,
-				text: contents,
-				version: 0,
-			} as lsp.TextDocumentItem,
-		}
-
-		const symbolParams: lsp.DocumentSymbolParams = {
-			textDocument: {
-				uri: uri
-			},
-		}
-
-		const closeParams: lsp.DidCloseTextDocumentParams = {
-			textDocument: {
-				uri: uri
+				uri: this.documentInfo.documentUri,
 			}
-		}
-
-		return this.sendOpenDocument(openParams)
-			.then(() => this.connection.sendRequest("textDocument/usedDocumentSymbol", symbolParams))
-			.then((response: lsp.CompletionItem[] | null) => {
-				return this.sendCloseDocument(closeParams)
-					.then(() => Promise.resolve(response))
-			})
+		} as lsp.DocumentSymbolParams).then((params: lsp.DocumentSymbol[] | lsp.SymbolInformation[] | null) => {
+			return params
+		})
 	}
 
 	public getReferencesWithRequest(request: lsp.ReferenceParams): Thenable<lsp.Location[] | null> {
