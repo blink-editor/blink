@@ -247,7 +247,7 @@ def test():
 		const mainKey = {
 			name: "main",
 			kind: 12, // lsp.SymbolKind.Function
-			module: "", // TODO
+			module: "file", // TODO
 		}
 
 		let symbol
@@ -256,8 +256,8 @@ def test():
 			// if we have an active symbol, try to look up its new version
 			const activeSymbolKey = {
 				name: this.activeSymbol.name,
-				kind: 12, // TODO
-				module: "", // TODO
+				kind: 12, // lsp.SymbolKind.Function
+				module: "file", // TODO
 			}
 
 			const activeSymbol = lookup(activeSymbolKey)
