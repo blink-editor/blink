@@ -8,7 +8,7 @@
 const globals: Globals = window["globals"]
 
 const extractRangeOfFile = (file, range): string => {
-	const allLines = file.split("\n")
+	const allLines = file.split("\n") // TODO: worry about other line endings
 
 	if (range.start.line === range.end.line) {
 		return allLines[range.start.line].slice(range.start.character, range.end.character)
@@ -28,24 +28,6 @@ const extractRangeOfFile = (file, range): string => {
 	return lines.join("\n")
 }
 
-const applyFileChange = (file, change) => {
-	const startString = extractRangeOfFile(file, {
-		start: { line: 0, character: 0, },
-		end: change.range.start
-	})
-
-	const allLines = file.split("\n")
-	const lastLine = allLines[allLines.length - 1]
-	const endString = extractRangeOfFile(file, {
-		start: change.range.end,
-		end: { line: allLines.length - 1, character: lastLine.length }
-	})
-
-	file = startString + change.text + endString
-
-	return file
-}
-
 // TODO: use better polyfill
 ;(window as any).setImmediate = function(callback: (...args: any[]) => void) {
 	window.setTimeout(callback, 0)
@@ -58,11 +40,16 @@ class Editor {
 	activeEditorPane: CodeMirror.Editor
 
 	activeSymbol: any | null = null
-	activeEditorOwnedRange: any | null
 	calleesOfActive: any[] = []
 	callersOfActive: any[] = []
 
-	file: string = `def firstFunction():
+	topLevelSymbols: { [name: string]: { symbol: any; definitionString: string } } = {}
+	topLevelCode: string | null = null
+
+	file: string = `import math
+from __future__ import print_function
+
+def firstFunction():
     print("first")
 
 
@@ -72,6 +59,15 @@ def secondFunction():
 
 def thirdFunction():
     print("third")
+
+
+def logger():
+    from math import log
+    return math.log(2)
+
+
+def rooter():
+    return math.sqrt(49)
 
 
 class Dog():
@@ -96,6 +92,8 @@ def main():
 
 def test():
     main()
+
+test()
 `
 
 	constructor() {
@@ -175,18 +173,16 @@ def test():
 	 * Attempts to connect the editor to the language server.
 	 */
 	connectToServer() {
-		console.log("connecting to server")
-
-		globals.ConfigureEditorAdapter(
-			this.activeEditorPane,
-			this.file,
-			this.onFileChanged.bind(this),
-			() => this.activeEditorOwnedRange?.start.line ?? 0,
-			this.onNavObjectUpdated.bind(this),
-			(sym) => {
+		globals.ConfigureEditorAdapter({
+			editor: this.activeEditorPane,
+			initialFileText: this.file,
+			onChange: this.onFileChanged.bind(this),
+			getLineOffset: () => this.getFirstLineOfActiveSymbolWithinFile(),
+			onReanalyze: this.onNavObjectUpdated.bind(this),
+			onShouldSwap: (sym) => {
 				this.swapToSymbol(sym)
 			}
-		)
+		})
 
 		// kick off reanalysis to find main initially
 		if (globals.clientInitialized) {
@@ -202,47 +198,136 @@ def test():
 	 * Called by the CodeMirror adapter when the contents of the
 	 * the active editor pane have changed.
 	 *
-	 * @param text  The changed contents of the active editor pane.
+	 * @param editorText  The changed contents of the active editor pane.
+	 * @returns fileText  The text of the entire file.
 	 */
-	onFileChanged(text) {
-		if (!this.activeEditorOwnedRange) {
-			return this.file
-		}
-
-		const oldLineCount = this.file.split("\n").length
-
-		// replace the contents of the symbol's range with the new contents
-		this.file = applyFileChange(this.file, {
-			range: this.activeEditorOwnedRange,
-			text: text
-		})
-
-		// if the number of lines occupied changes, fix up the known location
-		// of the symbol so that e.g. the above substitution range is correct
-		const newLineCount = this.file.split("\n").length
-		if (newLineCount !== oldLineCount) {
-			// TODO: maybe reanalyze
-			// setTimeout(() => {
-			// 	globals.reanalyze()
-			// }, 1000)
-			this.activeEditorOwnedRange.end.line += (newLineCount - oldLineCount)
-		}
-
-		// if the number of characters on the last line changes, fix up known location
-		// of the symbol so that e.g. the above substitution range is correct
-		const textLines = text.split("\n")
-		this.activeEditorOwnedRange.end.character = textLines[textLines.length - 1].length
-
+	onFileChanged(text): string {
+		// update our knowledge of the active symbol
+		this.topLevelSymbols[this.activeSymbol.name].definitionString = text
+		this.file = this.linearizeContextCode()
 		return this.file
 	}
 
 	/**
-	 * Called by the CodeMirror adapter when the nav object's symbol cache
-	 * is updated.
+	 * Combines all the top level code and symbol definition strings
+	 * into one large string representing the entire context/file.
 	 *
-	 * @param lookup  A method that can look up symbols in the new nav object.
+	 * @returns entire file
 	 */
-	onNavObjectUpdated(lookup) {
+	linearizeContextCode(): string {
+		return this._sortedTopLevelSymbolNames()
+			.map((n) => this.topLevelSymbols[n].definitionString)
+			.join("\n\n") + this.topLevelCode
+	}
+
+	/**
+	 * Returns the line number of the beginning of the currently active symbol
+	 * within the file string returned by `linearizeContextCode`.
+	 *
+	 * Called by the codemirror adapter to translate visual line numbers
+	 * to actual language server protocol line numbers.
+	 */
+	getFirstLineOfActiveSymbolWithinFile(): number {
+		let lineno = 0
+		let found = false
+
+		for (const symbolName of this._sortedTopLevelSymbolNames()) {
+			if (symbolName === this.activeSymbol.name) {
+				found = true
+				break
+			}
+
+			const symbol = this.topLevelSymbols[symbolName]
+			const lineCount = symbol.definitionString.split("\n").length
+			lineno += lineCount - 1
+			lineno += 2 // add padding added by `linearizeContextCode`
+		}
+
+		console.assert(found)
+
+		return lineno
+	}
+
+	_sortedTopLevelSymbolNames() {
+		// sort the top level symbols by their original line number
+		const symbolNames = Object.keys(this.topLevelSymbols)
+		symbolNames.sort((a, b) => {
+			const linea = this.topLevelSymbols[a].symbol.location.range.line
+			const lineb = this.topLevelSymbols[b].symbol.location.range.line
+
+			return (linea < lineb) ? -1
+				: (linea > lineb) ? 1
+				: 0
+		})
+		return symbolNames
+	}
+
+	/**
+	 * Splits the given file into string chunks.
+	 *
+	 * The dictionary of string chunks maps top-level symbol names to the lines
+	 * of code that comprise their definitions.
+	 *
+	 * The first returned string chunk contains all lines of code that are not
+	 * part of a top-level symbol definition, i.e. "top level code".
+	 *
+	 * @param file            the file to split
+	 * @param topLevelSymbols array of top-level (no parent container) symbols
+	 *
+	 * @returns [top level code string, top-level definition strings by symbol name]
+	 */
+	splitFileBySymbols(file: string, topLevelSymbols: any[]): [string, { [name: string]: { symbol: any; definitionString: string } }] {
+		// TODO: ensure top level symbol ranges are non-overlapping
+
+		const topLevelSymbolsWithStrings: { [name: string]: { symbol: any; definitionString: string } } = topLevelSymbols
+			.map((symbol) => { return {
+				symbol: symbol,
+				definitionString: extractRangeOfFile(this.file, symbol.location.range)
+			} })
+			.reduce((prev, cur) => {
+				prev[cur.symbol.name] = cur
+				return prev
+			}, {})
+
+		const linenosUsedByTopLevelSymbols: Set<number> = topLevelSymbols
+			.reduce((prev: Set<number>, cur) => {
+				const range = cur.location.range
+				const end = (range.end.character > 0) ? (range.end.line + 1) : range.end.line
+				for (let i = range.start.line; i < end; i++) {
+					prev.add(i)
+				}
+				return prev
+			}, new Set<number>())
+
+		const topLevelCode = file.split("\n") // TODO: worry about other line endings
+			.filter((line, lineno) => !linenosUsedByTopLevelSymbols.has(lineno))
+			.join("\n")
+
+		return [topLevelCode, topLevelSymbolsWithStrings]
+	}
+
+	/**
+	 * Called by the CodeMirror adapter when the nav object's symbol cache
+	 * is updated. Also known as `onReanalyze`.
+	 *
+	 * @param navObject  The updated navObject
+	 */
+	onNavObjectUpdated(navObject) {
+		//// recompute the strings containing the definition of each symbol
+
+		const [topLevelCode, topLevelSymbolsWithStrings] =
+			this.splitFileBySymbols(this.file, navObject.findTopLevelSymbols())
+
+		// TODO: store this by context/file/module
+		this.topLevelCode = topLevelCode
+		this.topLevelSymbols = topLevelSymbolsWithStrings
+
+		//// navigate to the new version of the symbol the user was previously editing
+		//// or main if we can't find it (or they had no previous symbol)
+
+		// A method that can look up symbols in the new nav object.
+		const lookup = navObject.findCachedSymbol.bind(navObject)
+
 		// a `SymbolKey` that represents the main function
 		const mainKey = { // TODO: REMOVE
 			name: "main",
@@ -305,15 +390,24 @@ def test():
 	}
 
 	swapToSymbol(symbol) {
+		// obtain the definition string of the new symbol
+		const contents = this.topLevelSymbols[symbol.name].definitionString
+
 		// fetch new callees
-		const contents = extractRangeOfFile(this.file, symbol.location.range)
 		const callees = globals.FindCallees(symbol)
+
+		// TODO: make this language-agnostic
+		// determine where the cursor should be before the name of the symbol
+		const nameStartPos =
+			(symbol.kind === 5 /* SymbolKind.Class */) ? 6 // class Foo
+			: (symbol.kind === 13 /* SymbolKind.Variable */) ? 0 // foo = 5
+			: (symbol.kind === 14 /* SymbolKind.Constant */) ? 0 // foo = 5
+			: 4 // def foo
 
 		// fetch new callers
 		const callers = globals.FindCallers({
 			textDocument: { uri: symbol.location.uri },
-			// TODO: not hardcode
-			position: { line: symbol.location.range.start.line, character: 5 },
+			position: { line: symbol.location.range.start.line, character: nameStartPos },
 		})
 
 		// don't update any panes / props until done
@@ -321,7 +415,6 @@ def test():
 			.then(([callees, callers]) => {
 				// newly active function is switched to
 				this.activeSymbol = symbol
-				this.activeEditorOwnedRange = JSON.parse(JSON.stringify(symbol.location.range))
 
 				// new callers/callees are fetched ones
 				this.calleesOfActive = callees
@@ -343,7 +436,8 @@ def test():
 	setFile(text: string) {
 		this.file = text
 		this.activeSymbol = null
-		this.activeEditorOwnedRange = null
+		this.topLevelSymbols = {}
+		this.topLevelCode = null
 		;(window as any).ChangeFile(this.file)
 	}
 }

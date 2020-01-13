@@ -210,4 +210,12 @@ export class NavObject {
 		}
 		return results
 	}
+
+	findTopLevelSymbols(context: string): lsp.SymbolInformation[] {
+		// TODO: filter to only symbols that are in the
+		// context/module/filename that was passed in
+		return Object.entries(this.symToInfo)
+			.filter(([key, symbol]) => symbol.containerName === null)
+			.map(([key, symbol]) => symbol)
+	}
 }

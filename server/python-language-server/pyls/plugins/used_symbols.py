@@ -27,13 +27,25 @@ def pyls_used_document_symbols(config, document):
 
         def_type = first_def.type if first_def else None
         def_module = first_def.module_name if first_def else None
+        def_range = None
+
+        try:
+            def_range = _def_range(first_def) if first_def else None
+        except:
+            # TODO: fix this
+            log.debug(f"{pformat(ref._name)}, {pformat(dir(ref._name))}, {pformat(vars(ref._name))}")
+            log.debug(f"{pformat(ref._name.tree_name)}")
+            log.debug(f"{pformat(ref._name.tree_name.start_pos)}")
+            log.debug(f"{pformat(ref._name.tree_name.end_pos)}")
+            log.debug(f"{pformat(ref._name.tree_name.parent)}")
+            continue
 
         out.append({
             'name': first_def.name or ref.name,
             'containerName': _container(first_def),
             'location': {
                 'uri': document.uri,
-                'range': _def_range(first_def),
+                'range': def_range,
             },
             'kind': _SYMBOL_KIND_MAP.get(def_type),
             'rayBensModule': def_module,
