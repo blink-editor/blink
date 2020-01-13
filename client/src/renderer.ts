@@ -244,7 +244,7 @@ def test():
 	 */
 	onNavObjectUpdated(lookup) {
 		// a `SymbolKey` that represents the main function
-		const mainKey = {
+		const mainKey = { // TODO: REMOVE
 			name: "main",
 			kind: 12, // lsp.SymbolKind.Function
 			module: "file", // TODO
@@ -256,8 +256,8 @@ def test():
 			// if we have an active symbol, try to look up its new version
 			const activeSymbolKey = {
 				name: this.activeSymbol.name,
-				kind: 12, // lsp.SymbolKind.Function
-				module: "file", // TODO
+				kind: this.activeSymbol.kind,
+				module: this.activeSymbol.rayBensModule
 			}
 
 			const activeSymbol = lookup(activeSymbolKey)

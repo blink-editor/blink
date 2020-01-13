@@ -198,4 +198,16 @@ export class NavObject {
 	findCachedSymbol(key: SymbolKey): lsp.SymbolInformation | null {
 		return this.symToInfo[this.symbolKeyToString(key)] || null
 	}
+
+	// finds all symbols in the cache that are functions called "main" and returns them.
+	findMain(): lsp.SymbolInformation[] {
+		let results: lsp.SymbolInformation[] = []
+		for (let key in this.symToInfo) {
+			let symKey: SymbolKey = JSON.parse(key)
+			if ((symKey.name.toLowerCase() === "main") && symKey.kind === lsp.SymbolKind.Function) {
+				results.push(this.symToInfo[key])
+			}
+		}
+		return results
+	}
 }
