@@ -89,8 +89,8 @@ class Editor {
 				lineWrapping: wrapping
 			})
 
-			pane.setSize("100%", "200px")
-
+      pane.context = paneContext;
+			pane.setSize("100%", "192.33px")
 			return pane
 		}
 
@@ -108,6 +108,8 @@ class Editor {
 			createPane("side-bottom-pane", false),
 		]
 
+
+
 		// configure click handlers for switching to panes
 		this.calleePanes.forEach((pane, index) => {
 			pane.on("mousedown", () => {
@@ -122,6 +124,7 @@ class Editor {
 					this.swapToCaller(index)
 				}
 			})
+			
 		})
 
 		// create active editor pane
@@ -347,3 +350,20 @@ function saveFile() {
 			}
 		})
 }
+
+
+function swapDisplayedContextToPath(pane, path) {
+
+}
+
+function displayContexts(panes, paths) {
+	for (let i = 0; i < panes.length; i++) {
+	  panes[i].contextBanner.textContent = "/Users/benjaminshapiro/Dev/blink_capstone/blink/client" // textOfSize(panes[i].size, paths[i])
+	} 
+}
+
+function textOfSize(size, path) {
+	// takes a path and formats it for a given size in pixels
+}
+
+
