@@ -119,14 +119,14 @@ class Editor {
 		// configure click handlers for switching to panes
 		this.calleePanes.forEach((pane, index) => {
 			pane.on("mousedown", () => {
-				if (pane.getValue() !== "") {
+				if (pane.paneEditor.getValue() !== "") {
 					this.swapToCallee(index)
 				}
 			})
 		})
 		this.callerPanes.forEach((pane, index) => {
-			pane.on("mousedown", () => {
-				if (pane.getValue() !== "") {
+			pane.paneEditor.on("mousedown", () => {
+				if (pane.paneEditor.getValue() !== "") {
 					this.swapToCaller(index)
 				}
 			})
@@ -147,7 +147,7 @@ class Editor {
 				}
 			},
 		})
-		this.activeEditorPane.setSize("100%", "46.84em")
+		this.activeEditorPane.paneEditor.setSize("100%", "46.84em")
 
 		// begin the connection to the server
 		globals.TryStartingServer()
@@ -315,14 +315,14 @@ class Editor {
 				this.callersOfActive = callers
 
 				// populate panes
-				this.activeEditorPane.setValue(contents)
-				this.calleePanes.forEach((pane) => pane.setValue(""))
+				this.activeEditorPane.paneEditor.setValue(contents)
+				this.calleePanes.forEach((pane) => pane.paneEditor.setValue(""))
 				callees.slice(null, 3).forEach((calleeSym, index) => {
-					this.calleePanes[index].setValue(extractRangeOfFile(calleeSym.location.range))
+					this.calleePanes[index].paneEditor.setValue(extractRangeOfFile(calleeSym.location.range))
 				})
-				this.callerPanes.forEach((pane) => pane.setValue(""))
+				this.callerPanes.forEach((pane) => pane.paneEditor.setValue(""))
 				callers.slice(null, 3).forEach((callerSym, index) => {
-					this.callerPanes[index].setValue(extractRangeOfFile(callerSym.location.range))
+					this.callerPanes[index].paneEditor.setValue(extractRangeOfFile(callerSym.location.range))
 				})
 			})
 	}
