@@ -67,11 +67,16 @@ const applyFileChange = (change) => {
 	window.setTimeout(callback, 0)
 }
 
-class Editor {
-	calleePanes: [CodeMirror.Editor, CodeMirror.Editor, CodeMirror.Editor]
-	callerPanes: [CodeMirror.Editor, CodeMirror.Editor, CodeMirror.Editor]
+class PaneObject {
+	paneEditor: CodeMirror.Editor
+	context: string
+}
 
-	activeEditorPane: CodeMirror.Editor
+class Editor {
+	calleePanes: [PaneObject, PaneObject, PaneObject]
+	callerPanes: [PaneObject, PaneObject, PaneObject]
+
+	activeEditorPane: PaneObject
 
 	activeSymbol: any | null = null
 	activeEditorOwnedRange: any | null
@@ -80,16 +85,19 @@ class Editor {
 
 	constructor() {
 		// creates a CodeMirror editor configured to look like a preview pane
-		const createPane = function(id, wrapping): CodeMirror.Editor {
-			const pane = globals.CodeMirror(document.getElementById(id), {
-				mode: "python",
-				lineNumbers: true,
-				theme: "monokai",
-				readOnly: "nocursor",
-				lineWrapping: wrapping
-			})
+		const createPane = function(id, wrapping): PaneObject {
+			const pane = new PaneObject()
+			pane.paneEditor = globals.CodeMirror(document.getElementById(id), {
+					mode: "python",
+					lineNumbers: true,
+					theme: "monokai",
+					readOnly: "nocursor",
+					lineWrapping: wrapping
+				})
 
-			pane.setSize("100%", "192.33px")
+			pane.paneEditor.setSize("100%", "192.33px");
+
+			pane.context = "TBA"
 
 			return pane
 		}
