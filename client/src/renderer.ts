@@ -89,8 +89,8 @@ class Editor {
 				lineWrapping: wrapping
 			})
 
-      pane.context = paneContext;
 			pane.setSize("100%", "192.33px")
+
 			return pane
 		}
 
@@ -108,8 +108,6 @@ class Editor {
 			createPane("side-bottom-pane", false),
 		]
 
-
-
 		// configure click handlers for switching to panes
 		this.calleePanes.forEach((pane, index) => {
 			pane.on("mousedown", () => {
@@ -124,7 +122,6 @@ class Editor {
 					this.swapToCaller(index)
 				}
 			})
-			
 		})
 
 		// create active editor pane
@@ -142,7 +139,7 @@ class Editor {
 				}
 			},
 		})
-		this.activeEditorPane.setSize("100%", "46.35em")
+		this.activeEditorPane.setSize("100%", "46.84em")
 
 		// begin the connection to the server
 		globals.TryStartingServer()
