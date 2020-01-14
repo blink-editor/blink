@@ -117,16 +117,16 @@ class Editor {
 		]
 
 		// configure click handlers for switching to panes
-		this.calleePanes.forEach((pane, index) => {
-			pane.on("mousedown", () => {
-				if (pane.paneEditor.getValue() !== "") {
+		this.calleePanes.forEach((paneObject, index) => {
+			paneObject.paneEditor.on("mousedown", () => {
+				if (paneObject.paneEditor.getValue() !== "") {
 					this.swapToCallee(index)
 				}
 			})
 		})
-		this.callerPanes.forEach((pane, index) => {
-			pane.paneEditor.on("mousedown", () => {
-				if (pane.paneEditor.getValue() !== "") {
+		this.callerPanes.forEach((paneObject, index) => {
+			paneObject.paneEditor.on("mousedown", () => {
+				if (paneObjectObject.paneEditor.getValue() !== "") {
 					this.swapToCaller(index)
 				}
 			})
@@ -316,11 +316,11 @@ class Editor {
 
 				// populate panes
 				this.activeEditorPane.paneEditor.setValue(contents)
-				this.calleePanes.forEach((pane) => pane.paneEditor.setValue(""))
+				this.calleePanes.forEach((paneObject) => paneObject.paneEditor.setValue(""))
 				callees.slice(null, 3).forEach((calleeSym, index) => {
 					this.calleePanes[index].paneEditor.setValue(extractRangeOfFile(calleeSym.location.range))
 				})
-				this.callerPanes.forEach((pane) => pane.paneEditor.setValue(""))
+				this.callerPanes.forEach((paneObject) => paneObject.paneEditor.setValue(""))
 				callers.slice(null, 3).forEach((callerSym, index) => {
 					this.callerPanes[index].paneEditor.setValue(extractRangeOfFile(callerSym.location.range))
 				})
@@ -357,13 +357,13 @@ function saveFile() {
 }
 
 
-function swapDisplayedContextToPath(pane, path) {
+function swapDisplayedContextToPath(paneObject, path) {
 
 }
 
-function displayContexts(panes, paths) {
-	for (let i = 0; i < panes.length; i++) {
-	  panes[i].contextBanner.textContent = "/Users/benjaminshapiro/Dev/blink_capstone/blink/client" // textOfSize(panes[i].size, paths[i])
+function displayContexts(paneObjects, paths) {
+	for (let i = 0; i < paneObjects.length; i++) {
+	  paneObjects[i].contextBanner.textContent = "/Users/benjaminshapiro/Dev/blink_capstone/blink/client" // textOfSize(panes[i].size, paths[i])
 	} 
 }
 
