@@ -69,6 +69,7 @@ const applyFileChange = (change) => {
 
 class PaneObject {
 	paneEditor: CodeMirror.Editor
+	// context: object
 	context: string
 }
 
@@ -126,14 +127,15 @@ class Editor {
 		})
 		this.callerPanes.forEach((paneObject, index) => {
 			paneObject.paneEditor.on("mousedown", () => {
-				if (paneObjectObject.paneEditor.getValue() !== "") {
+				if (paneObject.paneEditor.getValue() !== "") {
 					this.swapToCaller(index)
 				}
 			})
 		})
 
 		// create active editor pane
-		this.activeEditorPane = globals.CodeMirror(document.getElementById("main-pane"), {
+		this.activeEditorPane = new PaneObject()
+		this.activeEditorPane.paneEditor = globals.CodeMirror(document.getElementById("main-pane"), {
 			mode: "python",
 			lineNumbers: true,
 			theme: "monokai",
@@ -166,7 +168,7 @@ class Editor {
 		console.log("connecting to server")
 
 		globals.ConfigureEditorAdapter(
-			this.activeEditorPane,
+			this.activeEditorPane.paneEditor,
 			file,
 			this.onFileChanged.bind(this),
 			() => this.activeEditorOwnedRange?.start.line ?? 0,
@@ -319,6 +321,7 @@ class Editor {
 				this.calleePanes.forEach((paneObject) => paneObject.paneEditor.setValue(""))
 				callees.slice(null, 3).forEach((calleeSym, index) => {
 					this.calleePanes[index].paneEditor.setValue(extractRangeOfFile(calleeSym.location.range))
+
 				})
 				this.callerPanes.forEach((paneObject) => paneObject.paneEditor.setValue(""))
 				callers.slice(null, 3).forEach((callerSym, index) => {
@@ -357,18 +360,18 @@ function saveFile() {
 }
 
 
-function swapDisplayedContextToPath(paneObject, path) {
+// function swapDisplayedContextToPath(paneObject, path) {
 
-}
+// }
 
-function displayContexts(paneObjects, paths) {
-	for (let i = 0; i < paneObjects.length; i++) {
-	  paneObjects[i].contextBanner.textContent = "/Users/benjaminshapiro/Dev/blink_capstone/blink/client" // textOfSize(panes[i].size, paths[i])
-	} 
-}
+// function displayContexts(paneObjects, paths) {
+// 	for (let i = 0; i < paneObjects.length; i++) {
+// 	  paneObjects[i].contextBanner.textContent = "/Users/benjaminshapiro/Dev/blink_capstone/blink/client" // textOfSize(panes[i].size, paths[i])
+// 	} 
+// }
 
-function textOfSize(size, path) {
-	// takes a path and formats it for a given size in pixels
-}
+// function textOfSize(size, path) {
+// 	// takes a path and formats it for a given size in pixels
+// }
 
 
