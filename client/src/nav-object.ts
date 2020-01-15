@@ -7,38 +7,6 @@
 import * as lsp from "vscode-languageserver-protocol"
 import { LspClient } from "./langserver-client"
 
-
-const completionItemKindToSymbolKind = function(kind: lsp.CompletionItemKind): lsp.SymbolKind | null {
-	switch (kind) {
-		case lsp.CompletionItemKind.Text: return null
-		case lsp.CompletionItemKind.Method: return lsp.SymbolKind.Method
-		case lsp.CompletionItemKind.Function: return lsp.SymbolKind.Function
-		case lsp.CompletionItemKind.Constructor: return lsp.SymbolKind.Constructor
-		case lsp.CompletionItemKind.Field: return lsp.SymbolKind.Field
-		case lsp.CompletionItemKind.Variable: return lsp.SymbolKind.Variable
-		case lsp.CompletionItemKind.Class: return lsp.SymbolKind.Class
-		case lsp.CompletionItemKind.Interface: return lsp.SymbolKind.Interface
-		case lsp.CompletionItemKind.Module: return lsp.SymbolKind.Module
-		case lsp.CompletionItemKind.Property: return lsp.SymbolKind.Property
-		case lsp.CompletionItemKind.Unit: return null
-		case lsp.CompletionItemKind.Value: return null
-		case lsp.CompletionItemKind.Enum: return lsp.SymbolKind.Enum
-		case lsp.CompletionItemKind.Keyword: return null
-		case lsp.CompletionItemKind.Snippet: return null
-		case lsp.CompletionItemKind.Color: return null
-		case lsp.CompletionItemKind.File: return lsp.SymbolKind.File
-		case lsp.CompletionItemKind.Reference: return null
-		case lsp.CompletionItemKind.Folder: return null
-		case lsp.CompletionItemKind.EnumMember: return lsp.SymbolKind.EnumMember
-		case lsp.CompletionItemKind.Constant: return lsp.SymbolKind.Constant
-		case lsp.CompletionItemKind.Struct: return lsp.SymbolKind.Struct
-		case lsp.CompletionItemKind.Event: return lsp.SymbolKind.Event
-		case lsp.CompletionItemKind.Operator: return lsp.SymbolKind.Operator
-		case lsp.CompletionItemKind.TypeParameter: return lsp.SymbolKind.TypeParameter
-		default: return null
-	}
-}
-
 interface SymbolKey {
 	name: string
 	kind: lsp.SymbolKind
@@ -46,7 +14,7 @@ interface SymbolKey {
 }
 
 export class NavObject {
-	private symToInfo: { [key: string]: lsp.SymbolInformation } = {}
+	private symToInfo: Map<string, lsp.SymbolInformation> = new Map()
 	private client: LspClient
 
 	constructor(client: LspClient) {
@@ -56,12 +24,19 @@ export class NavObject {
 
 	/*
 	 * Encodes symbol information into a string key.
+	 * We have to do this because objects can't be keys (pointer equality)
+	 * and JSON objects have no defined order for their keys.
+	 *
 	 * @param key  The SymbolKey to encode.
 	 * @returns    A string that can be used as a unique key.
 	 */
-	symbolKeyToString(key: SymbolKey) {
-		// TODO: use kind and module when building key
-		return JSON.stringify([key.name, 0, ""])
+	_symbolKeyToString(key: SymbolKey): string {
+		return JSON.stringify([key.name, key.kind, key.module])
+	}
+
+	_stringToSymbolKey(str: string): SymbolKey {
+		const arr = JSON.parse(str)
+		return { name: arr[0], kind: arr[1], module: arr[2] }
 	}
 
 	/*
@@ -69,26 +44,26 @@ export class NavObject {
 	 */
 	rebuildMaps(symbols: lsp.DocumentSymbol[] | lsp.SymbolInformation[]) {
 
+		// Used to check that the gien parameter is type symbolInformation[]
 		function isSymbolInformationArray(symbols: lsp.DocumentSymbol[] | lsp.SymbolInformation[]): symbols is lsp.SymbolInformation[] {
 			return (symbols as lsp.SymbolInformation[]).length === 0 || (symbols as lsp.SymbolInformation[])[0].location !== undefined
 		}
 
-		this.symToInfo = {}
+		this.symToInfo = new Map()
 		if (!isSymbolInformationArray(symbols)) {
 			throw new Error("expected SymbolInformation[], got something else")
 		}
 
 		// add to data structure
 		for (const symInfo of symbols) {
-			const symKey: string = this.symbolKeyToString({
+			const symKey: SymbolKey = {
 				name: symInfo.name,
 				kind: symInfo.kind,
-				module: "", // TODO: we'll need this later
-			})
-			this.symToInfo[symKey] = symInfo
-		}
+				module: (symInfo as any)["rayBensModule"],
+			}
 
-		console.log(this.symToInfo)
+			this.symToInfo.set(this._symbolKeyToString(symKey), symInfo)
+		}
 	}
 
 	/**
@@ -97,29 +72,27 @@ export class NavObject {
 	 */
 	bestSymbolForLocation(loc: lsp.Location): lsp.SymbolInformation | null {
 		let bestScore: number | null = null
-		let bestKey: string | null = null
+		let bestSymbol: lsp.SymbolInformation | null = null
 
 		const range = loc.range
 
 		// search for tightest enclosing scope for this reference
-		for (const key in this.symToInfo) {
-			const cachedRange = this.symToInfo[key].location.range
+		for (const [key, symbol] of this.symToInfo) {
+			const cachedRange = symbol.location.range
 
-			// if currRange is entirely within refRange and holds a tighter line bound than the best so far, it is new best
-			if (((cachedRange.start.line <= range.start.line && cachedRange.end.line >= range.end.line)
+			// test if cachedRange is the tightest known bound around range
+			if (((cachedRange.start.line <= range.start.line && cachedRange.end.line >= range.end.line) // range entirely within cachedRange (inclusive)
 					  || ((cachedRange.start.line === range.start.line && cachedRange.start.character <= range.start.character)
 					      && (cachedRange.end.line === range.end.line && cachedRange.end.character >= range.end.character)))
-				  && (bestScore === null || cachedRange.end.line - cachedRange.start.line < bestScore)) {
+					&& (bestScore === null || cachedRange.end.line - cachedRange.start.line < bestScore) // tightest line bound so far
+					&& (symbol.kind !== lsp.SymbolKind.Variable) // is not a variable declaration
+				  ) {
 					bestScore = cachedRange.end.line - cachedRange.start.line
-					bestKey = key
+					bestSymbol = symbol
 			}
 		}
 
-		if (bestKey) {
-			return this.symToInfo[bestKey]
-		}
-
-		return null
+		return bestSymbol
 	}
 
 	/*
@@ -138,11 +111,10 @@ export class NavObject {
 
 		return this.client.getReferencesWithRequest(request)
 			.then((response: lsp.Location[] | null) => {
-				const locations: lsp.Location[] = (response) ? response : []
 				const output: lsp.SymbolInformation[] = []
 
 				// for each reference recieved, find parent scope
-				for (const receivedRef of locations) {
+				for (const receivedRef of (response ?? [])) {
 					const symbol = this.bestSymbolForLocation(receivedRef)
 
 					// if no parents to caller, was called from global scope, so ignore it
@@ -156,29 +128,53 @@ export class NavObject {
 	}
 
 	/*
-	 * Finds all the symbols referenced within the code string `contents`.
-	 * @param contents  The contents of the pseudo-file to find calls in.
+	 * Finds all the symbols referenced within the given symbol scope.
+	 * @param symbol  The symbol to find calls in.
 	 * @returns    An array of SymbolInformation objects with ranges that enclose the definitions of functions being called in the given function.
 	 */
-	findCallees(contents: string): Promise<lsp.SymbolInformation[]> {
-		return this.client.getUsedDocumentSymbols(contents, "python")
-			.then((result: lsp.CompletionItem[] | null) => {
-				const completions = (result) ? result : []
+	findCallees(parentSymbol: lsp.SymbolInformation): Thenable<lsp.SymbolInformation[]> {
+		return this.client.getUsedDocumentSymbols()
+			.then((result: lsp.DocumentSymbol[] | lsp.SymbolInformation[] | null) => {
+				function isSymbolInformationArray(symbols: lsp.DocumentSymbol[] | lsp.SymbolInformation[]): symbols is lsp.SymbolInformation[] {
+					return (symbols as lsp.SymbolInformation[]).length === 0 || (symbols as lsp.SymbolInformation[])[0].location !== undefined
+				}
+
+				if (result === null || !isSymbolInformationArray(result)) {
+					throw new Error("expected SymbolInformation[], got something else")
+				}
+
 				const output: lsp.SymbolInformation[] = []
 
 				// for each completion received, find matching location
-				for (const completion of completions) {
-					if (completion.kind === undefined) { continue }
-					const kind = completionItemKindToSymbolKind(completion.kind)
-					if (kind === null) { continue }
+				for (const symbol of result) {
+					// since we're using the whole-document usedDocumentSymbols
+					// just to get callees of a specific function, we need to filter out
+					// used document symbols that are not used within the function we care about.
+					// TODO: we should treat usedDocumentSymbols like documentSymbols, i.e.
+					// we should store it as long as we can then invalidate when necessary
+					// TODO: we may also want to use an existing "call graph" API
+					// https://github.com/microsoft/language-server-protocol/issues/468
+					const usageRange: lsp.Range = (symbol as any)["rayBensUsageRange"]
+					if (!(usageRange.start.line >= parentSymbol.location.range.start.line
+							&& usageRange.end.line <= parentSymbol.location.range.end.line)) {
+						continue
+					}
+
+					// TODO: see above, but we also want to filter out things
+					// defined within the parent symbol scope
+					if (symbol.location.range.start.line >= parentSymbol.location.range.start.line
+							&& symbol.location.range.end.line <= parentSymbol.location.range.end.line) {
+						continue
+					}
 
 					// find completion's definition range
-					const testSymKey: string = this.symbolKeyToString({
-						name: completion.label,
-						kind: kind,
-						module: "", // TODO: when multiple modules exist we may need (completion.detail?)
-					})
-					const desiredInfo: lsp.SymbolInformation = this.symToInfo[testSymKey]
+					const testSymKey: SymbolKey = {
+						name: symbol.name,
+						kind: symbol.kind,
+						module: (symbol as any)["rayBensModule"],
+					}
+
+					const desiredInfo = this.symToInfo.get(this._symbolKeyToString(testSymKey))
 
 					// if not found, ignore it
 					if (desiredInfo) {
@@ -190,7 +186,27 @@ export class NavObject {
 			})
 	}
 
-	findCachedSymbol(key: SymbolKey): lsp.SymbolInformation | null {
-		return this.symToInfo[this.symbolKeyToString(key)] || null
+	findCachedSymbol(key: SymbolKey): lsp.SymbolInformation | undefined {
+		return this.symToInfo.get(this._symbolKeyToString(key))
+	}
+
+	// finds all symbols in the cache that are functions called "main" and returns them.
+	findMain(): lsp.SymbolInformation[] {
+		const results: lsp.SymbolInformation[] = []
+		for (const [key, symInfo] of this.symToInfo) {
+			const symKey = this._stringToSymbolKey(key)
+			if ((symKey.name.toLowerCase() === "main") && symKey.kind === lsp.SymbolKind.Function) {
+				results.push(symInfo)
+			}
+		}
+		return results
+	}
+
+	findTopLevelSymbols(context: string): lsp.SymbolInformation[] {
+		// TODO: filter to only symbols that are in the
+		// context/module/filename that was passed in
+		return [...this.symToInfo]
+			.filter(([key, symbol]) => symbol.containerName === null)
+			.map(([key, symbol]) => symbol)
 	}
 }

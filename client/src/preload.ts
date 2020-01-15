@@ -42,7 +42,7 @@ globals.TryStartingServer = function() {
 	ipcRenderer.send("try-starting-server")
 }
 
-globals.ConfigureEditorAdapter = function(editor, fileText, onChange, getLineOffset, onReanalyze, onShouldSwap) {
+globals.ConfigureEditorAdapter = function(params: ConfigureEditorAdapterParams) {
 	const logger = new client.ConsoleLogger()
 
 	client.createTcpRpcConnection("localhost", 2087, (connection) => {
@@ -50,7 +50,7 @@ globals.ConfigureEditorAdapter = function(editor, fileText, onChange, getLineOff
 			languageId: "python",
 			documentUri: "untitled:///file",
 			rootUri: null,
-			initialText: fileText
+			initialText: params.initialFileText
 		}
 
 		lspClient = new client.LspClientImpl(connection, documentInfo, logger)
@@ -60,15 +60,15 @@ globals.ConfigureEditorAdapter = function(editor, fileText, onChange, getLineOff
 		adapter = new CodeMirrorAdapter(lspClient, {
 			// UI-related options go here, allowing you to control the automatic features of the LSP, i.e.
 			suggestOnTriggerCharacters: false
-		}, editor)
+		}, params.editor)
 
 		adapter.wholeFileText = documentInfo.initialText
-		adapter.onChange = onChange
-		adapter.onShouldSwap = onShouldSwap
-		adapter.getLineOffset = getLineOffset
+		adapter.onChange = params.onChange
+		adapter.onShouldSwap = params.onShouldSwap
+		adapter.getLineOffset = params.getLineOffset
 		adapter.onReanalyze = () => {
 			setTimeout(() => {
-				onReanalyze((key) => adapter.navObject.findCachedSymbol(key))
+				params.onReanalyze(adapter.navObject)
 			}, 50)
 		}
 
@@ -86,9 +86,9 @@ globals.ConfigureEditorAdapter = function(editor, fileText, onChange, getLineOff
 	}, logger)
 }
 
-globals.FindCallees = function(contents: string): Thenable<lsp.SymbolInformation[]> {
+globals.FindCallees = function(symbol: lsp.SymbolInformation): Thenable<lsp.SymbolInformation[]> {
 	if (!adapter) { return Promise.resolve([]) }
-	return adapter.navObject.findCallees(contents)
+	return adapter.navObject.findCallees(symbol)
 }
 
 globals.FindCallers = function(pos: lsp.TextDocumentPositionParams): Thenable<lsp.SymbolInformation[]> {

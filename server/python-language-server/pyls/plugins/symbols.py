@@ -18,6 +18,7 @@ def pyls_document_symbols(config, document):
             'range': _range(d),
         },
         'kind': _kind(d),
+        'rayBensModule': d.module_name,
     } for d in definitions if _include_def(d)]
 
 
