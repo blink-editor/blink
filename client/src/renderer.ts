@@ -325,16 +325,6 @@ test()
 		//// navigate to the new version of the symbol the user was previously editing
 		//// or main if we can't find it (or they had no previous symbol)
 
-		// A method that can look up symbols in the new nav object.
-		const lookup = navObject.findCachedSymbol.bind(navObject)
-
-		// a `SymbolKey` that represents the main function
-		const mainKey = { // TODO: REMOVE
-			name: "main",
-			kind: 12, // lsp.SymbolKind.Function
-			module: "file", // TODO
-		}
-
 		let symbol
 
 		if (this.activeSymbol) {
@@ -345,9 +335,9 @@ test()
 				module: this.activeSymbol.rayBensModule
 			}
 
-			const activeSymbol = lookup(activeSymbolKey)
+			const activeSymbol = navObject.findCachedSymbol(activeSymbolKey)
 
-			if (activeSymbol && activeSymbolKey != mainKey) {
+			if (activeSymbol) {
 				// if we found the updated version, good
 				symbol = activeSymbol
 			} else {
@@ -355,11 +345,13 @@ test()
 				console.log(`did not find active symbol with key ${keystr}, trying main`)
 
 				// otherwise, try to look up and go back to `main`
-				symbol = lookup(mainKey)
+				const mainFunctions = navObject.findMain()
+				symbol = mainFunctions ? mainFunctions[0] : null
 			}
 		} else {
 			// otherwise, start by looking up main
-			symbol = lookup(mainKey)
+			const mainFunctions = navObject.findMain()
+			symbol = mainFunctions ? mainFunctions[0] : null
 		}
 
 		if (symbol) {
@@ -368,8 +360,7 @@ test()
 			this.swapToSymbol(symbol)
 		} else {
 			// we did not find the active symbol or main
-			const keystr = JSON.stringify(mainKey)
-			console.error(`no main symbol detected for key ${keystr}`)
+			console.error("no main symbol detected")
 		}
 	}
 
