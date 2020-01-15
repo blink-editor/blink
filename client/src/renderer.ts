@@ -69,8 +69,8 @@ const applyFileChange = (change) => {
 
 class PaneObject {
 	paneEditor: CodeMirror.Editor
-	// context: object
-	context: string
+	context: HTMLElement
+	// context: string
 }
 
 class Editor {
@@ -98,7 +98,7 @@ class Editor {
 
 			pane.paneEditor.setSize("100%", "192.33px");
 
-			pane.context = "TBA"
+			pane.context = document.getElementById(id + "-context")!;
 
 			return pane
 		}
@@ -321,11 +321,12 @@ class Editor {
 				this.calleePanes.forEach((paneObject) => paneObject.paneEditor.setValue(""))
 				callees.slice(null, 3).forEach((calleeSym, index) => {
 					this.calleePanes[index].paneEditor.setValue(extractRangeOfFile(calleeSym.location.range))
-
+					this.calleePanes[index].context.textContent = formatContext(364.27, calleeSym.context)
 				})
 				this.callerPanes.forEach((paneObject) => paneObject.paneEditor.setValue(""))
 				callers.slice(null, 3).forEach((callerSym, index) => {
 					this.callerPanes[index].paneEditor.setValue(extractRangeOfFile(callerSym.location.range))
+					this.calleePanes[index].context.textContent = formatContext(364.27, callerSym.context)
 				})
 			})
 	}
@@ -359,6 +360,10 @@ function saveFile() {
 		})
 }
 
+function formatContext(size, path) {
+	// takes a path and formats it for a given size in pixels
+	return "OOOOOOOOOOOOO"
+}
 
 // function swapDisplayedContextToPath(paneObject, path) {
 
@@ -369,9 +374,4 @@ function saveFile() {
 // 	  paneObjects[i].contextBanner.textContent = "/Users/benjaminshapiro/Dev/blink_capstone/blink/client" // textOfSize(panes[i].size, paths[i])
 // 	} 
 // }
-
-// function textOfSize(size, path) {
-// 	// takes a path and formats it for a given size in pixels
-// }
-
 
