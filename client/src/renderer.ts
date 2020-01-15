@@ -33,18 +33,22 @@ const extractRangeOfFile = (file, range): string => {
 	window.setTimeout(callback, 0)
 }
 
+class PaneObject {
+	editor: CodeMirror.Editor
+	symbol: any | null
+}
+
 class Editor {
-	calleePanes: [CodeMirror.Editor, CodeMirror.Editor, CodeMirror.Editor]
-	callerPanes: [CodeMirror.Editor, CodeMirror.Editor, CodeMirror.Editor]
+	calleePanes: [PaneObject, PaneObject, PaneObject]
+	callerPanes: [PaneObject, PaneObject, PaneObject]
 
-	activeEditorPane: CodeMirror.Editor
-
-	activeSymbol: any | null = null
-	calleesOfActive: any[] = []
-	callersOfActive: any[] = []
+	activeEditorPane: PaneObject
 
 	topLevelSymbols: { [name: string]: { symbol: any; definitionString: string } } = {}
 	topLevelCode: string | null = null
+
+	fresh = false
+	pendingSwap: any | null = null
 
 	file: string = `import math
 from __future__ import print_function
@@ -98,7 +102,7 @@ test()
 
 	constructor() {
 		// creates a CodeMirror editor configured to look like a preview pane
-		const createPane = function(id, wrapping): CodeMirror.Editor {
+		const createPane = function(id, wrapping): PaneObject {
 			const pane = globals.CodeMirror(document.getElementById(id), {
 				mode: "python",
 				lineNumbers: true,
@@ -109,7 +113,10 @@ test()
 
 			pane.setSize("100%", "200px")
 
-			return pane
+			return {
+				editor: pane,
+				symbol: null,
+			}
 		}
 
 		// create callee preview panes (top)
@@ -128,22 +135,22 @@ test()
 
 		// configure click handlers for switching to panes
 		this.calleePanes.forEach((pane, index) => {
-			pane.on("mousedown", () => {
-				if (pane.getValue() !== "") {
+			pane.editor.on("mousedown", () => {
+				if (pane.editor.getValue() !== "") {
 					this.swapToCallee(index)
 				}
 			})
 		})
 		this.callerPanes.forEach((pane, index) => {
-			pane.on("mousedown", () => {
-				if (pane.getValue() !== "") {
+			pane.editor.on("mousedown", () => {
+				if (pane.editor.getValue() !== "") {
 					this.swapToCaller(index)
 				}
 			})
 		})
 
 		// create active editor pane
-		this.activeEditorPane = globals.CodeMirror(document.getElementById("main-pane"), {
+		const activeEditor = globals.CodeMirror(document.getElementById("main-pane"), {
 			mode: "python",
 			lineNumbers: true,
 			theme: "monokai",
@@ -157,7 +164,9 @@ test()
 				}
 			},
 		})
-		this.activeEditorPane.setSize("100%", "46.35em")
+		activeEditor.setSize("100%", "46.35em")
+
+		this.activeEditorPane = { editor: activeEditor, symbol: null }
 
 		// begin the connection to the server
 		globals.TryStartingServer()
@@ -174,7 +183,7 @@ test()
 	 */
 	connectToServer() {
 		globals.ConfigureEditorAdapter({
-			editor: this.activeEditorPane,
+			editor: this.activeEditorPane.editor,
 			initialFileText: this.file,
 			onChange: this.onFileChanged.bind(this),
 			getLineOffset: () => this.getFirstLineOfActiveSymbolWithinFile(),
@@ -203,8 +212,12 @@ test()
 	 */
 	onFileChanged(text): string {
 		// update our knowledge of the active symbol
-		this.topLevelSymbols[this.activeSymbol.name].definitionString = text
+		this.topLevelSymbols[this.activeEditorPane.symbol.name].definitionString = text
+		const oldLineCount = this.file.split("\n").length
 		this.file = this.linearizeContextCode()
+		if (this.file.split("\n").length !== oldLineCount) {
+			this.fresh = false
+		}
 		return this.file
 	}
 
@@ -232,7 +245,7 @@ test()
 		let found = false
 
 		for (const symbolName of this._sortedTopLevelSymbolNames()) {
-			if (symbolName === this.activeSymbol.name) {
+			if (symbolName === this.activeEditorPane.symbol.name) {
 				found = true
 				break
 			}
@@ -301,6 +314,7 @@ test()
 
 		const topLevelCode = file.split("\n") // TODO: worry about other line endings
 			.filter((line, lineno) => !linenosUsedByTopLevelSymbols.has(lineno))
+			.filter((line) => line.trim() !== "")
 			.join("\n")
 
 		return [topLevelCode, topLevelSymbolsWithStrings]
@@ -325,39 +339,45 @@ test()
 		//// navigate to the new version of the symbol the user was previously editing
 		//// or main if we can't find it (or they had no previous symbol)
 
-		let symbol
+		const symbolToKey = (symbol) => { return {
+			name: symbol.name,
+			kind: symbol.kind,
+			module: symbol.rayBensModule
+		} }
 
-		if (this.activeSymbol) {
+		let newActiveSymbol
+
+		const toRestore = this.pendingSwap ?? this.activeEditorPane.symbol
+
+		if (toRestore) {
 			// if we have an active symbol, try to look up its new version
-			const activeSymbolKey = {
-				name: this.activeSymbol.name,
-				kind: this.activeSymbol.kind,
-				module: this.activeSymbol.rayBensModule
-			}
-
+			const activeSymbolKey = symbolToKey(toRestore)
 			const activeSymbol = navObject.findCachedSymbol(activeSymbolKey)
 
 			if (activeSymbol) {
 				// if we found the updated version, good
-				symbol = activeSymbol
+				newActiveSymbol = activeSymbol
 			} else {
 				const keystr = JSON.stringify(activeSymbolKey)
 				console.log(`did not find active symbol with key ${keystr}, trying main`)
 
 				// otherwise, try to look up and go back to `main`
 				const mainFunctions = navObject.findMain()
-				symbol = mainFunctions ? mainFunctions[0] : null
+				newActiveSymbol = mainFunctions ? mainFunctions[0] : null
 			}
 		} else {
 			// otherwise, start by looking up main
 			const mainFunctions = navObject.findMain()
-			symbol = mainFunctions ? mainFunctions[0] : null
+			newActiveSymbol = mainFunctions ? mainFunctions[0] : null
 		}
 
-		if (symbol) {
+		this.fresh = true
+		this.pendingSwap = null
+
+		if (newActiveSymbol) {
 			// we got a symbol, be it the active one or main
-			console.log("reanalyzed and obtained new active symbol", symbol)
-			this.swapToSymbol(symbol)
+			console.log("reanalyzed and obtained new active symbol", newActiveSymbol)
+			this.swapToSymbol(newActiveSymbol)
 		} else {
 			// we did not find the active symbol or main
 			console.error("no main symbol detected")
@@ -365,22 +385,31 @@ test()
 	}
 
 	swapToCallee(index) {
-		if (index >= this.calleesOfActive.length) {
+		if (index >= this.calleePanes.length) {
 			return
 		}
 
-		this.swapToSymbol(this.calleesOfActive[index])
+		this.swapToSymbol(this.calleePanes[index].symbol)
 	}
 
 	swapToCaller(index) {
-		if (index >= this.callersOfActive.length) {
+		if (index >= this.callerPanes.length) {
 			return
 		}
 
-		this.swapToSymbol(this.callersOfActive[index])
+		this.swapToSymbol(this.callerPanes[index].symbol)
 	}
 
 	swapToSymbol(symbol) {
+		// if we are not "fresh" - meaning the user has inserted newlines
+		// then the line numbers for our caller and callee panes may be wrong
+		// so we need to call Reanalyze() to get updated symbols, then swap.
+		if (!this.fresh) {
+			this.pendingSwap = symbol
+			globals.Reanalyze()
+			return
+		}
+
 		// obtain the definition string of the new symbol
 		const contents = this.topLevelSymbols[symbol.name].definitionString
 
@@ -404,29 +433,31 @@ test()
 		// don't update any panes / props until done
 		Promise.all([callees, callers])
 			.then(([callees, callers]) => {
-				// newly active function is switched to
-				this.activeSymbol = symbol
+				// populate panes
+				this.activeEditorPane.symbol = symbol
+				this.activeEditorPane.editor.setValue(contents)
 
 				// new callers/callees are fetched ones
-				this.calleesOfActive = callees
-				this.callersOfActive = callers
-
-				// populate panes
-				this.activeEditorPane.setValue(contents)
-				this.calleePanes.forEach((pane) => pane.setValue(""))
+				this.calleePanes.forEach((pane) => pane.editor.setValue(""))
 				callees.slice(null, 3).forEach((calleeSym, index) => {
-					this.calleePanes[index].setValue(extractRangeOfFile(this.file, calleeSym.location.range))
+					this.calleePanes[index].symbol = calleeSym
+					this.calleePanes[index].editor.setValue(extractRangeOfFile(this.file, calleeSym.location.range))
 				})
-				this.callerPanes.forEach((pane) => pane.setValue(""))
+
+				this.callerPanes.forEach((pane) => pane.editor.setValue(""))
 				callers.slice(null, 3).forEach((callerSym, index) => {
-					this.callerPanes[index].setValue(extractRangeOfFile(this.file, callerSym.location.range))
+					this.callerPanes[index].symbol = callerSym
+					this.callerPanes[index].editor.setValue(extractRangeOfFile(this.file, callerSym.location.range))
 				})
 			})
 	}
 
 	setFile(text: string) {
 		this.file = text
-		this.activeSymbol = null
+		this.fresh = false
+		this.activeEditorPane.symbol = null
+		this.calleePanes.forEach((p) => p.symbol = null)
+		this.callerPanes.forEach((p) => p.symbol = null)
 		this.topLevelSymbols = {}
 		this.topLevelCode = null
 		;(window as any).ChangeFile(this.file)
