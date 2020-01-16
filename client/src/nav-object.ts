@@ -158,7 +158,7 @@ export class NavObject {
 	 * @returns    An array of DocumentSymbol objects with ranges that enclose the definitions of functions being called in the given function.
 	 */
 	findCallees(parentSymbol: lsp.DocumentSymbol): Thenable<SymbolInfo[]> {
-		return this.client.getUsedDocumentSymbols()
+		return this.client.getUsedDocumentSymbols("untitled:///file") // TODO: consume via event handler like rebuildMaps
 			.then((result: lsp.DocumentSymbol[] | lsp.SymbolInformation[] | null) => {
 				// Used to check that the given parameter is type documentSymbol[]
 				function isSymbolInformationArray(symbols: lsp.DocumentSymbol[] | lsp.SymbolInformation[]): symbols is lsp.SymbolInformation[] {

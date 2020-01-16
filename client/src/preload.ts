@@ -47,23 +47,25 @@ globals.ConfigureEditorAdapter = function(params: ConfigureEditorAdapterParams) 
 	const logger = new client.ConsoleLogger()
 
 	client.createTcpRpcConnection("localhost", 2087, (connection) => {
+		const firstDocumentUri = "untitled:///file"
+
 		const documentInfo: client.DocumentInfo = {
 			languageId: "python",
-			documentUri: "untitled:///file",
-			rootUri: null,
+			documentUri: firstDocumentUri,
 			initialText: params.initialFileText
 		}
 
-		lspClient = new client.LspClientImpl(connection, documentInfo, logger)
+		lspClient = new client.LspClientImpl(connection, undefined, logger)
 		lspClient.initialize()
+
+		lspClient.openDocument(documentInfo)
 
 		// The adapter is what allows the editor to provide UI elements
 		adapter = new CodeMirrorAdapter(lspClient, {
 			// UI-related options go here, allowing you to control the automatic features of the LSP, i.e.
 			suggestOnTriggerCharacters: false
-		}, params.editor)
+		}, params.editor, firstDocumentUri)
 
-		adapter.wholeFileText = documentInfo.initialText
 		adapter.onChange = params.onChange
 		adapter.onShouldSwap = params.onShouldSwap
 		adapter.getLineOffset = params.getLineOffset
@@ -72,11 +74,6 @@ globals.ConfigureEditorAdapter = function(params: ConfigureEditorAdapterParams) 
 				params.onReanalyze(adapter.navObject)
 			}, 50)
 		}
-
-		// You can also provide your own hooks:
-		lspClient.on("error", (e) => {
-			console.error(e)
-		})
 
 		lspClient.once("initialized", () => {
 			setTimeout(() => {
@@ -119,9 +116,7 @@ globals.Reanalyze = function(): void {
 		})
 }
 
-;(window as any).ChangeFile = function(newFile) {
-	adapter.wholeFileText = newFile
-
+;(window as any).ChangeFile = function() {
 	// dummy change to force sending new file
 	adapter.handleChange(adapter.editor, {
 		from: { line: 0, ch: 0 },

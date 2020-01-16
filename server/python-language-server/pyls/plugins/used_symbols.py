@@ -1,6 +1,6 @@
 # Copyright 2017 Palantir Technologies, Inc.
 import logging
-from pyls import hookimpl
+from pyls import hookimpl, uris
 from pyls.lsp import CompletionItemKind, SymbolKind
 
 from pprint import pformat
@@ -40,15 +40,18 @@ def pyls_used_document_symbols(config, document):
             log.debug(f"{pformat(ref._name.tree_name.parent)}")
             continue
 
+        def_uri = uris.uri_with(document.uri, path=first_def.module_path) if first_def else None
+
         out.append({
-            'name': first_def.name or ref.name,
+            'name': first_def.name if first_def else ref.name,
             'containerName': _container(first_def),
             'location': {
-                'uri': document.uri,
+                'uri': def_uri,
                 'range': def_range,
             },
             'kind': _SYMBOL_KIND_MAP.get(def_type),
             'rayBensModule': def_module,
+            # TODO: rayBensUsageLocation instead?
             'rayBensUsageRange': _ref_range(ref),
         })
 
