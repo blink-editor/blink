@@ -7,7 +7,8 @@ mkdir -p ./dist/node_modules/codemirror/lib/ \
 	./dist/node_modules/jquery/dist/ \
 	./dist/node_modules/@fortawesome/fontawesome-free/css/ \
 	./dist/node_modules/@fortawesome/fontawesome-free/webfonts/ \
-	./dist/vendor/
+	./dist/vendor/ \
+	./dist/samples/
 
 cp ./src/index.html ./src/codemirror-lsp.css ./src/style.css ./dist
 cp ./node_modules/codemirror/lib/codemirror.css ./dist/node_modules/codemirror/lib/codemirror.css
@@ -21,3 +22,4 @@ cp ./src/vendor/sb-admin-2.min.js ./dist/vendor/sb-admin-2.min.js
 cp ./src/vendor/lib.css ./dist/vendor/lib.css
 cp ./node_modules/@fortawesome/fontawesome-free/css/all.min.css ./dist/node_modules/@fortawesome/fontawesome-free/css/all.min.css
 cp ./node_modules/@fortawesome/fontawesome-free/webfonts/* ./dist/node_modules/@fortawesome/fontawesome-free/webfonts/
+cp ./samples/* ./dist/samples/

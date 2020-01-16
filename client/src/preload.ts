@@ -108,6 +108,10 @@ globals.ChangeFileAndReanalyze = function(newFile): void {
 	adapter.reanalyze()
 }
 
+globals.OpenSampleFile = function(): Thenable<string> {
+	return promisify(fs.readFile)("samples/sample.py", { encoding: "utf8" })
+}
+
 // 2
 ;(window as any).openFileDialogForEditor = function(): Thenable<string | undefined> {
 	const dialog = require("electron").remote.dialog

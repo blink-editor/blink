@@ -44,61 +44,12 @@ class Editor {
 
 	activeEditorPane: PaneObject
 
+	file: string = ""
 	topLevelSymbols: { [name: string]: { symbol: any; definitionString: string } } = {}
 	topLevelCode: string | null = null
 
 	fresh = false
 	pendingSwap: any | null = null
-
-	file: string = `import math
-from __future__ import print_function
-
-def firstFunction():
-    print("first")
-
-
-def secondFunction():
-    print("second")
-
-
-def thirdFunction():
-    print("third")
-
-
-def logger():
-    from math import log
-    return math.log(2)
-
-
-def rooter():
-    return math.sqrt(49)
-
-
-class Dog():
-    def __init__(self): pass
-
-    def foo(self):
-        class Helper():
-            def __init__(self):
-                pass
-            def bar(self):
-                return 5
-        return Helper().bar()
-
-
-def main():
-    a = Dog()
-    a.foo()
-    firstFunction()
-    secondFunction()
-    thirdFunction()
-
-
-def test():
-    main()
-
-test()
-`
 
 	constructor() {
 		// creates a CodeMirror editor configured to look like a preview pane
@@ -193,14 +144,21 @@ test()
 			}
 		})
 
-		// kick off reanalysis to find main initially
 		if (globals.clientInitialized) {
-			globals.Reanalyze()
+			this.openDemoFile()
 		} else {
 			globals.events.once("client-initialized", () => {
-				globals.Reanalyze()
+				this.openDemoFile()
 			})
 		}
+	}
+
+	openDemoFile() {
+		globals.OpenSampleFile()
+			.then((sampleFileText) => {
+				console.assert(sampleFileText, "must load demo file text")
+				this.setFile(sampleFileText ?? "")
+			})
 	}
 
 	/**
@@ -465,6 +423,8 @@ test()
 		this.callerPanes.forEach((p) => p.symbol = null)
 		this.topLevelSymbols = {}
 		this.topLevelCode = null
+
+		// change file and kick off reanalysis to find main initially
 		globals.ChangeFileAndReanalyze(text)
 	}
 }
