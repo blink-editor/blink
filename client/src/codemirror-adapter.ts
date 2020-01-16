@@ -289,6 +289,11 @@ export class CodeMirrorAdapter extends IEditorAdapter<CodeMirror.Editor> {
 		}
 	}
 
+	public changeFile(fileText) {
+		this.connection.sendChange(this.document.uri, { text: fileText })
+		this._removeSignatureWidget()
+	}
+
 	/**
 	 * Handles all Document Symbol responses from server.
 	 * textDocument/documentSymbol

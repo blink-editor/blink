@@ -18,6 +18,10 @@ interface Globals {
 	FindCallees: (symbol: any) => Thenable<any> // TODO
 	FindCallers: (pos: any) => Thenable<any> // TODO
 	Reanalyze: () => void
+	ChangeFileAndReanalyze: (text: string) => void
+
+	// demo
+	OpenSampleFile: () => Thenable<string | null>
 }
 
 interface ConfigureEditorAdapterParams {
