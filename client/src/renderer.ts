@@ -362,7 +362,8 @@ function saveFile() {
 
 function formatContext(size, path) {
 	// takes a path and formats it for a given size in pixels
-	return "OOOOOOOOOOOOO"
+	;(window as any).jQuery("#top-left-pane-context").fitText();
+	return "OOOOOOOOOOOOO000000000000"
 }
 
 // function swapDisplayedContextToPath(paneObject, path) {

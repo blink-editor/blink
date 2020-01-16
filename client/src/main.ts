@@ -67,8 +67,8 @@ class Application {
 			height: 824,
 			minWidth: 1200,
 			minHeight: 824,
-			maxWidth: 1200,
-			maxHeight: 824,
+			// maxWidth: 1200,
+			// maxHeight: 824,
 			webPreferences: {
 				// contextIsolation: true,
 				preload: path.join(__dirname, "preload.js"),
