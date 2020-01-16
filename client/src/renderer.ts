@@ -265,8 +265,8 @@ test()
 		// sort the top level symbols by their original line number
 		const symbolNames = Object.keys(this.topLevelSymbols)
 		symbolNames.sort((a, b) => {
-			const linea = this.topLevelSymbols[a].symbol.location.range.line
-			const lineb = this.topLevelSymbols[b].symbol.location.range.line
+			const linea = this.topLevelSymbols[a].symbol.range.line
+			const lineb = this.topLevelSymbols[b].symbol.range.line
 
 			return (linea < lineb) ? -1
 				: (linea > lineb) ? 1
@@ -295,7 +295,7 @@ test()
 		const topLevelSymbolsWithStrings: { [name: string]: { symbol: any; definitionString: string } } = topLevelSymbols
 			.map((symbol) => { return {
 				symbol: symbol,
-				definitionString: extractRangeOfFile(this.file, symbol.location.range)
+				definitionString: extractRangeOfFile(this.file, symbol.range)
 			} })
 			.reduce((prev, cur) => {
 				prev[cur.symbol.name] = cur
@@ -304,7 +304,7 @@ test()
 
 		const linenosUsedByTopLevelSymbols: Set<number> = topLevelSymbols
 			.reduce((prev: Set<number>, cur) => {
-				const range = cur.location.range
+				const range = cur.range
 				const end = (range.end.character > 0) ? (range.end.line + 1) : range.end.line
 				for (let i = range.start.line; i < end; i++) {
 					prev.add(i)
@@ -426,8 +426,8 @@ test()
 
 		// fetch new callers
 		const callers = globals.FindCallers({
-			textDocument: { uri: symbol.location.uri },
-			position: { line: symbol.location.range.start.line, character: nameStartPos },
+			textDocument: { uri: symbol.uri },
+			position: { line: symbol.range.start.line, character: nameStartPos },
 		})
 
 		// don't update any panes / props until done
@@ -441,13 +441,13 @@ test()
 				this.calleePanes.forEach((pane) => pane.editor.setValue(""))
 				callees.slice(null, 3).forEach((calleeSym, index) => {
 					this.calleePanes[index].symbol = calleeSym
-					this.calleePanes[index].editor.setValue(extractRangeOfFile(this.file, calleeSym.location.range))
+					this.calleePanes[index].editor.setValue(extractRangeOfFile(this.file, calleeSym.range))
 				})
 
 				this.callerPanes.forEach((pane) => pane.editor.setValue(""))
 				callers.slice(null, 3).forEach((callerSym, index) => {
 					this.callerPanes[index].symbol = callerSym
-					this.callerPanes[index].editor.setValue(extractRangeOfFile(this.file, callerSym.location.range))
+					this.callerPanes[index].editor.setValue(extractRangeOfFile(this.file, callerSym.range))
 				})
 			})
 	}

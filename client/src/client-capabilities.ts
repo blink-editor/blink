@@ -79,7 +79,7 @@ export const clientCapabilities: lsp.ClientCapabilities = {
 			symbolKind: {
 				valueSet: supportedSymbols,
 			},
-			hierarchicalDocumentSymbolSupport: false,
+			hierarchicalDocumentSymbolSupport: true,
 		}
 	},
 	workspace: {
