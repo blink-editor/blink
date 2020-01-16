@@ -241,6 +241,10 @@ test()
 	 * to actual language server protocol line numbers.
 	 */
 	getFirstLineOfActiveSymbolWithinFile(): number {
+		if (!this.activeEditorPane.symbol) {
+			return 0
+		}
+
 		let lineno = 0
 		let found = false
 
@@ -455,12 +459,13 @@ test()
 	setFile(text: string) {
 		this.file = text
 		this.fresh = false
+		this.pendingSwap = null
 		this.activeEditorPane.symbol = null
 		this.calleePanes.forEach((p) => p.symbol = null)
 		this.callerPanes.forEach((p) => p.symbol = null)
 		this.topLevelSymbols = {}
 		this.topLevelCode = null
-		;(window as any).ChangeFile(this.file)
+		globals.ChangeFileAndReanalyze(text)
 	}
 }
 

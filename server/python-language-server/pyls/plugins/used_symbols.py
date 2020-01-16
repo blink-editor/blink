@@ -30,9 +30,9 @@ def pyls_used_document_symbols(config, document):
         def_range = None
 
         try:
-            def_range = _def_range(first_def) if first_def else None
+            def_range = _def_range(first_def)
         except:
-            # TODO: fix this
+            # TODO: fix this. first_def could be None, or the def range could be in another file.
             log.debug(f"{pformat(ref._name)}, {pformat(dir(ref._name))}, {pformat(vars(ref._name))}")
             log.debug(f"{pformat(ref._name.tree_name)}")
             log.debug(f"{pformat(ref._name.tree_name.start_pos)}")

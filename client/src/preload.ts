@@ -69,10 +69,13 @@ globals.ConfigureEditorAdapter = function(params: ConfigureEditorAdapterParams) 
 		adapter.onChange = params.onChange
 		adapter.onShouldSwap = params.onShouldSwap
 		adapter.getLineOffset = params.getLineOffset
+
+		// TODO: ensure this is always called after the nav object
+		// event handler fires, so that the nav object is correct
 		adapter.onReanalyze = () => {
 			setTimeout(() => {
 				params.onReanalyze(adapter.navObject)
-			}, 50)
+			}, 40)
 		}
 
 		lspClient.once("initialized", () => {
@@ -100,6 +103,11 @@ globals.Reanalyze = function(): void {
 	adapter.reanalyze()
 }
 
+globals.ChangeFileAndReanalyze = function(newFile): void {
+	adapter.changeFile(newFile)
+	adapter.reanalyze()
+}
+
 // 2
 ;(window as any).openFileDialogForEditor = function(): Thenable<string | undefined> {
 	const dialog = require("electron").remote.dialog
@@ -114,17 +122,6 @@ globals.Reanalyze = function(): void {
 
 			return promisify(fs.readFile)(result.filePaths[0], { encoding: "utf8" })
 		})
-}
-
-;(window as any).ChangeFile = function() {
-	// dummy change to force sending new file
-	adapter.handleChange(adapter.editor, {
-		from: { line: 0, ch: 0 },
-		to: { line: 0, ch: 0 },
-		text: []
-	})
-
-	adapter.reanalyze()
 }
 
 ;(window as any).openSaveDialogForEditor = function(fileText: string): Thenable<string | undefined> {
