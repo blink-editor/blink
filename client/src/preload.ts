@@ -8,6 +8,7 @@ import * as events from "events"
 import { ipcRenderer } from "electron"
 import CodeMirror from "codemirror"
 import { CodeMirrorAdapter } from "./codemirror-adapter"
+import { SymbolInfo } from "./nav-object"
 // css imported in html for now
 // import "./codemirror-lsp.css"
 import "codemirror/mode/python/python"
@@ -86,12 +87,12 @@ globals.ConfigureEditorAdapter = function(params: ConfigureEditorAdapterParams) 
 	}, logger)
 }
 
-globals.FindCallees = function(symbol: lsp.SymbolInformation): Thenable<lsp.SymbolInformation[]> {
+globals.FindCallees = function(symbol: lsp.DocumentSymbol): Thenable<SymbolInfo[]> {
 	if (!adapter) { return Promise.resolve([]) }
 	return adapter.navObject.findCallees(symbol)
 }
 
-globals.FindCallers = function(pos: lsp.TextDocumentPositionParams): Thenable<lsp.SymbolInformation[]> {
+globals.FindCallers = function(pos: lsp.TextDocumentPositionParams): Thenable<SymbolInfo[]> {
 	if (!adapter) { return Promise.resolve([]) }
 	return adapter.navObject.findCallers(pos)
 }

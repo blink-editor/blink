@@ -26,7 +26,7 @@ export class ConsoleLogger implements rpc.Logger, rpc.Tracer {
 export interface LspClient {
 	initialize(): void
 
-	on(event: "documentSymbol", callback: (symbols: lsp.DocumentSymbol[] | lsp.SymbolInformation[]) => void): void
+	on(event: "documentSymbol", callback: (symbols: lsp.DocumentSymbol[] | lsp.SymbolInformation[], uri: string) => void): void
 	on(event: "completion", callback: (items: lsp.CompletionItem[]) => void): void
 	on(event: "completionResolved", callback: (item: lsp.CompletionItem) => void): void
 	on(event: "hover", callback: (hover: lsp.Hover) => void): void
@@ -397,7 +397,7 @@ export class LspClientImpl extends events.EventEmitter implements LspClient {
 				console.log("Document Symbol Request Returned Null")
 				return
 			}
-			this.emit("documentSymbol", params)
+			this.emit("documentSymbol", params, this.documentInfo.documentUri)
 		})
 	}
 

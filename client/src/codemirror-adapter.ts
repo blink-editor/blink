@@ -5,7 +5,7 @@ import debounce from "lodash.debounce"
 import * as lsp from "vscode-languageserver-protocol"
 import { Location, LocationLink, MarkupContent } from "vscode-languageserver-protocol"
 import { LspClient } from "./langserver-client"
-import { NavObject } from "./nav-object"
+import { NavObject, SymbolInfo } from "./nav-object"
 
 interface IScreenCoord {
 	x: number
@@ -189,7 +189,7 @@ export class CodeMirrorAdapter extends IEditorAdapter<CodeMirror.Editor> {
 	public getLineOffset: () => number
 	public wholeFileText: string
 	public onReanalyze: () => void
-	public onShouldSwap: (sym: lsp.SymbolInformation) => void
+	public onShouldSwap: (sym: SymbolInfo) => void
 
 	constructor(connection: LspClient, options: ITextEditorOptions, editor: CodeMirror.Editor) {
 		super(connection, options, editor)
