@@ -18,12 +18,13 @@ import "codemirror/addon/hint/show-hint"
 // import "codemirror/addon/hint/show-hint.css"
 
 class GlobalEventsImpl extends events.EventEmitter implements GlobalEvents {}
-
+const app = require('electron').remote.app
 let lspClient: client.LspClient
 let adapter: CodeMirrorAdapter
 
 const globals = {
 	CodeMirror: CodeMirror,
+	app: app
 } as Globals
 
 window["globals"] = globals
@@ -138,6 +139,11 @@ globals.OpenSampleFile = function(): Thenable<string> {
 			}
 
 			return promisify(fs.writeFile)(result.filePath, fileText, { encoding: "utf8" })
-				.then(() => "success")
+				.then(() => result.filePath)
 		})
+}
+
+;(window as any).saveWithoutDialog = function(fileText: string, filePath: string): Thenable<string | undefined> {
+	return promisify(fs.writeFile)(filePath, fileText, {encoding: "utf8"})
+		.then(() => "success")
 }

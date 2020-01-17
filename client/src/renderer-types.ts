@@ -6,7 +6,8 @@ interface GlobalEvents {
 
 interface Globals {
 	CodeMirror: any // TODO
-
+	app: any 
+	
 	// events
 	events: GlobalEvents
 	serverConnected?: boolean
