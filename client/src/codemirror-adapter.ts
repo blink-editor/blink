@@ -5,7 +5,7 @@ import debounce from "lodash.debounce"
 import * as lsp from "vscode-languageserver-protocol"
 import { Location, LocationLink, MarkupContent } from "vscode-languageserver-protocol"
 import { LspClient } from "./langserver-client"
-import { NavObject } from "./nav-object"
+import { NavObject, SymbolInfo } from "./nav-object"
 
 interface IScreenCoord {
 	x: number
@@ -165,6 +165,10 @@ function getFilledDefaults(options: ITextEditorOptions): ITextEditorOptions {
   }, options)
 }
 
+interface AdapterDocument {
+	uri: string
+}
+
 export class CodeMirrorAdapter extends IEditorAdapter<CodeMirror.Editor> {
 	public options: ITextEditorOptions
 	public editor: CodeMirror.Editor
@@ -185,21 +189,22 @@ export class CodeMirrorAdapter extends IEditorAdapter<CodeMirror.Editor> {
 	private isShowingContextMenu: boolean = false
 
 	// TODO: refactor
+	private document: AdapterDocument
 	public onChange: (text: string) => string
 	public getLineOffset: () => number
-	public wholeFileText: string
 	public onReanalyze: () => void
-	public onShouldSwap: (sym: lsp.SymbolInformation) => void
+	public onShouldSwap: (sym: SymbolInfo) => void
 
-	constructor(connection: LspClient, options: ITextEditorOptions, editor: CodeMirror.Editor) {
+	constructor(connection: LspClient, options: ITextEditorOptions, editor: CodeMirror.Editor, uri: string) {
 		super(connection, options, editor)
 		this.connection = connection
 		this.options = getFilledDefaults(options)
 		this.editor = editor
 		this.navObject = new NavObject(connection)
+		this.document = { uri: uri }
 
 		this.debouncedGetHover = debounce((position: CodeMirror.Position) => {
-			this.connection.getHoverTooltip(this._docPositionToLsp(position))
+			this.connection.getHoverTooltip(this.document.uri, this._docPositionToLsp(position))
 		}, this.options.quickSuggestionsDelay)
 
 		this._addListeners()
@@ -243,10 +248,9 @@ export class CodeMirrorAdapter extends IEditorAdapter<CodeMirror.Editor> {
 		// call the onChange method to get the whole file
 		const editorCode = this.editor.getValue()
 		const lspCode = this.onChange(editorCode)
-		this.wholeFileText = lspCode
 
 		// send the change to the server so it's up to date
-		this.connection.sendChange({ text: lspCode })
+		this.connection.sendChange(this.document.uri, { text: lspCode })
 
 		const editorLocation = this.editor.getDoc().getCursor("end")
 		const lspLocation: lsp.Position = this._docPositionToLsp(editorLocation)
@@ -264,15 +268,17 @@ export class CodeMirrorAdapter extends IEditorAdapter<CodeMirror.Editor> {
 		} else if (completionCharacters.indexOf(typedCharacter) > -1) {
 			this.token = this._getTokenEndingAtPosition(editorCode, editorLocation, completionCharacters)
 			this.connection.getCompletion(
+				this.document.uri,
 				lspLocation,
 				completionCharacters.find((c) => c === typedCharacter),
 				lsp.CompletionTriggerKind.TriggerCharacter,
 			)
 		} else if (signatureCharacters.indexOf(typedCharacter) > -1) {
 			this.token = this._getTokenEndingAtPosition(editorCode, editorLocation, signatureCharacters)
-			this.connection.getSignatureHelp(lspLocation)
+			this.connection.getSignatureHelp(this.document.uri, lspLocation)
 		} else if (!/\W/.test(typedCharacter)) {
 			this.connection.getCompletion(
+				this.document.uri,
 				lspLocation,
 				"",
 				lsp.CompletionTriggerKind.Invoked,
@@ -281,6 +287,11 @@ export class CodeMirrorAdapter extends IEditorAdapter<CodeMirror.Editor> {
 		} else {
 			this._removeSignatureWidget()
 		}
+	}
+
+	public changeFile(fileText) {
+		this.connection.sendChange(this.document.uri, { text: fileText })
+		this._removeSignatureWidget()
 	}
 
 	/**
@@ -417,7 +428,6 @@ export class CodeMirrorAdapter extends IEditorAdapter<CodeMirror.Editor> {
 			return
 		}
 
-		const documentUri = this.connection.getDocumentUri()
 		if(lsp.Location.is(location)){
 			const locatedSymbol = this.navObject.bestSymbolForLocation(location)
 			if(locatedSymbol){
@@ -437,23 +447,24 @@ export class CodeMirrorAdapter extends IEditorAdapter<CodeMirror.Editor> {
 			return
 		}
 
-		const documentUri = this.connection.getDocumentUri()
 		let scrollTo: CodeMirror.Position | null = null
 
+		// TODO: improve with multiple document support
+		// e.g. notify the owner that a cross-document goto was requested
 		if (lsp.Location.is(location)) {
-			if (location.uri !== documentUri) {
+			if (location.uri !== this.document.uri) {
 				return
 			}
 			this._highlightRanges([location.range])
 			scrollTo = this._lspPositionToDoc(location.range.start)
 			this.editor.setCursor(scrollTo)
 		} else if ((location as any[]).every((l) => lsp.Location.is(l))) {
-			const locations = (location as lsp.Location[]).filter((l) => l.uri === documentUri)
+			const locations = (location as lsp.Location[]).filter((l) => l.uri === this.document.uri)
 
 			this._highlightRanges(locations.map((l) => l.range))
 			scrollTo = this._lspPositionToDoc(locations[0].range.start)
 		} else if ((location as any[]).every((l) => lsp.LocationLink.is(l))) {
-			const locations = (location as lsp.LocationLink[]).filter((l) => l.targetUri === documentUri)
+			const locations = (location as lsp.LocationLink[]).filter((l) => l.targetUri === this.document.uri)
 			this._highlightRanges(locations.map((l) => l.targetRange))
 			scrollTo = this._lspPositionToDoc(locations[0].targetRange.start)
 		}
@@ -472,7 +483,7 @@ export class CodeMirrorAdapter extends IEditorAdapter<CodeMirror.Editor> {
 		}
 		this.connection.on("documentSymbol", listener)
 
-		this.connection.getDocumentSymbol()
+		this.connection.getDocumentSymbol(this.document.uri)
 	}
 
 	public remove() {
@@ -521,7 +532,7 @@ export class CodeMirrorAdapter extends IEditorAdapter<CodeMirror.Editor> {
 
 		const debouncedCursor = debounce(() => {
 			const pos = this._docPositionToLsp(this.editor.getDoc().getCursor("start"))
-			return this.connection.getDocumentHighlights(pos)
+			return this.connection.getDocumentHighlights(this.document.uri, pos)
 		}, this.options.quickSuggestionsDelay)
 
 		const rightClickHandler = this._handleRightClick.bind(this)
@@ -633,18 +644,6 @@ export class CodeMirrorAdapter extends IEditorAdapter<CodeMirror.Editor> {
 				entries.push(this.definitionContextEntry(docPosition))
 			}
 
-			const htmlElement = document.createElement('div');
-			htmlElement.classList.add('CodeMirror-lsp-context');
-
-			if (this.connection.isDefinitionSupported()) {
-				const goToDefinition = document.createElement('div');
-				goToDefinition.innerText = 'Go to Definition';
-				goToDefinition.addEventListener('click', () => {
-					//this.connection.getDefinition(docPosition);
-					this.connection.getDocumentSymbol();
-				});
-				htmlElement.appendChild(goToDefinition);
-			}
 			if (this.connection.isTypeDefinitionSupported()) {
 				entries.push(this.typeDefinitionContextEntry(docPosition))
 			}
@@ -687,7 +686,7 @@ export class CodeMirrorAdapter extends IEditorAdapter<CodeMirror.Editor> {
 		const goToDefinition = document.createElement("div")
 		goToDefinition.innerText = "Go to Definition"
 		goToDefinition.addEventListener("click", () => {
-			this.connection.getDefinition(this._docPositionToLsp(docPosition))
+			this.connection.getDefinition(this.document.uri, this._docPositionToLsp(docPosition))
 		})
 		return goToDefinition
 	}
@@ -696,7 +695,7 @@ export class CodeMirrorAdapter extends IEditorAdapter<CodeMirror.Editor> {
 		const goToTypeDefinition = document.createElement("div")
 		goToTypeDefinition.innerText = "Go to Type Definition"
 		goToTypeDefinition.addEventListener("click", () => {
-			this.connection.getTypeDefinition(this._docPositionToLsp(docPosition))
+			this.connection.getTypeDefinition(this.document.uri, this._docPositionToLsp(docPosition))
 		})
 		return goToTypeDefinition
 	}
@@ -705,7 +704,7 @@ export class CodeMirrorAdapter extends IEditorAdapter<CodeMirror.Editor> {
 		const getReferences = document.createElement("div")
 		getReferences.innerText = "Find all References"
 		getReferences.addEventListener("click", () => {
-			this.connection.getReferences(this._docPositionToLsp(docPosition))
+			this.connection.getReferences(this.document.uri, this._docPositionToLsp(docPosition))
 		})
 		return getReferences
 	}
