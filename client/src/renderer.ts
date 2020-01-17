@@ -5,6 +5,10 @@
 // selectively enable features needed in the rendering
 // process.
 
+import { Context } from "./Context"
+import { Project } from "./Project"
+import * as lsp from "vscode-languageserver-protocol"
+
 const globals: Globals = window["globals"]
 
 const extractRangeOfFile = (file, range): string => {
@@ -44,12 +48,11 @@ class Editor {
 
 	activeEditorPane: PaneObject
 
-	file: string = ""
-	topLevelSymbols: { [name: string]: { symbol: any; definitionString: string } } = {}
-	topLevelCode: string | null = null
-
 	fresh = false
 	pendingSwap: any | null = null
+
+  defaultContext: Context = new Context("", globals.app.getAppPath(), "")
+  currentProject: Project = new Project("Untitled", globals.app.getAppPath(), [this.defaultContext])
 
 	constructor() {
 		// creates a CodeMirror editor configured to look like a preview pane
@@ -135,7 +138,7 @@ class Editor {
 	connectToServer() {
 		globals.ConfigureEditorAdapter({
 			editor: this.activeEditorPane.editor,
-			initialFileText: this.file,
+			initialFileText: this.currentProject.currentContext.fileString,
 			onChange: this.onFileChanged.bind(this),
 			getLineOffset: () => this.getFirstLineOfActiveSymbolWithinFile(),
 			onReanalyze: this.onNavObjectUpdated.bind(this),
@@ -168,27 +171,21 @@ class Editor {
 	 * @param editorText  The changed contents of the active editor pane.
 	 * @returns fileText  The text of the entire file.
 	 */
-	onFileChanged(text): string {
+	onFileChanged(text): string { // TODO: change file
 		// update our knowledge of the active symbol
-		this.topLevelSymbols[this.activeEditorPane.symbol.name].definitionString = text
-		const oldLineCount = this.file.split("\n").length
-		this.file = this.linearizeContextCode()
-		if (this.file.split("\n").length !== oldLineCount) {
+		this.currentProject.currentContext.topLevelSymbols[this.activeEditorPane.symbol.name].definitionString = text
+
+		const oldFile = this.currentProject.currentContext.fileString
+		const oldLineCount = oldFile.split("\n").length
+
+		const newFile = this.currentProject.currentContext.getLinearizedCode()
+		this.currentProject.currentContext.fileString = newFile
+
+		if (newFile.split("\n").length !== oldLineCount) {
 			this.fresh = false
 		}
-		return this.file
-	}
 
-	/**
-	 * Combines all the top level code and symbol definition strings
-	 * into one large string representing the entire context/file.
-	 *
-	 * @returns entire file
-	 */
-	linearizeContextCode(): string {
-		return this._sortedTopLevelSymbolNames()
-			.map((n) => this.topLevelSymbols[n].definitionString)
-			.join("\n\n") + this.topLevelCode
+		return newFile
 	}
 
 	/**
@@ -206,13 +203,13 @@ class Editor {
 		let lineno = 0
 		let found = false
 
-		for (const symbolName of this._sortedTopLevelSymbolNames()) {
+		for (const symbolName of this.currentProject.currentContext.getSortedTopLevelSymbolNames()) {
 			if (symbolName === this.activeEditorPane.symbol.name) {
 				found = true
 				break
 			}
 
-			const symbol = this.topLevelSymbols[symbolName]
+			const symbol = this.currentProject.currentContext.topLevelSymbols[symbolName]
 			const lineCount = symbol.definitionString.split("\n").length
 			lineno += lineCount - 1
 			lineno += 2 // add padding added by `linearizeContextCode`
@@ -221,65 +218,6 @@ class Editor {
 		console.assert(found)
 
 		return lineno
-	}
-
-	_sortedTopLevelSymbolNames() {
-		// sort the top level symbols by their original line number
-		const symbolNames = Object.keys(this.topLevelSymbols)
-		symbolNames.sort((a, b) => {
-			const linea = this.topLevelSymbols[a].symbol.range.line
-			const lineb = this.topLevelSymbols[b].symbol.range.line
-
-			return (linea < lineb) ? -1
-				: (linea > lineb) ? 1
-				: 0
-		})
-		return symbolNames
-	}
-
-	/**
-	 * Splits the given file into string chunks.
-	 *
-	 * The dictionary of string chunks maps top-level symbol names to the lines
-	 * of code that comprise their definitions.
-	 *
-	 * The first returned string chunk contains all lines of code that are not
-	 * part of a top-level symbol definition, i.e. "top level code".
-	 *
-	 * @param file            the file to split
-	 * @param topLevelSymbols array of top-level (no parent container) symbols
-	 *
-	 * @returns [top level code string, top-level definition strings by symbol name]
-	 */
-	splitFileBySymbols(file: string, topLevelSymbols: any[]): [string, { [name: string]: { symbol: any; definitionString: string } }] {
-		// TODO: ensure top level symbol ranges are non-overlapping
-
-		const topLevelSymbolsWithStrings: { [name: string]: { symbol: any; definitionString: string } } = topLevelSymbols
-			.map((symbol) => { return {
-				symbol: symbol,
-				definitionString: extractRangeOfFile(this.file, symbol.range)
-			} })
-			.reduce((prev, cur) => {
-				prev[cur.symbol.name] = cur
-				return prev
-			}, {})
-
-		const linenosUsedByTopLevelSymbols: Set<number> = topLevelSymbols
-			.reduce((prev: Set<number>, cur) => {
-				const range = cur.range
-				const end = (range.end.character > 0) ? (range.end.line + 1) : range.end.line
-				for (let i = range.start.line; i < end; i++) {
-					prev.add(i)
-				}
-				return prev
-			}, new Set<number>())
-
-		const topLevelCode = file.split("\n") // TODO: worry about other line endings
-			.filter((line, lineno) => !linenosUsedByTopLevelSymbols.has(lineno))
-			.filter((line) => line.trim() !== "")
-			.join("\n")
-
-		return [topLevelCode, topLevelSymbolsWithStrings]
 	}
 
 	/**
@@ -292,11 +230,11 @@ class Editor {
 		//// recompute the strings containing the definition of each symbol
 
 		const [topLevelCode, topLevelSymbolsWithStrings] =
-			this.splitFileBySymbols(this.file, navObject.findTopLevelSymbols())
+			this.currentProject.currentContext.splitFileBySymbols(this.currentProject.currentContext.fileString, navObject.findTopLevelSymbols())
 
 		// TODO: store this by context/file/module
-		this.topLevelCode = topLevelCode
-		this.topLevelSymbols = topLevelSymbolsWithStrings
+		this.currentProject.currentContext.topLevelCode = topLevelCode
+		this.currentProject.currentContext.topLevelSymbols = topLevelSymbolsWithStrings
 
 		//// navigate to the new version of the symbol the user was previously editing
 		//// or main if we can't find it (or they had no previous symbol)
@@ -373,7 +311,7 @@ class Editor {
 		}
 
 		// obtain the definition string of the new symbol
-		const contents = this.topLevelSymbols[symbol.name].definitionString
+		const contents = this.currentProject.currentContext.topLevelSymbols[symbol.name].definitionString
 
 		// fetch new callees
 		const callees = globals.FindCallees(symbol)
@@ -403,29 +341,29 @@ class Editor {
 				this.calleePanes.forEach((pane) => pane.editor.setValue(""))
 				callees.slice(null, 3).forEach((calleeSym, index) => {
 					this.calleePanes[index].symbol = calleeSym
-					this.calleePanes[index].editor.setValue(extractRangeOfFile(this.file, calleeSym.range))
+					this.calleePanes[index].editor.setValue(extractRangeOfFile(this.currentProject.currentContext.fileString, calleeSym.range))
 				})
 
 				this.callerPanes.forEach((pane) => pane.editor.setValue(""))
 				callers.slice(null, 3).forEach((callerSym, index) => {
 					this.callerPanes[index].symbol = callerSym
-					this.callerPanes[index].editor.setValue(extractRangeOfFile(this.file, callerSym.range))
+					this.callerPanes[index].editor.setValue(extractRangeOfFile(this.currentProject.currentContext.fileString, callerSym.range))
 				})
 			})
 	}
 
 	setFile(text: string) {
-		this.file = text
 		this.fresh = false
 		this.pendingSwap = null
 		this.activeEditorPane.symbol = null
 		this.calleePanes.forEach((p) => p.symbol = null)
 		this.callerPanes.forEach((p) => p.symbol = null)
-		this.topLevelSymbols = {}
-		this.topLevelCode = null
+
+	  this.defaultContext = new Context("Untitled", globals.app.getAppPath(), text)
+	  this.currentProject = new Project("Untitled", globals.app.getAppPath(), [this.defaultContext])
 
 		// change file and kick off reanalysis to find main initially
-		globals.ChangeFileAndReanalyze(text)
+		globals.ChangeFileAndReanalyze(this.currentProject.currentContext.fileString)
 	}
 }
 
@@ -446,10 +384,20 @@ function openFile() {
 }
 
 function saveFile() {
-	;(window as any).openSaveDialogForEditor(editor.file)
-		.then((result) => {
-			if (result) {
-				console.log("Successfully saved file")
-			}
-		})
+	if(editor.currentProject.currentContext.hasChanges){
+
+		// check if alread been saved
+		if(editor.currentProject.currentContext.name == '' || editor.currentProject.currentContext.name == null){
+			;(window as any).openSaveDialogForEditor(editor.currentProject.currentContext.fileString)
+			.then((result) => {
+				if (result) {
+					editor.currentProject.currentContext.hasChanges = false
+					editor.currentProject.currentContext.filePath = result
+				}
+			})
+		}else{
+			;(window as any).saveWithoutDialog(editor.currentProject.currentContext.fileString, editor.currentProject.currentContext.filePath)
+		}
+
+	}
 }
