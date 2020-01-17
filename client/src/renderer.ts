@@ -321,12 +321,16 @@ class Editor {
 				this.calleePanes.forEach((paneObject) => paneObject.paneEditor.setValue(""))
 				callees.slice(null, 3).forEach((calleeSym, index) => {
 					this.calleePanes[index].paneEditor.setValue(extractRangeOfFile(calleeSym.location.range))
-					this.calleePanes[index].context.textContent = formatContext(364.27, calleeSym.context)
+					// debugger
+					// this.calleePanes[index].context.textContent = formatContext(22, calleeSym.context)
+					this.calleePanes[index].context.textContent = formatContext(42, "vendor-sb-admin-vendor-sb-admin-vendor-sb-admin-2.min.js")
 				})
 				this.callerPanes.forEach((paneObject) => paneObject.paneEditor.setValue(""))
 				callers.slice(null, 3).forEach((callerSym, index) => {
 					this.callerPanes[index].paneEditor.setValue(extractRangeOfFile(callerSym.location.range))
-					this.calleePanes[index].context.textContent = formatContext(364.27, callerSym.context)
+					debugger
+					// this.callerPanes[index].context.textContent = formatContext(22, callerSym.context)
+					this.callerPanes[index].context.textContent = formatContext(42, "/Users/benjaminshapiro/Dev/blink_capstone/blink/client/src/vendor/sb-admin-2.min.js")
 				})
 			})
 	}
@@ -360,19 +364,24 @@ function saveFile() {
 		})
 }
 
-function formatContext(size, path) {
+function formatContext(sizeInEms, path) {
 	// takes a path and formats it for a given size in pixels
-	;(window as any).jQuery("#top-left-pane-context").fitText();
-	return "OOOOOOOOOOOOO000000000000"
+	sizeInEms = Math.floor(sizeInEms)
+	let filename = path.replace(/^.*[\\\/]/, '')
+	// debugger
+	if (sizeInEms >= path.length) {
+		// debugger
+		return path;
+	} else if ((sizeInEms - 4) >= filename.length) {
+		// debugger
+		return (path.slice(0,(sizeInEms - 0 - filename.length)) 
+			+ "..." 
+			+ filename);
+	} else {
+		// debugger
+		return filename.slice(filename.length - sizeInEms);
+	}
+
+	return "TBAc"
 }
-
-// function swapDisplayedContextToPath(paneObject, path) {
-
-// }
-
-// function displayContexts(paneObjects, paths) {
-// 	for (let i = 0; i < paneObjects.length; i++) {
-// 	  paneObjects[i].contextBanner.textContent = "/Users/benjaminshapiro/Dev/blink_capstone/blink/client" // textOfSize(panes[i].size, paths[i])
-// 	} 
-// }
 
