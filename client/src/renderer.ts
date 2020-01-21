@@ -37,8 +37,9 @@ const extractRangeOfFile = (file, range): string => {
 	window.setTimeout(callback, 0)
 }
 
-class PaneObject {
+interface PaneObject {
 	editor: CodeMirror.Editor
+	context: HTMLElement
 	symbol: any | null
 }
 
@@ -57,18 +58,19 @@ class Editor {
 	constructor() {
 		// creates a CodeMirror editor configured to look like a preview pane
 		const createPane = function(id, wrapping): PaneObject {
-			const pane = globals.CodeMirror(document.getElementById(id), {
-				mode: "python",
-				lineNumbers: true,
-				theme: "monokai",
-				readOnly: "nocursor",
-				lineWrapping: wrapping
-			})
+			const editor = globals.CodeMirror(document.getElementById(id), {
+					mode: "python",
+					lineNumbers: true,
+					theme: "monokai",
+					readOnly: "nocursor",
+					lineWrapping: wrapping
+				})
 
-			pane.setSize("100%", "200px")
+			editor.setSize("100%", "192.33px");
 
 			return {
-				editor: pane,
+				editor: editor,
+				context: document.getElementById(id + "-context")!,
 				symbol: null,
 			}
 		}
@@ -118,9 +120,14 @@ class Editor {
 				}
 			},
 		})
-		activeEditor.setSize("100%", "46.35em")
 
-		this.activeEditorPane = { editor: activeEditor, symbol: null }
+		activeEditor.setSize("100%", "46.84em")
+
+		this.activeEditorPane = {
+			editor: activeEditor,
+			context: document.getElementById("main-pane-context")!,
+			symbol: null,
+		}
 
 		// begin the connection to the server
 		globals.TryStartingServer()
@@ -338,17 +345,32 @@ class Editor {
 				this.activeEditorPane.editor.setValue(contents)
 
 				// new callers/callees are fetched ones
-				this.calleePanes.forEach((pane) => pane.editor.setValue(""))
-				callees.slice(null, 3).forEach((calleeSym, index) => {
-					this.calleePanes[index].symbol = calleeSym
-					this.calleePanes[index].editor.setValue(extractRangeOfFile(this.currentProject.currentContext.fileString, calleeSym.range))
-				})
+				for (let i = 0; i < 3; i++) {
+					const calleePane = this.calleePanes[i]
+					const callerPane = this.callerPanes[i]
 
-				this.callerPanes.forEach((pane) => pane.editor.setValue(""))
-				callers.slice(null, 3).forEach((callerSym, index) => {
-					this.callerPanes[index].symbol = callerSym
-					this.callerPanes[index].editor.setValue(extractRangeOfFile(this.currentProject.currentContext.fileString, callerSym.range))
-				})
+					if (i < callees.length) {
+						const calleeSym = callees[i]
+						calleePane.symbol = calleeSym
+						calleePane.editor.setValue(extractRangeOfFile(this.currentProject.currentContext.fileString, calleeSym.range))
+						calleePane.context.textContent = calleeSym.detail
+					} else {
+						calleePane.symbol = null
+						calleePane.editor.setValue("")
+						calleePane.context.textContent = "(no context)"
+					}
+
+					if (i < callers.length) {
+						const callerSym = callers[i]
+						callerPane.symbol = callerSym
+						callerPane.editor.setValue(extractRangeOfFile(this.currentProject.currentContext.fileString, callerSym.range))
+						callerPane.context.textContent = callerSym.detail
+					} else {
+						callerPane.symbol = null
+						callerPane.editor.setValue("")
+						callerPane.context.textContent = "(no context)"
+					}
+				}
 			})
 	}
 
@@ -401,3 +423,25 @@ function saveFile() {
 
 	}
 }
+
+function formatContext(sizeInEms, path) {
+	// takes a path and formats it for a given size in pixels
+	sizeInEms = Math.floor(sizeInEms)
+	let filename = path.replace(/^.*[\\\/]/, '')
+	// debugger
+	if (sizeInEms >= path.length) {
+		// debugger
+		return path;
+	} else if ((sizeInEms - 4) >= filename.length) {
+		// debugger
+		return (path.slice(0,(sizeInEms - 0 - filename.length))
+			+ "..."
+			+ filename);
+	} else {
+		// debugger
+		return filename.slice(filename.length - sizeInEms);
+	}
+
+	return "TBAc"
+}
+
