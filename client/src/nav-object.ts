@@ -84,8 +84,13 @@ export class NavObject {
 			throw new Error("expected DocumentSymbol[], got something else")
 		}
 
-		// refresh cache symToInfo
-		this.symToInfo = new Map()
+		// clear all entries with the given uri
+		for (const key in this.symToInfo) {
+			if (this.symToInfo[key].uri === uri) {
+				delete this.symToInfo[key]
+			}
+		}
+		// add all symbols recieved
 		for (const symbol of symbols) {
 			addSymbolToMap(symbol, true)
 		}
