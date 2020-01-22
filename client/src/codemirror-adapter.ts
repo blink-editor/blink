@@ -618,8 +618,8 @@ export class CodeMirrorAdapter extends IEditorAdapter<CodeMirror.Editor> {
 
 	private _handleRightClick(ev: MouseEvent) {
 		const docPosition: CodeMirror.Position = this.editor.coordsChar({
-			left: ev.clientX,
-			top: ev.clientY,
+			left: (ev.screenX - 296),
+			top: (ev.screenY - 171),
 		}, "window")
 
 		const entries: HTMLElement[] = []
@@ -649,7 +649,14 @@ export class CodeMirrorAdapter extends IEditorAdapter<CodeMirror.Editor> {
 
 		entries.forEach(htmlElement.appendChild.bind(htmlElement))
 
-		const coords = this.editor.charCoords(docPosition, "page")
+		// TODO - Set up conditional so that if the mouse is against the right boundary,
+		// the tooltip will show up to the left, and if the mouse is too close to the
+		// bottom, it will show up above the pointer, and so on
+
+		// For Blink 1/22/2020 4:30 Utah, the cursor is within 5 pixels
+		// of ev.ScreenX - 295 on the x axis, ev.screenX - 295 for y
+		const coords = {left: ev.screenX - 295, right: ev.screenX - 295, top: ev.screenY - 160, bottom: ev.screenY - 160}
+
 		this._showTooltip(htmlElement, {
 			x: coords.left,
 			y: coords.bottom + this.editor.defaultTextHeight(),
@@ -707,6 +714,7 @@ export class CodeMirrorAdapter extends IEditorAdapter<CodeMirror.Editor> {
 	}
 
 	private _showTooltip(el: HTMLElement, coords: IScreenCoord) {
+		// TODO: make tooltip show up where the mouse is
 		if (this.isShowingContextMenu) {
 			return
 		}
