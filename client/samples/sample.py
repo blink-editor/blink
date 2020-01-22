@@ -1,4 +1,5 @@
 import math
+
 from __future__ import print_function
 
 def firstFunction():
@@ -40,9 +41,9 @@ def main():
 	firstFunction()
 	secondFunction()
 	thirdFunction()
+    print("this is starter")
 
 
 def test():
 	main()
-
 test()

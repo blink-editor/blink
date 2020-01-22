@@ -114,7 +114,7 @@ globals.OpenSampleFile = function(): Thenable<string> {
 }
 
 // 2
-;(window as any).openFileDialogForEditor = function(): Thenable<string | undefined> {
+;(window as any).openFileDialogForEditor = function(): Thenable<[string, string] | undefined> {
 	const dialog = require("electron").remote.dialog
 
 	return dialog.showOpenDialog({
@@ -124,8 +124,9 @@ globals.OpenSampleFile = function(): Thenable<string> {
 			if (result.filePaths.length < 1) {
 				return Promise.resolve(undefined)
 			}
-
-			return promisify(fs.readFile)(result.filePaths[0], { encoding: "utf8" })
+			const dirPromise = Promise.resolve(result.filePaths[0])
+			const fileTextPromise = promisify(fs.readFile)(result.filePaths[0], { encoding: "utf8" })
+			return Promise.all([dirPromise, fileTextPromise])
 		})
 }
 

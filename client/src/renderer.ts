@@ -160,7 +160,7 @@ class Editor {
 		globals.OpenSampleFile()
 			.then((sampleFileText) => {
 				console.assert(sampleFileText, "must load demo file text")
-				this.setFile(sampleFileText ?? "")
+				this.setFile(sampleFileText ?? "", "samples/sample.py")
 			})
 	}
 
@@ -352,15 +352,15 @@ class Editor {
 			})
 	}
 
-	setFile(text: string) {
+	setFile(text: string, fileDir: string) {
 		this.fresh = false
 		this.pendingSwap = null
 		this.activeEditorPane.symbol = null
 		this.calleePanes.forEach((p) => p.symbol = null)
 		this.callerPanes.forEach((p) => p.symbol = null)
 
-	  this.defaultContext = new Context("Untitled", globals.app.getAppPath(), text)
-	  this.currentProject = new Project("Untitled", globals.app.getAppPath(), [this.defaultContext])
+	  this.defaultContext = new Context("Untitled", fileDir, text)
+	  this.currentProject = new Project("Untitled", fileDir, [this.defaultContext])
 
 		// change file and kick off reanalysis to find main initially
 		globals.ChangeFileAndReanalyze(this.currentProject.currentContext.fileString)
@@ -372,32 +372,35 @@ const editor = new Editor()
 // 1
 function openFile() {
 	;(window as any).openFileDialogForEditor()
-		.then((text: string | undefined) => {
+		.then(fileInfo => {
 			// 3
-			if (!text) {
+			if (!fileInfo) {
 				console.error("Error: No file selected")
 				return
 			}
 
-			editor.setFile(text)
+			editor.setFile(fileInfo[1], fileInfo[0] )
 		})
 }
 
+/**
+ * loop through all contexts and save them 
+ */
 function saveFile() {
-	if(editor.currentProject.currentContext.hasChanges){
-
-		// check if alread been saved
-		if(editor.currentProject.currentContext.name == '' || editor.currentProject.currentContext.name == null){
-			;(window as any).openSaveDialogForEditor(editor.currentProject.currentContext.fileString)
-			.then((result) => {
-				if (result) {
-					editor.currentProject.currentContext.hasChanges = false
-					editor.currentProject.currentContext.filePath = result
-				}
-			})
-		}else{
-			;(window as any).saveWithoutDialog(editor.currentProject.currentContext.fileString, editor.currentProject.currentContext.filePath)
-		}
-
-	}
+  editor.currentProject.contexts.forEach( currContext => {
+		console.log("Saving to ", currContext.filePath)
+    if(currContext.hasChanges){
+      if(currContext.name == '' || currContext.filePath == ''){
+        (window as any).openSaveDialogForEditor(currContext.fileString)
+          .then((result) => {
+            if(result){
+              currContext.hasChanges = false
+              currContext.fileString = result
+            }
+          })
+      }else{
+        (window as any).saveWithoutDialog(currContext.fileString, currContext.filePath)
+      }
+    }
+  })
 }

@@ -23,6 +23,17 @@ import { Context } from "./Context"
     this._name = name
     // change file dir?
 	}
+
+	get contexts(){
+		return this._contexts
+	}
+	addContext(newContext: Context){
+		if(newContext.filePath != null){
+			this._contexts.push(newContext)
+		}else{
+			console.assert("context does not have file path")
+		}
+	}
 	
 	get currentContext(){
 		return this._currentContext
