@@ -6,19 +6,23 @@ import * as path from "path"
 import { promisify } from "util"
 import { URL as NodeURL } from "url"
 
+import * as electron from "electron"
 import CodeMirror from "codemirror"
 import * as lsp from "vscode-languageserver-protocol"
 
 import { Context } from "./Context"
 import { Project } from "./Project"
+import { CodeMirrorAdapter } from "./codemirror-adapter"
 import { NavObject, SymbolInfo } from "./nav-object"
+import * as client from "./langserver-client"
 
-const globals: Globals = window["globals"]
-
-// TODO: use better polyfill
-;(window as any).setImmediate = function(callback: (...args: any[]) => void) {
-	window.setTimeout(callback, 0)
-}
+// css imported in html for now
+// import "./codemirror-lsp.css"
+import "codemirror/mode/python/python"
+// import "codemirror/lib/codemirror.css"
+// import "codemirror/theme/monokai.css"
+import "codemirror/addon/hint/show-hint"
+// import "codemirror/addon/hint/show-hint.css"
 
 interface PaneObject {
 	editor: CodeMirror.Editor
@@ -27,6 +31,12 @@ interface PaneObject {
 }
 
 class Editor {
+	// program state
+	lspClient: client.LspClient
+	adapter: CodeMirrorAdapter
+	navObject: NavObject
+
+	// editor/project state
 	calleePanes: [PaneObject, PaneObject, PaneObject]
 	callerPanes: [PaneObject, PaneObject, PaneObject]
 
@@ -39,15 +49,15 @@ class Editor {
 	constructor() {
 		// creates a CodeMirror editor configured to look like a preview pane
 		const createPane = function(id, wrapping): PaneObject {
-			const editor = globals.CodeMirror(document.getElementById(id), {
-					mode: "python",
-					lineNumbers: true,
-					theme: "monokai",
-					readOnly: "nocursor",
-					lineWrapping: wrapping
-				})
+			const editor = CodeMirror(document.getElementById(id)!, {
+				mode: "python",
+				lineNumbers: true,
+				theme: "monokai",
+				readOnly: "nocursor",
+				lineWrapping: wrapping
+			})
 
-			editor.setSize("100%", "192.33px");
+			editor.setSize("100%", "192.33px")
 
 			return {
 				editor: editor,
@@ -87,7 +97,7 @@ class Editor {
 		})
 
 		// create active editor pane
-		const activeEditor = globals.CodeMirror(document.getElementById("main-pane"), {
+		const activeEditor = CodeMirror(document.getElementById("main-pane")!, {
 			mode: "python",
 			lineNumbers: true,
 			theme: "monokai",
@@ -110,36 +120,40 @@ class Editor {
 			symbol: null,
 		}
 
-		// begin the connection to the server
-		globals.TryStartingServer()
-
-		if (globals.serverConnected) {
+		// nag the main process to start the server for us if
+		// the server isn't currently up for some reason.
+		electron.ipcRenderer.once("server-connected", () => {
 			this.connectToServer()
-		} else {
-			globals.events.once("server-connected", this.connectToServer.bind(this))
-		}
+		})
+		electron.ipcRenderer.send("try-starting-server")
 	}
 
 	/**
 	 * Attempts to connect the editor to the language server.
 	 */
 	connectToServer() {
-		globals.ConfigureEditorAdapter({
-			editor: this.activeEditorPane.editor,
-			onChange: this.onFileChanged.bind(this),
-			getLineOffset: () => this.getFirstLineOfActiveSymbolWithinFile(),
-			onShouldSwap: (sym) => {
-				this.swapToSymbol(sym)
-			}
-		})
+		const logger = new client.ConsoleLogger()
 
-		if (globals.clientInitialized) {
-			this.openDemoFile()
-		} else {
-			globals.events.once("client-initialized", () => {
+		client.createTcpRpcConnection("localhost", 2087, (connection) => {
+			this.lspClient = new client.LspClientImpl(connection, undefined, logger)
+			this.lspClient.initialize()
+
+			this.navObject = new NavObject(this.lspClient)
+
+			// The adapter is what allows the editor to provide UI elements
+			this.adapter = new CodeMirrorAdapter(this.lspClient, this.navObject, {
+				// UI-related options go here, allowing you to control the automatic features of the LSP, i.e.
+				suggestOnTriggerCharacters: false
+			}, this.activeEditorPane.editor)
+
+			this.adapter.onChange = this.onFileChanged.bind(this)
+			this.adapter.onShouldSwap = this.swapToSymbol.bind(this)
+			this.adapter.getLineOffset = this.getFirstLineOfActiveSymbolWithinFile.bind(this)
+
+			this.lspClient.once("initialized", () => {
 				this.openDemoFile()
 			})
-		}
+		}, logger)
 	}
 
 	openDemoFile() {
@@ -285,7 +299,7 @@ class Editor {
 		// so we need to call Reanalyze() to get updated symbols, then swap.
 		if (context && context.hasLineNumberChanges) {
 			try {
-				const navObject = await globals.AnalyzeUri(context.uri, context.fileString)
+				const navObject = await this.AnalyzeUri(context.uri, context.fileString)
 				context.updateWithNavObject(navObject)
 				// TODO: this.pendingSwap
 				// TODO: this.navigateToUpdatedSymbol
@@ -313,7 +327,7 @@ class Editor {
 				const contents = await promisify(fs.readFile)(url, { encoding: "utf8" })
 				const newContext = new Context(symmodule, uri, contents)
 
-				const navObject = await globals.AnalyzeUri(newContext.uri, contents)
+				const navObject = await this.AnalyzeUri(newContext.uri, contents)
 				newContext.updateWithNavObject(navObject)
 				project.contexts.push(newContext)
 				context = newContext
@@ -335,7 +349,7 @@ class Editor {
 		const contents = contextSymbol.definitionString
 
 		// fetch new callees
-		const calleesAsync = globals.FindCallees(symbol)
+		const calleesAsync = this.FindCallees(symbol)
 
 		// TODO: make this language-agnostic
 		// determine where the cursor should be before the name of the symbol
@@ -346,7 +360,7 @@ class Editor {
 			: 4 // def foo
 
 		// fetch new callers
-		const callersAsync = globals.FindCallers({
+		const callersAsync = this.FindCallers({
 			textDocument: { uri: symbol.uri },
 			position: { line: symbol.range.start.line, character: nameStartPos },
 		})
@@ -359,7 +373,7 @@ class Editor {
 		this.activeEditorPane.editor.setValue(contents)
 
 		// change which file we're tracking as "currently editing"
-		globals.ChangeOwnedFile(context.uri, context.fileString)
+		this.ChangeOwnedFile(context.uri, context.fileString)
 
 		// new callers/callees are fetched ones
 		for (let i = 0; i < 3; i++) {
@@ -406,70 +420,100 @@ class Editor {
 		this.currentProject = new Project("Untitled", fileDir)
 
 		// change file and kick off reanalysis to find main initially
-		globals.ChangeOwnedFile(context.uri, context.fileString)
+		this.ChangeOwnedFile(context.uri, context.fileString)
 
-		const navObject = await globals.AnalyzeUri(context.uri, text)
+		const navObject = await this.AnalyzeUri(context.uri, text)
 		this.navigateToUpdatedSymbol(navObject)
 	}
-}
 
-const editor = new Editor()
+	// MARK: LSP/NavObject Interface
 
-// 1
-function openFile() {
-	;(window as any).openFileDialogForEditor()
-		.then(fileInfo => {
-			// 3
-			if (!fileInfo) {
-				console.error("Error: No file selected")
-				return
-			}
-
-			editor.setFile(fileInfo[1], fileInfo[0])
-		})
-}
-
-/**
- * loop through all contexts and save them
- */
-function saveFile() {
-	/* TODO
-  editor.currentProject.contexts.forEach( currContext => {
-		console.log("Saving to ", currContext.filePath)
-    if(currContext.hasChanges){
-      if(currContext.name == '' || currContext.filePath == ''){
-        (window as any).openSaveDialogForEditor(currContext.fileString)
-          .then((result) => {
-            if(result){
-              currContext.hasChanges = false
-              currContext.fileString = result
-            }
-          })
-      }else{
-        (window as any).saveWithoutDialog(currContext.fileString, currContext.filePath)
-      }
-    }
-  })
-  */
-}
-
-function formatContext(sizeInEms, path) {
-	// takes a path and formats it for a given size in pixels
-	sizeInEms = Math.floor(sizeInEms)
-	let filename = path.replace(/^.*[\\\/]/, '')
-	// debugger
-	if (sizeInEms >= path.length) {
-		// debugger
-		return path;
-	} else if ((sizeInEms - 4) >= filename.length) {
-		// debugger
-		return (path.slice(0,(sizeInEms - 0 - filename.length))
-			+ "..."
-			+ filename);
-	} else {
-		// debugger
-		return filename.slice(filename.length - sizeInEms);
+	FindCallees(symbol: SymbolInfo): Thenable<lsp.SymbolInformation[]> {
+		return this.adapter.navObject.findCallees(symbol)
 	}
 
-	return "TBAc"
+	FindCallers(pos: lsp.TextDocumentPositionParams): Thenable<SymbolInfo[]> {
+		return this.adapter.navObject.findCallers(pos)
+	}
+
+	ChangeOwnedFile = function(uri: string, contents: string): void {
+		this.lspClient.openDocument({
+			languageId: "python",
+			documentUri: uri,
+			initialText: contents,
+		})
+		// TODO: close old one? wait for open before changing adapter?
+		this.adapter.changeOwnedFile(uri, contents)
+	}
+
+	/**
+	 * Analyzes the document symbols in the given uri and updates the nav object.
+	 *
+	 * @param uri The uri of the file to analyze.
+	 * @param contents The contents of the file. Only used when it has not been opened before.
+	 */
+	AnalyzeUri(uri: string, contents: string): Thenable<NavObject> {
+		if (!this.lspClient.isDocumentOpen(uri)) {
+			this.lspClient.openDocument({
+				languageId: "python",
+				documentUri: uri,
+				initialText: contents,
+			})
+		}
+		return this.lspClient.getDocumentSymbol(uri)
+			.then((symbols) => {
+				this.navObject.rebuildMaps(symbols ?? [], uri)
+				return this.navObject
+			})
+	}
+
+	// MARK: index.html Interface
+
+	openFile() {
+		const dialog = electron.remote.dialog
+
+		return dialog.showOpenDialog({
+			properties : ["openFile"]
+		})
+			.then((result) => {
+				if (result.filePaths.length < 1) {
+					return Promise.reject()
+				}
+				const dirPromise = Promise.resolve(result.filePaths[0])
+				const fileTextPromise = promisify(fs.readFile)(result.filePaths[0], { encoding: "utf8" })
+				return Promise.all([dirPromise, fileTextPromise])
+			})
+			.then(([filePath, contents]) => {
+				this.setFile(contents, filePath)
+			})
+	}
+
+	/**
+	 * loop through all contexts and save them
+	 */
+	saveFile() {
+		this.currentProject.contexts.forEach((context) => {
+			if (!context.hasChanges) { return }
+
+			const hasPath = context.uri !== null
+
+			if (hasPath) {
+				promisify(fs.writeFile)(new NodeURL(context.uri), context.fileString, { encoding: "utf8" })
+			} else {
+				const dialog = electron.remote.dialog
+
+				return dialog.showSaveDialog({})
+					.then((result) => {
+						if (!result.filePath) {
+							return Promise.reject()
+						}
+
+						return promisify(fs.writeFile)(result.filePath, context.fileString, { encoding: "utf8" })
+					})
+			}
+		})
+	}
 }
+
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+const editor = new Editor()
