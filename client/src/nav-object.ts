@@ -17,14 +17,14 @@ interface SymbolKey {
 export interface SymbolInfo extends lsp.DocumentSymbol {
 	isTopLevel: boolean
 	uri: string
+	module: string
 }
 
 export class NavObject {
 	private symToInfo: Map<string, SymbolInfo> = new Map()
 	private client: LspClient
 
-	constructor(client: LspClient) {
-		client.on("documentSymbol", this.rebuildMaps.bind(this))
+	public constructor(client: LspClient) {
 		this.client = client
 	}
 
@@ -48,7 +48,7 @@ export class NavObject {
 	/*
 	 * Rebuilds symToInfo. Should be called on file load, return, save.
 	 */
-	rebuildMaps(symbols: lsp.DocumentSymbol[] | lsp.SymbolInformation[], uri: string) {
+	public rebuildMaps(symbols: lsp.DocumentSymbol[] | lsp.SymbolInformation[], uri: string) {
 		// Used to check that the given parameter is type documentSymbol[]
 		function isDocumentSymbolArray(symbols: lsp.DocumentSymbol[] | lsp.SymbolInformation[]): symbols is lsp.DocumentSymbol[] {
 			return (symbols as lsp.DocumentSymbol[]).length === 0 || (symbols as lsp.DocumentSymbol[])[0].children !== undefined
@@ -56,17 +56,18 @@ export class NavObject {
 
 		// adds a documentSymbol and all of its children to symToInfo
 		const addSymbolToMap = (symbol: lsp.DocumentSymbol, isTopLevel: boolean) => {
+			// create map value
+			const symInfo: SymbolInfo = symbol as SymbolInfo
+			symInfo.isTopLevel = isTopLevel
+			symInfo.uri = uri
+			symInfo.module = (symbol as any)["rayBensModule"]
+
 			// create map key
 			const symKey: SymbolKey = {
 				name: symbol.name,
 				kind: symbol.kind,
-				module: (symbol as any)["rayBensModule"],
+				module: symInfo.module,
 			}
-
-			// create map value
-			let symInfo: SymbolInfo = symbol as SymbolInfo
-			symInfo.isTopLevel = isTopLevel
-			symInfo.uri = uri
 
 			// add to map
 			this.symToInfo.set(this._symbolKeyToString(symKey), symInfo)
@@ -162,8 +163,8 @@ export class NavObject {
 	 * @param symbol  The symbol to find calls in.
 	 * @returns    An array of DocumentSymbol objects with ranges that enclose the definitions of functions being called in the given function.
 	 */
-	findCallees(parentSymbol: lsp.DocumentSymbol): Thenable<SymbolInfo[]> {
-		return this.client.getUsedDocumentSymbols("untitled:///file") // TODO: consume via event handler like rebuildMaps
+	findCallees(parentSymbol: SymbolInfo): Thenable<lsp.SymbolInformation[]> {
+		return this.client.getUsedDocumentSymbols("file:///Users/bradleywalters/school/cs4000/blink/client/samples/sample.py") // TODO: consume via event handler like rebuildMaps
 			.then((result: lsp.DocumentSymbol[] | lsp.SymbolInformation[] | null) => {
 				// Used to check that the given parameter is type documentSymbol[]
 				function isSymbolInformationArray(symbols: lsp.DocumentSymbol[] | lsp.SymbolInformation[]): symbols is lsp.SymbolInformation[] {
@@ -174,7 +175,7 @@ export class NavObject {
 					throw new Error("expected symbolInformation[], got something else")
 				}
 
-				const output: SymbolInfo[] = []
+				const output: lsp.SymbolInformation[] = []
 
 				// for each completion received, find matching location
 				for (const symbol of result) {
@@ -193,24 +194,13 @@ export class NavObject {
 
 					// TODO: see above, but we also want to filter out things
 					// defined within the parent symbol scope
-					if (symbol.location.range.start.line >= parentSymbol.range.start.line
+					if (symbol.location.uri == parentSymbol.uri
+							&& symbol.location.range.start.line >= parentSymbol.range.start.line
 							&& symbol.location.range.end.line <= parentSymbol.range.end.line) {
 						continue
 					}
 
-					// find completion's definition range
-					const testSymKey: SymbolKey = {
-						name: symbol.name,
-						kind: symbol.kind,
-						module: (symbol as any)["rayBensModule"],
-					}
-
-					const desiredInfo = this.symToInfo.get(this._symbolKeyToString(testSymKey))
-
-					// if not found, ignore it
-					if (desiredInfo) {
-						output.push(desiredInfo)
-					}
+					output.push(symbol)
 				}
 
 				return output

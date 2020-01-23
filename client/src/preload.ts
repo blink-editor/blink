@@ -2,13 +2,14 @@
 // It has the same sandbox as a Chrome extension.
 import { promisify } from "util"
 import * as fs from "fs"
+import * as path from "path"
 import * as client from "./langserver-client"
 import * as lsp from "vscode-languageserver-protocol"
 import * as events from "events"
 import { ipcRenderer } from "electron"
 import CodeMirror from "codemirror"
 import { CodeMirrorAdapter } from "./codemirror-adapter"
-import { SymbolInfo } from "./nav-object"
+import { NavObject, SymbolInfo } from "./nav-object"
 // css imported in html for now
 // import "./codemirror-lsp.css"
 import "codemirror/mode/python/python"
@@ -18,13 +19,12 @@ import "codemirror/addon/hint/show-hint"
 // import "codemirror/addon/hint/show-hint.css"
 
 class GlobalEventsImpl extends events.EventEmitter implements GlobalEvents {}
-const app = require('electron').remote.app
 let lspClient: client.LspClient
 let adapter: CodeMirrorAdapter
+let navObject: NavObject
 
 const globals = {
-	CodeMirror: CodeMirror,
-	app: app
+	CodeMirror: CodeMirror
 } as Globals
 
 window["globals"] = globals
@@ -48,36 +48,20 @@ globals.ConfigureEditorAdapter = function(params: ConfigureEditorAdapterParams) 
 	const logger = new client.ConsoleLogger()
 
 	client.createTcpRpcConnection("localhost", 2087, (connection) => {
-		const firstDocumentUri = "untitled:///file"
-
-		const documentInfo: client.DocumentInfo = {
-			languageId: "python",
-			documentUri: firstDocumentUri,
-			initialText: params.initialFileText
-		}
-
 		lspClient = new client.LspClientImpl(connection, undefined, logger)
 		lspClient.initialize()
 
-		lspClient.openDocument(documentInfo)
+		navObject = new NavObject(lspClient)
 
 		// The adapter is what allows the editor to provide UI elements
-		adapter = new CodeMirrorAdapter(lspClient, {
+		adapter = new CodeMirrorAdapter(lspClient, navObject, {
 			// UI-related options go here, allowing you to control the automatic features of the LSP, i.e.
 			suggestOnTriggerCharacters: false
-		}, params.editor, firstDocumentUri)
+		}, params.editor)
 
 		adapter.onChange = params.onChange
 		adapter.onShouldSwap = params.onShouldSwap
 		adapter.getLineOffset = params.getLineOffset
-
-		// TODO: ensure this is always called after the nav object
-		// event handler fires, so that the nav object is correct
-		adapter.onReanalyze = () => {
-			setTimeout(() => {
-				params.onReanalyze(adapter.navObject)
-			}, 40)
-		}
 
 		lspClient.once("initialized", () => {
 			setTimeout(() => {
@@ -88,7 +72,7 @@ globals.ConfigureEditorAdapter = function(params: ConfigureEditorAdapterParams) 
 	}, logger)
 }
 
-globals.FindCallees = function(symbol: lsp.DocumentSymbol): Thenable<SymbolInfo[]> {
+globals.FindCallees = function(symbol: SymbolInfo): Thenable<lsp.SymbolInformation[]> {
 	if (!adapter) { return Promise.resolve([]) }
 	return adapter.navObject.findCallees(symbol)
 }
@@ -98,19 +82,35 @@ globals.FindCallers = function(pos: lsp.TextDocumentPositionParams): Thenable<Sy
 	return adapter.navObject.findCallers(pos)
 }
 
-globals.Reanalyze = function(): void {
-	if (!adapter || !lspClient) { return }
-
-	adapter.reanalyze()
+globals.ChangeOwnedFile = function(uri: string, contents: string): void {
+	lspClient.openDocument({
+		languageId: "python",
+		documentUri: uri,
+		initialText: contents,
+	})
+	// TODO: close old one? wait for open before changing adapter?
+	adapter.changeOwnedFile(uri, contents)
 }
 
-globals.ChangeFileAndReanalyze = function(newFile): void {
-	adapter.changeFile(newFile)
-	adapter.reanalyze()
-}
-
-globals.OpenSampleFile = function(): Thenable<string> {
-	return promisify(fs.readFile)("samples/sample.py", { encoding: "utf8" })
+/**
+ * Analyzes the document symbols in the given uri and updates the nav object.
+ *
+ * @param uri The uri of the file to analyze.
+ * @param contents The contents of the file. Only used when it has not been opened before.
+ */
+globals.AnalyzeUri = function(uri: string, contents: string): Thenable<NavObject> {
+	if (!lspClient.isDocumentOpen(uri)) {
+		lspClient.openDocument({
+			languageId: "python",
+			documentUri: uri,
+			initialText: contents,
+		})
+	}
+	return lspClient.getDocumentSymbol(uri)
+		.then((symbols) => {
+			navObject.rebuildMaps(symbols ?? [], uri)
+			return navObject
+		})
 }
 
 // 2

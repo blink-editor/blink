@@ -1,60 +1,67 @@
 import * as lsp from "vscode-languageserver-protocol"
 import { SymbolInfo } from "./nav-object"
 
+const extractRangeOfFile = function(file, range): string {
+	const allLines = file.split("\n") // TODO: worry about other line endings
+
+	if (range.start.line === range.end.line) {
+		return allLines[range.start.line].slice(range.start.character, range.end.character)
+	}
+
+	if (range.end.character === 0) {
+		const lines = allLines.slice(range.start.line, range.end.line).concat([""])
+		lines[0] = lines[0].slice(range.start.character, undefined)
+		return lines.join("\n")
+	}
+
+	const lines = allLines.slice(range.start.line, range.end.line + 1)
+
+	lines[0] = lines[0].slice(range.start.character, undefined)
+	lines[lines.length - 1] = lines[lines.length - 1].slice(undefined, range.end.character)
+
+	return lines.join("\n")
+}
+
 export class Context{
 	// TODO: add topLevelCode & topLevelSymbols
 	// TODO: get rid of save
 	// TODO: add linerize function
-	private _name: string
-	private _filePath: string
-	private _hasChanges: boolean
+	public readonly name: string
+	public readonly uri: string
+	private _hasChanges: boolean = false
+	private _hasLineNumberChanges: boolean = false
 	private _fileString: string
 	public topLevelSymbols: { [name: string]: { symbol: SymbolInfo; definitionString: string } }
-	private _topLevelCode: string | null
+	public topLevelCode: string | null
 
-	constructor(name: string, filePath: string, fileString: string){
-		this._name = name
-		this._filePath = filePath
-		this._hasChanges = false
+	constructor(name: string, uri: string, fileString: string) {
+		this.uri = uri
+		this.name = uri // TODO
 		this._fileString = fileString
-		this._topLevelCode = null
+		this.topLevelCode = null
 		this.topLevelSymbols = {}
 	}
 
-	get filePath(){
-		return this._filePath
-	}
-	set filePath(newPath: string){
-		this._filePath = newPath
-
-		// TODO: set name to folder name and not entire path
-		this._name = newPath
-	}
-
-	get name(){
-		return this._name
-	}
-
-	get fileString(){
+	get fileString() {
 		return this._fileString
 	}
-	set fileString(newFileString: string){
-		this._hasChanges = true
+	set fileString(newFileString: string) {
+		const oldLineCount = this._fileString.split("\n").length
+
 		this._fileString = newFileString
+		this._hasChanges = true
+
+		if (this._fileString.split("\n").length !== oldLineCount) {
+			this._hasLineNumberChanges = true
+		}
 	}
 
-	get hasChanges(){
+	get hasChanges(): boolean {
 		return this._hasChanges
 	}
-	set hasChanges(hasChanges: boolean){
-		this._hasChanges = hasChanges
-	}
 
-	get topLevelCode(){
-		return this._topLevelCode
-	}
-	set topLevelCode(newTopLevelCode: string | null){
-		this._topLevelCode = newTopLevelCode
+	get hasLineNumberChanges(): boolean {
+		return this._hasLineNumberChanges
 	}
 
 	getSortedTopLevelSymbolNames() {
@@ -103,7 +110,7 @@ export class Context{
 		const topLevelSymbolsWithStrings: { [name: string]: { symbol: SymbolInfo; definitionString: string } } = topLevelSymbols
 			.map((symbol) => { return {
 				symbol: symbol,
-				definitionString: this.extractRangeOfFile(this.fileString, symbol.range)
+				definitionString: extractRangeOfFile(this.fileString, symbol.range)
 			} })
 			.reduce((prev, cur) => {
 				prev[cur.symbol.name] = cur
@@ -128,29 +135,20 @@ export class Context{
 		return [topLevelCode, topLevelSymbolsWithStrings]
 	}
 
+	/**
+	 * Called when the nav object's symbol cache is updated.
+	 *
+	 * @param navObject  The updated navObject
+	 */
+	updateWithNavObject(navObject) {
+		// recompute the strings containing the definition of each symbol
 
-	extractRangeOfFile(file, range): string {
-		const allLines = file.split("\n") // TODO: worry about other line endings
+		const [topLevelCode, topLevelSymbolsWithStrings] =
+			this.splitFileBySymbols(this.fileString, navObject.findTopLevelSymbols())
 
-		if (range.start.line === range.end.line) {
-			return allLines[range.start.line].slice(range.start.character, range.end.character)
-		}
+		this.topLevelCode = topLevelCode
+		this.topLevelSymbols = topLevelSymbolsWithStrings
 
-		if (range.end.character === 0) {
-			const lines = allLines.slice(range.start.line, range.end.line).concat([""])
-			lines[0] = lines[0].slice(range.start.character, undefined)
-			return lines.join("\n")
-		}
-
-		const lines = allLines.slice(range.start.line, range.end.line + 1)
-
-		lines[0] = lines[0].slice(range.start.character, undefined)
-		lines[lines.length - 1] = lines[lines.length - 1].slice(undefined, range.end.character)
-
-		return lines.join("\n")
+		this._hasLineNumberChanges = false
 	}
-
-
-
-
 }

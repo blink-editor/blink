@@ -26,7 +26,6 @@ export class ConsoleLogger implements rpc.Logger, rpc.Tracer {
 export interface LspClient {
 	initialize(): void
 
-	on(event: "documentSymbol", callback: (symbols: lsp.DocumentSymbol[] | lsp.SymbolInformation[], uri: string) => void): void
 	on(event: "completion", callback: (items: lsp.CompletionItem[]) => void): void
 	on(event: "completionResolved", callback: (item: lsp.CompletionItem) => void): void
 	on(event: "hover", callback: (hover: lsp.Hover) => void): void
@@ -40,7 +39,7 @@ export interface LspClient {
 
 	once(event: string, listener: (arg: any) => void): void
 
-	off(event: string, listener: (arg: any) => void): void
+	off(event: string, listener: (...arg: any) => void): void
 
 	/**
 	 * Sends a document open notification to the server
@@ -51,6 +50,11 @@ export interface LspClient {
 	 * Sends a document close notification to the server
 	 */
 	closeDocument(uri: string)
+
+	/**
+	 * Returns whether or not a document with the given URI is open.
+	 */
+	isDocumentOpen(uri: string)
 
 	/**
 	 * Sends a change to the document to the server
@@ -65,7 +69,7 @@ export interface LspClient {
 	/**
 	 * Request document symbol definitions from the server
 	 */
-	getDocumentSymbol(uri: string): void
+	getDocumentSymbol(uri: string): Thenable<lsp.DocumentSymbol[] | lsp.SymbolInformation[] | null>
 
 	/**
 	 * Request possible completions from the server
@@ -386,6 +390,10 @@ export class LspClientImpl extends events.EventEmitter implements LspClient {
 		})
 	}
 
+	public isDocumentOpen(uri: string): boolean {
+		return this.documents.hasOwnProperty(uri)
+	}
+
 	public sendChange(uri: string, change: lsp.TextDocumentContentChangeEvent) {
 		if (!this.isInitialized || !this.documents[uri]) {
 			return
@@ -421,22 +429,20 @@ export class LspClientImpl extends events.EventEmitter implements LspClient {
 		})
 	}
 
-	public getDocumentSymbol(uri: string) {
+	public getDocumentSymbol(uri: string): Thenable<lsp.DocumentSymbol[] | lsp.SymbolInformation[] | null> {
 		if (!this.isInitialized || !this.documents[uri]) {
-			return
+			return Promise.reject()
 		}
 
 		if (!(this.serverCapabilities && this.serverCapabilities.documentSymbolProvider)) {
-			return
+			return Promise.reject()
 		}
 
-		this.connection.sendRequest("textDocument/documentSymbol", {
+		return this.connection.sendRequest("textDocument/documentSymbol", {
 			textDocument: {
 				uri: uri,
 			}
-		} as lsp.DocumentSymbolParams).then((params: lsp.DocumentSymbol | lsp.DocumentSymbol[] | null) => {
-			this.emit("documentSymbol", params, uri)
-		})
+		} as lsp.DocumentSymbolParams)
 	}
 
 	public getCompletion(
