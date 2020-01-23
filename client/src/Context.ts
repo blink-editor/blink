@@ -104,7 +104,7 @@ export class Context{
 	 *
 	 * @returns [top level code string, top-level definition strings by symbol name]
 	 */
-	splitFileBySymbols(file: string, topLevelSymbols: any[]): [string, { [name: string]: { symbol: SymbolInfo; definitionString: string } }] {
+	splitFileBySymbols(file: string, topLevelSymbols: SymbolInfo[]): [string, { [name: string]: { symbol: SymbolInfo; definitionString: string } }] {
 		// TODO: ensure top level symbol ranges are non-overlapping
 
 		const topLevelSymbolsWithStrings: { [name: string]: { symbol: SymbolInfo; definitionString: string } } = topLevelSymbols
@@ -144,7 +144,7 @@ export class Context{
 		// recompute the strings containing the definition of each symbol
 
 		const [topLevelCode, topLevelSymbolsWithStrings] =
-			this.splitFileBySymbols(this.fileString, navObject.findTopLevelSymbols())
+			this.splitFileBySymbols(this.fileString, navObject.findTopLevelSymbols(this.uri))
 
 		this.topLevelCode = topLevelCode
 		this.topLevelSymbols = topLevelSymbolsWithStrings

@@ -361,7 +361,9 @@ class Editor {
 		// new callers/callees are fetched ones
 		for (let i = 0; i < 3; i++) {
 			const assignSymbols = async (symbols, panes) => {
-				let paneSet = false
+				let paneSymbolToSet: any = null
+				let paneContentToSet: string | null = null
+				let paneContextStringToSet: string | null = null
 
 				if (i < symbols.length) {
 					const paneContext = await this.retrieveContextForSymbol(symbols[i])
@@ -369,21 +371,21 @@ class Editor {
 						// TODO: find up-to-top-level symbol if this isn't a top-level symbol
 						const paneContextSymbol = paneContext.topLevelSymbols[symbols[i].name]
 						if (paneContextSymbol) {
-							panes[i].symbol = paneContextSymbol.symbol
-							panes[i].editor.setValue(paneContextSymbol.definitionString)
-							panes[i].context.textContent = `TODO,${paneContextSymbol.symbol.detail}`
-							paneSet = true
+							paneSymbolToSet = paneContextSymbol.symbol
+							paneContentToSet = paneContextSymbol.definitionString
+							paneContextStringToSet = `TODO,${paneContextSymbol.symbol.detail}`
 						} else {
+							paneContextStringToSet = `(${symbols[i].name}: not top level)`
 							console.warn("did not find top-level symbol for", symbols[i], "in", paneContext)
 						}
+					} else {
+						paneContextStringToSet = `(${symbols[i].name}: no matching context)`
 					}
 				}
 
-				if (!paneSet) {
-					panes[i].symbol = null
-					panes[i].editor.setValue("")
-					panes[i].context.textContent = "(no context)"
-				}
+				panes[i].symbol = paneSymbolToSet
+				panes[i].editor.setValue(paneContentToSet ?? "")
+				panes[i].context.textContent = paneContextStringToSet ?? "(no symbol)"
 			}
 
 			assignSymbols(callees, this.calleePanes)

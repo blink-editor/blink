@@ -164,7 +164,7 @@ export class NavObject {
 	 * @returns    An array of DocumentSymbol objects with ranges that enclose the definitions of functions being called in the given function.
 	 */
 	findCallees(parentSymbol: SymbolInfo): Thenable<lsp.SymbolInformation[]> {
-		return this.client.getUsedDocumentSymbols("file:///Users/bradleywalters/school/cs4000/blink/client/samples/sample.py") // TODO: consume via event handler like rebuildMaps
+		return this.client.getUsedDocumentSymbols(parentSymbol.uri)
 			.then((result: lsp.DocumentSymbol[] | lsp.SymbolInformation[] | null) => {
 				// Used to check that the given parameter is type documentSymbol[]
 				function isSymbolInformationArray(symbols: lsp.DocumentSymbol[] | lsp.SymbolInformation[]): symbols is lsp.SymbolInformation[] {
@@ -223,11 +223,9 @@ export class NavObject {
 		return results
 	}
 
-	findTopLevelSymbols(context: string): lsp.DocumentSymbol[] {
-		// TODO: filter to only symbols that are in the
-		// context/module/filename that was passed in
+	findTopLevelSymbols(uri: string): SymbolInfo[] {
 		return [...this.symToInfo]
-			.filter(([key, symbol]) => symbol.isTopLevel === true)
+			.filter(([key, symbol]) => symbol.isTopLevel === true && symbol.uri === uri)
 			.map(([key, symbol]) => symbol)
 	}
 }
