@@ -358,6 +358,9 @@ class Editor {
 		this.activeEditorPane.symbol = symbol
 		this.activeEditorPane.editor.setValue(contents)
 
+		// change which file we're tracking as "currently editing"
+		globals.ChangeOwnedFile(context.uri, context.fileString)
+
 		// new callers/callees are fetched ones
 		for (let i = 0; i < 3; i++) {
 			const assignSymbols = async (symbols, panes) => {
