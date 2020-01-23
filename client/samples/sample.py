@@ -1,49 +1,47 @@
-import math
-
 from __future__ import print_function
+import math
+import nougat
 
 def firstFunction():
-	print("first")
+    print("first")
 
 
 def secondFunction():
-	print("second")
+    print("second")
 
 
 def thirdFunction():
-	print("third")
+    print(nougat.nougat())
 
 
 def logger():
-	from math import log
-	return math.log(2)
+    from math import log
+    return math.log(2)
 
 
 def rooter():
-	return math.sqrt(49)
+    return math.sqrt(49)
 
 
 class Dog():
-	def __init__(self): pass
+    def __init__(self): pass
 
-	def foo(self):
-		class Helper():
-			def __init__(self):
-				pass
-			def bar(self):
-				return 5
-		return Helper().bar()
+    def foo(self):
+        class Helper():
+            def __init__(self):
+                pass
+            def bar(self):
+                return 5
+        return Helper().bar()
 
 
 def main():
-	a = Dog()
-	a.foo()
-	firstFunction()
-	secondFunction()
-	thirdFunction()
+    a = Dog()
+    a.foo()
+    thirdFunction()
     print("this is starter")
 
 
 def test():
-	main()
-test()
+    main()
+    test()
