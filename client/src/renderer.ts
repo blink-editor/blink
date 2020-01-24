@@ -4,7 +4,7 @@
 import * as fs from "fs"
 import * as path from "path"
 import { promisify } from "util"
-import { URL as NodeURL } from "url"
+import { URL as NodeURL, pathToFileURL } from "url"
 
 import * as electron from "electron"
 import CodeMirror from "codemirror"
@@ -416,7 +416,8 @@ class Editor {
 		this.calleePanes.forEach((p) => p.symbol = null)
 		this.callerPanes.forEach((p) => p.symbol = null)
 
-		const context = new Context("primary", `file://${path.resolve(fileDir)}`, text) // TODO: name
+		const uri = pathToFileURL(path.resolve(fileDir)).toString()
+		const context = new Context("primary", uri, text) // TODO: name
 		this.currentProject = new Project("Untitled", fileDir)
 
 		// change file and kick off reanalysis to find main initially
