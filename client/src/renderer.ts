@@ -44,6 +44,8 @@ class Editor {
 
 	pendingSwap: SymbolInfo | null = null
 
+	projectStructureToggled: boolean = false
+
 	currentProject: Project = new Project("Untitled", "") // TODO
 
 	constructor() {
@@ -522,3 +524,30 @@ class Editor {
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 const editor = new Editor()
+
+
+
+function toggleProjectStructure() {
+	editor.projectStructureToggled = !editor.projectStructureToggled
+	if (editor.projectStructureToggled) {
+		document.querySelector("#project-structure-bar")!.classList.add('col-3')
+		document.querySelector("#project-structure-bar")!.classList.add('sidebar-true')
+		document.querySelector("#project-structure-bar")!.classList.remove('sidebar-false')
+		document.querySelector("#panes")!.classList.remove('col-11')
+		document.querySelector("#panes")!.classList.add('col-8')
+	} else {
+		document.querySelector("#project-structure-bar")!.classList.remove('col-3')
+		document.querySelector("#project-structure-bar")!.classList.add('sidebar-false')
+		document.querySelector("#project-structure-bar")!.classList.remove('sidebar-true')
+		document.querySelector("#panes")!.classList.add('col-11')
+		document.querySelector("#panes")!.classList.remove('col-8')
+	}
+}
+
+// document.getElementById("MyElement").classList.add('MyClass');
+
+// document.getElementById("MyElement").classList.remove('MyClass');
+
+// if ( document.getElementById("MyElement").classList.contains('MyClass') )
+
+// document.getElementById("MyElement").classList.toggle('MyClass');

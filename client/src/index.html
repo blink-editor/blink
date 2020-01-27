@@ -49,6 +49,14 @@
 			border: 0px;
 		}
 
+		.sidebar-true {
+			display: block;
+		}
+
+		.sidebar-false {
+			display: none;
+		}
+
 		/* PANES */
 		/* h-pane-context and h-pane-editor go together. */
 		/* the context gets 1.2rem, the editor gets the rest. */
@@ -134,18 +142,18 @@
 					</li>
 
 					<li class="nav-item active">
-						<button class="nav-link" onclick="">
+						<button class="nav-link" onclick="toggleProjectStructure()">
 							<i class="fa fas fa-fw fa-bars"></i>
 						</button>
 					</li>
 				</ul>
 			</nav>
 
-			<div id="project-structure-bar" class="container col-3 h-100">
+			<div id="project-structure-bar" class="sidebar-false">
 				
 			</div>
 
-			<div class="container col-8 h-100">
+			<div id="panes" class="container col-11 h-100">
 				<div class="row no-gutters h-25">
 					<div class="col-4 container h-100">
 						<div class="row no-gutters h-pane-context">
