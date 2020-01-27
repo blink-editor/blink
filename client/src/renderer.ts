@@ -1,72 +1,63 @@
 // This file is required by the index.html file and will
 // be executed in the renderer process for that window.
-// No Node.js APIs are available in this process because
-// `nodeIntegration` is turned off. Use `preload.js` to
-// selectively enable features needed in the rendering
-// process.
+
+import * as fs from "fs"
+import * as path from "path"
+import { promisify } from "util"
+import { URL as NodeURL, pathToFileURL } from "url"
+
+import * as electron from "electron"
+import CodeMirror from "codemirror"
+import * as lsp from "vscode-languageserver-protocol"
 
 import { Context } from "./Context"
 import { Project } from "./Project"
-import * as lsp from "vscode-languageserver-protocol"
+import { CodeMirrorAdapter } from "./codemirror-adapter"
+import { NavObject, SymbolInfo } from "./nav-object"
+import * as client from "./langserver-client"
 
-const globals: Globals = window["globals"]
-
-const extractRangeOfFile = (file, range): string => {
-	const allLines = file.split("\n") // TODO: worry about other line endings
-
-	if (range.start.line === range.end.line) {
-		return allLines[range.start.line].slice(range.start.character, range.end.character)
-	}
-
-	if (range.end.character === 0) {
-		const lines = allLines.slice(range.start.line, range.end.line).concat([""])
-		lines[0] = lines[0].slice(range.start.character, undefined)
-		return lines.join("\n")
-	}
-
-	const lines = allLines.slice(range.start.line, range.end.line + 1)
-
-	lines[0] = lines[0].slice(range.start.character, undefined)
-	lines[lines.length - 1] = lines[lines.length - 1].slice(undefined, range.end.character)
-
-	return lines.join("\n")
-}
-
-// TODO: use better polyfill
-;(window as any).setImmediate = function(callback: (...args: any[]) => void) {
-	window.setTimeout(callback, 0)
-}
+// css imported in html for now
+// import "./codemirror-lsp.css"
+import "codemirror/mode/python/python"
+// import "codemirror/lib/codemirror.css"
+// import "codemirror/theme/monokai.css"
+import "codemirror/addon/hint/show-hint"
+// import "codemirror/addon/hint/show-hint.css"
 
 interface PaneObject {
 	editor: CodeMirror.Editor
 	context: HTMLElement
-	symbol: any | null
+	symbol: SymbolInfo | null
 }
 
 class Editor {
+	// program state
+	lspClient: client.LspClient
+	adapter: CodeMirrorAdapter
+	navObject: NavObject
+
+	// editor/project state
 	calleePanes: [PaneObject, PaneObject, PaneObject]
 	callerPanes: [PaneObject, PaneObject, PaneObject]
 
 	activeEditorPane: PaneObject
 
-	fresh = false
-	pendingSwap: any | null = null
+	pendingSwap: SymbolInfo | null = null
 
-  defaultContext: Context = new Context("", globals.app.getAppPath(), "")
-  currentProject: Project = new Project("Untitled", globals.app.getAppPath(), [this.defaultContext])
+	currentProject: Project = new Project("Untitled", "") // TODO
 
 	constructor() {
 		// creates a CodeMirror editor configured to look like a preview pane
 		const createPane = function(id, wrapping): PaneObject {
-			const editor = globals.CodeMirror(document.getElementById(id), {
-					mode: "python",
-					lineNumbers: true,
-					theme: "monokai",
-					readOnly: "nocursor",
-					lineWrapping: wrapping
-				})
+			const editor = CodeMirror(document.getElementById(id)!, {
+				mode: "python",
+				lineNumbers: true,
+				theme: "monokai",
+				readOnly: "nocursor",
+				lineWrapping: wrapping
+			})
 
-			editor.setSize("100%", "192.33px");
+			editor.setSize("100%", "192.33px")
 
 			return {
 				editor: editor,
@@ -106,7 +97,7 @@ class Editor {
 		})
 
 		// create active editor pane
-		const activeEditor = globals.CodeMirror(document.getElementById("main-pane"), {
+		const activeEditor = CodeMirror(document.getElementById("main-pane")!, {
 			mode: "python",
 			lineNumbers: true,
 			theme: "monokai",
@@ -129,45 +120,47 @@ class Editor {
 			symbol: null,
 		}
 
-		// begin the connection to the server
-		globals.TryStartingServer()
-
-		if (globals.serverConnected) {
+		// nag the main process to start the server for us if
+		// the server isn't currently up for some reason.
+		electron.ipcRenderer.once("server-connected", () => {
 			this.connectToServer()
-		} else {
-			globals.events.once("server-connected", this.connectToServer.bind(this))
-		}
+		})
+		electron.ipcRenderer.send("try-starting-server")
 	}
 
 	/**
 	 * Attempts to connect the editor to the language server.
 	 */
 	connectToServer() {
-		globals.ConfigureEditorAdapter({
-			editor: this.activeEditorPane.editor,
-			initialFileText: this.currentProject.currentContext.fileString,
-			onChange: this.onFileChanged.bind(this),
-			getLineOffset: () => this.getFirstLineOfActiveSymbolWithinFile(),
-			onReanalyze: this.onNavObjectUpdated.bind(this),
-			onShouldSwap: (sym) => {
-				this.swapToSymbol(sym)
-			}
-		})
+		const logger = new client.ConsoleLogger()
 
-		if (globals.clientInitialized) {
-			this.openDemoFile()
-		} else {
-			globals.events.once("client-initialized", () => {
+		client.createTcpRpcConnection("localhost", 2087, (connection) => {
+			this.lspClient = new client.LspClientImpl(connection, undefined, logger)
+			this.lspClient.initialize()
+
+			this.navObject = new NavObject(this.lspClient)
+
+			// The adapter is what allows the editor to provide UI elements
+			this.adapter = new CodeMirrorAdapter(this.lspClient, this.navObject, {
+				// UI-related options go here, allowing you to control the automatic features of the LSP, i.e.
+				suggestOnTriggerCharacters: false
+			}, this.activeEditorPane.editor)
+
+			this.adapter.onChange = this.onFileChanged.bind(this)
+			this.adapter.onShouldSwap = this.swapToSymbol.bind(this)
+			this.adapter.getLineOffset = this.getFirstLineOfActiveSymbolWithinFile.bind(this)
+
+			this.lspClient.once("initialized", () => {
 				this.openDemoFile()
 			})
-		}
+		}, logger)
 	}
 
 	openDemoFile() {
-		globals.OpenSampleFile()
+		promisify(fs.readFile)("samples/sample.py", { encoding: "utf8" })
 			.then((sampleFileText) => {
 				console.assert(sampleFileText, "must load demo file text")
-				this.setFile(sampleFileText ?? "")
+				this.setFile(sampleFileText ?? "", "samples/sample.py")
 			})
 	}
 
@@ -178,19 +171,16 @@ class Editor {
 	 * @param editorText  The changed contents of the active editor pane.
 	 * @returns fileText  The text of the entire file.
 	 */
-	onFileChanged(text): string { // TODO: change file
+	onFileChanged(text): string {
+		// TODO: when will these be null?
+		const activeSymbol = this.activeEditorPane.symbol!
+		const context = this.currentProject.contextForSymbol(activeSymbol)!
+
 		// update our knowledge of the active symbol
-		this.currentProject.currentContext.topLevelSymbols[this.activeEditorPane.symbol.name].definitionString = text
+		context.topLevelSymbols[activeSymbol.name].definitionString = text
 
-		const oldFile = this.currentProject.currentContext.fileString
-		const oldLineCount = oldFile.split("\n").length
-
-		const newFile = this.currentProject.currentContext.getLinearizedCode()
-		this.currentProject.currentContext.fileString = newFile
-
-		if (newFile.split("\n").length !== oldLineCount) {
-			this.fresh = false
-		}
+		const newFile = context.getLinearizedCode()
+		context.fileString = newFile
 
 		return newFile
 	}
@@ -207,16 +197,24 @@ class Editor {
 			return 0
 		}
 
+		const context = this.currentProject.contextForSymbol(this.activeEditorPane.symbol)
+
+		if (!context) {
+			// TODO: when will this happen?
+			console.warn("no context found for active symbol")
+			return 0
+		}
+
 		let lineno = 0
 		let found = false
 
-		for (const symbolName of this.currentProject.currentContext.getSortedTopLevelSymbolNames()) {
+		for (const symbolName of context.getSortedTopLevelSymbolNames()) {
 			if (symbolName === this.activeEditorPane.symbol.name) {
 				found = true
 				break
 			}
 
-			const symbol = this.currentProject.currentContext.topLevelSymbols[symbolName]
+			const symbol = context.topLevelSymbols[symbolName]
 			const lineCount = symbol.definitionString.split("\n").length
 			lineno += lineCount - 1
 			lineno += 2 // add padding added by `linearizeContextCode`
@@ -227,34 +225,35 @@ class Editor {
 		return lineno
 	}
 
-	/**
-	 * Called by the CodeMirror adapter when the nav object's symbol cache
-	 * is updated. Also known as `onReanalyze`.
-	 *
-	 * @param navObject  The updated navObject
-	 */
-	onNavObjectUpdated(navObject) {
-		//// recompute the strings containing the definition of each symbol
+	swapToCallee(index) {
+		if (index >= this.calleePanes.length) {
+			return
+		}
 
-		const [topLevelCode, topLevelSymbolsWithStrings] =
-			this.currentProject.currentContext.splitFileBySymbols(this.currentProject.currentContext.fileString, navObject.findTopLevelSymbols())
+		this.swapToSymbol(this.calleePanes[index].symbol!)
+	}
 
-		// TODO: store this by context/file/module
-		this.currentProject.currentContext.topLevelCode = topLevelCode
-		this.currentProject.currentContext.topLevelSymbols = topLevelSymbolsWithStrings
+	swapToCaller(index) {
+		if (index >= this.callerPanes.length) {
+			return
+		}
 
+		this.swapToSymbol(this.callerPanes[index].symbol!)
+	}
+
+	navigateToUpdatedSymbol(navObject: NavObject) {
 		//// navigate to the new version of the symbol the user was previously editing
 		//// or main if we can't find it (or they had no previous symbol)
 
-		const symbolToKey = (symbol) => { return {
+		const symbolToKey = (symbol: SymbolInfo) => { return {
 			name: symbol.name,
 			kind: symbol.kind,
-			module: symbol.rayBensModule
+			module: symbol.module
 		} }
 
-		let newActiveSymbol
+		let newActiveSymbol: SymbolInfo | null
 
-		const toRestore = this.pendingSwap ?? this.activeEditorPane.symbol
+		const toRestore: SymbolInfo | null = this.pendingSwap ?? this.activeEditorPane.symbol
 
 		if (toRestore) {
 			// if we have an active symbol, try to look up its new version
@@ -278,7 +277,6 @@ class Editor {
 			newActiveSymbol = mainFunctions ? mainFunctions[0] : null
 		}
 
-		this.fresh = true
 		this.pendingSwap = null
 
 		if (newActiveSymbol) {
@@ -291,37 +289,67 @@ class Editor {
 		}
 	}
 
-	swapToCallee(index) {
-		if (index >= this.calleePanes.length) {
-			return
-		}
+	async retrieveContextForSymbol(symbol: SymbolInfo | lsp.SymbolInformation): Promise<Context | undefined> {
+		// obtain the definition string of the new symbol
+		const project = this.currentProject
+		let context = project.contextForSymbol(symbol)
 
-		this.swapToSymbol(this.calleePanes[index].symbol)
-	}
-
-	swapToCaller(index) {
-		if (index >= this.callerPanes.length) {
-			return
-		}
-
-		this.swapToSymbol(this.callerPanes[index].symbol)
-	}
-
-	swapToSymbol(symbol) {
 		// if we are not "fresh" - meaning the user has inserted newlines
 		// then the line numbers for our caller and callee panes may be wrong
 		// so we need to call Reanalyze() to get updated symbols, then swap.
-		if (!this.fresh) {
-			this.pendingSwap = symbol
-			globals.Reanalyze()
-			return
+		if (context && context.hasLineNumberChanges) {
+			try {
+				const navObject = await this.AnalyzeUri(context.uri, context.fileString)
+				context.updateWithNavObject(navObject)
+				// TODO: this.pendingSwap
+				// TODO: this.navigateToUpdatedSymbol
+			} catch {
+				console.warn("could not build update for symbol", symbol)
+				return undefined
+			}
 		}
 
-		// obtain the definition string of the new symbol
-		const contents = this.currentProject.currentContext.topLevelSymbols[symbol.name].definitionString
+		// if the context wasn't found - meaning we haven't loaded this file
+		// then go ahead and load up the file
+		if (!context) {
+			function isLspSymbolInformation(x: SymbolInfo | lsp.SymbolInformation): x is lsp.SymbolInformation {
+				return (x as lsp.SymbolInformation).location !== undefined
+			}
+
+			const uri = isLspSymbolInformation(symbol) ? symbol.location.uri : symbol.uri
+			// TODO: Create context module name automatically from filename?
+			const symmodule = isLspSymbolInformation(symbol) ? "" : symbol.module
+
+			const url = new NodeURL(uri)
+			console.assert(url.protocol == "file:")
+
+			try {
+				const contents = await promisify(fs.readFile)(url, { encoding: "utf8" })
+				const newContext = new Context(symmodule, uri, contents)
+
+				const navObject = await this.AnalyzeUri(newContext.uri, contents)
+				newContext.updateWithNavObject(navObject)
+				project.contexts.push(newContext)
+				context = newContext
+				// TODO: this.navigateToUpdatedSymbol
+			} catch {
+				console.warn("could not build context for symbol", symbol)
+				return undefined
+			}
+		}
+
+		return context
+	}
+
+	async swapToSymbol(rawSymbol: SymbolInfo) {
+		const context = (await this.retrieveContextForSymbol(rawSymbol))!
+		const contextSymbol = context.topLevelSymbols[rawSymbol.name]
+		const symbol = contextSymbol.symbol
+
+		const contents = contextSymbol.definitionString
 
 		// fetch new callees
-		const callees = globals.FindCallees(symbol)
+		const calleesAsync = this.FindCallees(symbol)
 
 		// TODO: make this language-agnostic
 		// determine where the cursor should be before the name of the symbol
@@ -332,116 +360,161 @@ class Editor {
 			: 4 // def foo
 
 		// fetch new callers
-		const callers = globals.FindCallers({
+		const callersAsync = this.FindCallers({
 			textDocument: { uri: symbol.uri },
 			position: { line: symbol.range.start.line, character: nameStartPos },
 		})
 
 		// don't update any panes / props until done
-		Promise.all([callees, callers])
-			.then(([callees, callers]) => {
-				// populate panes
-				this.activeEditorPane.symbol = symbol
-				this.activeEditorPane.editor.setValue(contents)
+		const [callees, callers] = await Promise.all([calleesAsync, callersAsync])
 
-				// new callers/callees are fetched ones
-				for (let i = 0; i < 3; i++) {
-					const calleePane = this.calleePanes[i]
-					const callerPane = this.callerPanes[i]
+		// populate panes
+		this.activeEditorPane.symbol = symbol
+		this.activeEditorPane.editor.setValue(contents)
 
-					if (i < callees.length) {
-						const calleeSym = callees[i]
-						calleePane.symbol = calleeSym
-						calleePane.editor.setValue(extractRangeOfFile(this.currentProject.currentContext.fileString, calleeSym.range))
-						calleePane.context.textContent = calleeSym.detail
+		// change which file we're tracking as "currently editing"
+		this.ChangeOwnedFile(context.uri, context.fileString)
+
+		// new callers/callees are fetched ones
+		for (let i = 0; i < 3; i++) {
+			const assignSymbols = async (symbols, panes) => {
+				let paneSymbolToSet: any = null
+				let paneContentToSet: string | null = null
+				let paneContextStringToSet: string | null = null
+
+				if (i < symbols.length) {
+					const paneContext = await this.retrieveContextForSymbol(symbols[i])
+					if (paneContext) {
+						// TODO: find up-to-top-level symbol if this isn't a top-level symbol
+						const paneContextSymbol = paneContext.topLevelSymbols[symbols[i].name]
+						if (paneContextSymbol) {
+							paneSymbolToSet = paneContextSymbol.symbol
+							paneContentToSet = paneContextSymbol.definitionString
+							paneContextStringToSet = `TODO,${paneContextSymbol.symbol.detail}`
+						} else {
+							paneContextStringToSet = `(${symbols[i].name}: not top level)`
+							console.warn("did not find top-level symbol for", symbols[i], "in", paneContext)
+						}
 					} else {
-						calleePane.symbol = null
-						calleePane.editor.setValue("")
-						calleePane.context.textContent = "(no context)"
-					}
-
-					if (i < callers.length) {
-						const callerSym = callers[i]
-						callerPane.symbol = callerSym
-						callerPane.editor.setValue(extractRangeOfFile(this.currentProject.currentContext.fileString, callerSym.range))
-						callerPane.context.textContent = callerSym.detail
-					} else {
-						callerPane.symbol = null
-						callerPane.editor.setValue("")
-						callerPane.context.textContent = "(no context)"
+						paneContextStringToSet = `(${symbols[i].name}: no matching context)`
 					}
 				}
-			})
+
+				panes[i].symbol = paneSymbolToSet
+				panes[i].editor.setValue(paneContentToSet ?? "")
+				panes[i].context.textContent = paneContextStringToSet ?? "(no symbol)"
+			}
+
+			assignSymbols(callees, this.calleePanes)
+			assignSymbols(callers, this.callerPanes)
+		}
 	}
 
-	setFile(text: string) {
-		this.fresh = false
+	async setFile(text: string, fileDir: string) {
 		this.pendingSwap = null
 		this.activeEditorPane.symbol = null
 		this.calleePanes.forEach((p) => p.symbol = null)
 		this.callerPanes.forEach((p) => p.symbol = null)
 
-	  this.defaultContext = new Context("Untitled", globals.app.getAppPath(), text)
-	  this.currentProject = new Project("Untitled", globals.app.getAppPath(), [this.defaultContext])
+		const uri = pathToFileURL(path.resolve(fileDir)).toString()
+		const context = new Context("primary", uri, text) // TODO: name
+		this.currentProject = new Project("Untitled", fileDir)
 
 		// change file and kick off reanalysis to find main initially
-		globals.ChangeFileAndReanalyze(this.currentProject.currentContext.fileString)
+		this.ChangeOwnedFile(context.uri, context.fileString)
+
+		const navObject = await this.AnalyzeUri(context.uri, text)
+		this.navigateToUpdatedSymbol(navObject)
 	}
-}
 
-const editor = new Editor()
+	// MARK: LSP/NavObject Interface
 
-// 1
-function openFile() {
-	;(window as any).openFileDialogForEditor()
-		.then((text: string | undefined) => {
-			// 3
-			if (!text) {
-				console.error("Error: No file selected")
-				return
-			}
+	FindCallees(symbol: SymbolInfo): Thenable<lsp.SymbolInformation[]> {
+		return this.adapter.navObject.findCallees(symbol)
+	}
 
-			editor.setFile(text)
+	FindCallers(pos: lsp.TextDocumentPositionParams): Thenable<SymbolInfo[]> {
+		return this.adapter.navObject.findCallers(pos)
+	}
+
+	ChangeOwnedFile = function(uri: string, contents: string): void {
+		this.lspClient.openDocument({
+			languageId: "python",
+			documentUri: uri,
+			initialText: contents,
 		})
-}
+		// TODO: close old one? wait for open before changing adapter?
+		this.adapter.changeOwnedFile(uri, contents)
+	}
 
-function saveFile() {
-	if(editor.currentProject.currentContext.hasChanges){
-
-		// check if alread been saved
-		if(editor.currentProject.currentContext.name == '' || editor.currentProject.currentContext.name == null){
-			;(window as any).openSaveDialogForEditor(editor.currentProject.currentContext.fileString)
-			.then((result) => {
-				if (result) {
-					editor.currentProject.currentContext.hasChanges = false
-					editor.currentProject.currentContext.filePath = result
-				}
+	/**
+	 * Analyzes the document symbols in the given uri and updates the nav object.
+	 *
+	 * @param uri The uri of the file to analyze.
+	 * @param contents The contents of the file. Only used when it has not been opened before.
+	 */
+	AnalyzeUri(uri: string, contents: string): Thenable<NavObject> {
+		if (!this.lspClient.isDocumentOpen(uri)) {
+			this.lspClient.openDocument({
+				languageId: "python",
+				documentUri: uri,
+				initialText: contents,
 			})
-		}else{
-			;(window as any).saveWithoutDialog(editor.currentProject.currentContext.fileString, editor.currentProject.currentContext.filePath)
 		}
+		return this.lspClient.getDocumentSymbol(uri)
+			.then((symbols) => {
+				this.navObject.rebuildMaps(symbols ?? [], uri)
+				return this.navObject
+			})
+	}
 
+	// MARK: index.html Interface
+
+	openFile() {
+		const dialog = electron.remote.dialog
+
+		return dialog.showOpenDialog({
+			properties : ["openFile"]
+		})
+			.then((result) => {
+				if (result.filePaths.length < 1) {
+					return Promise.reject()
+				}
+				const dirPromise = Promise.resolve(result.filePaths[0])
+				const fileTextPromise = promisify(fs.readFile)(result.filePaths[0], { encoding: "utf8" })
+				return Promise.all([dirPromise, fileTextPromise])
+			})
+			.then(([filePath, contents]) => {
+				this.setFile(contents, filePath)
+			})
+	}
+
+	/**
+	 * loop through all contexts and save them
+	 */
+	saveFile() {
+		this.currentProject.contexts.forEach((context) => {
+			if (!context.hasChanges) { return }
+
+			const hasPath = context.uri !== null
+
+			if (hasPath) {
+				promisify(fs.writeFile)(new NodeURL(context.uri), context.fileString, { encoding: "utf8" })
+			} else {
+				const dialog = electron.remote.dialog
+
+				return dialog.showSaveDialog({})
+					.then((result) => {
+						if (!result.filePath) {
+							return Promise.reject()
+						}
+
+						return promisify(fs.writeFile)(result.filePath, context.fileString, { encoding: "utf8" })
+					})
+			}
+		})
 	}
 }
 
-function formatContext(sizeInEms, path) {
-	// takes a path and formats it for a given size in pixels
-	sizeInEms = Math.floor(sizeInEms)
-	let filename = path.replace(/^.*[\\\/]/, '')
-	// debugger
-	if (sizeInEms >= path.length) {
-		// debugger
-		return path;
-	} else if ((sizeInEms - 4) >= filename.length) {
-		// debugger
-		return (path.slice(0,(sizeInEms - 0 - filename.length))
-			+ "..."
-			+ filename);
-	} else {
-		// debugger
-		return filename.slice(filename.length - sizeInEms);
-	}
-
-	return "TBAc"
-}
-
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+const editor = new Editor()
