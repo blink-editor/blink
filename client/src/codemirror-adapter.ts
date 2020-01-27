@@ -190,7 +190,7 @@ export class CodeMirrorAdapter extends IEditorAdapter<CodeMirror.Editor> {
 
 	// TODO: refactor
 	private document: AdapterDocument | null
-	public onChange: (text: string) => string
+	public onChange: (text: string) => void
 	public getLineOffset: () => number
 	public onGoToLocation: (loc: lsp.Location) => void
 
@@ -202,7 +202,8 @@ export class CodeMirrorAdapter extends IEditorAdapter<CodeMirror.Editor> {
 		this.navObject = navObject
 
 		this.debouncedGetHover = debounce((position: CodeMirror.Position) => {
-			this.connection.getHoverTooltip(this.document!.uri, this._docPositionToLsp(position))
+			if (!this.document) { return }
+			this.connection.getHoverTooltip(this.document.uri, this._docPositionToLsp(position))
 		}, this.options.quickSuggestionsDelay)
 
 		this._addListeners()
@@ -246,12 +247,8 @@ export class CodeMirrorAdapter extends IEditorAdapter<CodeMirror.Editor> {
 		// call the onChange method to get the whole file
 		const editorCode = this.editor.getValue()
 		if (change.origin !== "setValue") {
-			const lspCode = this.onChange(editorCode)
-			// send the change to the server so it's up to date
-			this.connection.sendChange(this.document!.uri, { text: lspCode })
+			this.onChange(editorCode)
 		}
-
-
 
 		const editorLocation = this.editor.getDoc().getCursor("end")
 		const lspLocation: lsp.Position = this._docPositionToLsp(editorLocation)
@@ -290,9 +287,8 @@ export class CodeMirrorAdapter extends IEditorAdapter<CodeMirror.Editor> {
 		}
 	}
 
-	public changeOwnedFile(uri: string, contents: string) {
-		this.document = { uri: uri }
-		this.connection.sendChange(uri, { text: contents })
+	public changeOwnedFile(uri: string | null) {
+		this.document = (uri) ? { uri: uri } : null
 		this._removeSignatureWidget()
 	}
 

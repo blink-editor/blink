@@ -12,7 +12,7 @@ import * as electron from "electron"
 import CodeMirror from "codemirror"
 import * as lsp from "vscode-languageserver-protocol"
 
-import { Context } from "./Context"
+import { Context, DisplaySymbolTree } from "./Context"
 import { Project } from "./Project"
 import { CodeMirrorAdapter } from "./codemirror-adapter"
 import { NavObject, SymbolInfo } from "./nav-object"
@@ -34,15 +34,6 @@ interface PaneObject {
 	pinImg: Element | null
 }
 
-interface TreeItem {
-	// jqtree
-	name: string
-	id: any
-	children?: TreeItem[]
-	// our custom stuff
-	rayBensSymbol?: SymbolInfo
-}
-
 class Editor {
 	// program state
 	lspClient: client.LspClient
@@ -62,8 +53,6 @@ class Editor {
 	callersOfActive: SymbolInfo[] = []
 	calleeIndex = 0
 	callerIndex = 0
-
-	pendingSwap: SymbolInfo | null = null
 
 	projectStructureToggled: boolean = false
 
@@ -220,7 +209,7 @@ class Editor {
 				suggestOnTriggerCharacters: false
 			}, this.activeEditorPane.editor)
 
-			this.adapter.onChange = this.onFileChanged.bind(this)
+			this.adapter.onChange = this.onActiveEditorChanged.bind(this)
 			this.adapter.onGoToLocation = this.goToLocation.bind(this)
 			this.adapter.getLineOffset = this.getFirstLineOfActiveSymbolWithinFile.bind(this)
 
@@ -243,25 +232,26 @@ class Editor {
 	 * the active editor pane have changed.
 	 *
 	 * @param editorText  The changed contents of the active editor pane.
-	 * @returns fileText  The text of the entire file.
 	 */
-	onFileChanged(text): string {
-		// TODO: when will these be null?
-		const activeSymbol = this.activeEditorPane.symbol!
+	onActiveEditorChanged(text) {
+		const activeSymbol = this.activeEditorPane.symbol
+		if (!activeSymbol) { return }
+
 		const context = this.currentProject.contextForSymbol(activeSymbol)!
 
 		// update our knowledge of the active symbol
-		context.topLevelSymbols[activeSymbol.name].definitionString = text
+		context.updateSymbolDefinition(activeSymbol, text)
 
-		const newFile = context.getLinearizedCode()
+		// send the change to the server so it's up to date
+		const lspCode = context.getLinearizedCode()
+		this.lspClient.sendChange(activeSymbol.uri, { text: lspCode })
 
-		context.fileString = newFile
+		// show save indicator
+		;(document.querySelector("#save-button-indicator-group")! as HTMLDivElement)
+			.classList.add("save-button-with-indicator")
 
-		if(context.hasChanges){
-			(document.querySelector("#save-button-indicator-group")! as HTMLDivElement).classList.add("save-button-with-indicator");
-		}
-
-		return newFile
+		// we aren't performing reanalysis here because their code
+		// may not be complete. wait until they save or swap panes
 	}
 
 	/**
@@ -276,38 +266,16 @@ class Editor {
 			return 0
 		}
 
-		const context = this.currentProject.contextForSymbol(this.activeEditorPane.symbol)
+		const context = this.currentProject.contextForSymbol(this.activeEditorPane.symbol)!
 
-		if (!context) {
-			// TODO: when will this happen?
-			console.warn("no context found for active symbol")
-			return 0
-		}
-
-		let lineno = 0
-		let found = false
-
-		for (const symbolName of context.getSortedTopLevelSymbolNames()) {
-			if (symbolName === this.activeEditorPane.symbol.name) {
-				found = true
-				break
-			}
-
-			const symbol = context.topLevelSymbols[symbolName]
-			const lineCount = symbol.definitionString.split("\n").length
-			lineno += lineCount - 1
-			lineno += 2 // add padding added by `linearizeContextCode`
-		}
-
-		console.assert(found)
-
-		return lineno
+		return context.getFirstLineOfSymbol(this.activeEditorPane.symbol)
 	}
 
 	async goToLocation(location: lsp.Location) {
-		const context = await this.retrieveContextForUri(location.uri, "Not yet loaded") // TODO: name
+		const context = await this.retrieveContextForUri(location.uri, null)
 		if (!context) {
 			console.warn("could not retrieve context for location", location)
+			return
 		}
 		// TODO: ask context for symbol instead
 		const locatedSymbol = this.navObject.bestSymbolForLocation(location)
@@ -415,57 +383,7 @@ class Editor {
 		})
 	}
 
-	navigateToUpdatedSymbol(navObject: NavObject) {
-		//// navigate to the new version of the symbol the user was previously editing
-		//// or main if we can't find it (or they had no previous symbol)
-
-		const symbolToKey = (symbol: SymbolInfo) => { return {
-			name: symbol.name,
-			kind: symbol.kind,
-			module: symbol.module
-		} }
-
-		let newActiveSymbol: SymbolInfo | null
-
-		const toRestore: SymbolInfo | null = this.pendingSwap ?? this.activeEditorPane.symbol
-
-		if (toRestore) {
-			// if we have an active symbol, try to look up its new version
-			const activeSymbolKey = symbolToKey(toRestore)
-			const activeSymbol = navObject.findCachedSymbol(activeSymbolKey)
-
-			if (activeSymbol) {
-				// if we found the updated version, good
-				newActiveSymbol = activeSymbol
-			} else {
-				const keystr = JSON.stringify(activeSymbolKey)
-				console.log(`did not find active symbol with key ${keystr}, trying main`)
-
-				// otherwise, try to look up and go back to `main`
-				const mainFunctions = navObject.findMain()
-				newActiveSymbol = mainFunctions ? mainFunctions[0] : null
-			}
-		} else {
-			// otherwise, start by looking up main
-			const mainFunctions = navObject.findMain()
-			newActiveSymbol = mainFunctions ? mainFunctions[0] : null
-		}
-
-		this.pendingSwap = null
-
-		if (newActiveSymbol) {
-			// we got a symbol, be it the active one or main
-			console.log("reanalyzed and obtained new active symbol", newActiveSymbol)
-
-			const shouldUpdateStack = this.navStack.length === 0
-			this.swapToSymbol(newActiveSymbol, shouldUpdateStack)
-		} else {
-			// we did not find the active symbol or main
-			console.error("no main symbol detected")
-		}
-	}
-
-	async retrieveContextForUri(uri: string, moduleName: string): Promise<Context | undefined> {
+	async retrieveContextForUri(uri: string, moduleName: string | null): Promise<Context | undefined> {
 		// obtain the definition string of the new symbol
 		const project = this.currentProject
 		let context = project.contextForUri(uri)
@@ -475,10 +393,7 @@ class Editor {
 		// so we need to call Reanalyze() to get updated symbols, then swap.
 		if (context && context.hasLineNumberChanges) {
 			try {
-				const navObject = await this.AnalyzeUri(context.uri, context.fileString)
-				context.updateWithNavObject(navObject)
-				// TODO: this.pendingSwap
-				// TODO: this.navigateToUpdatedSymbol
+				await this.ReanalyzeContext(context)
 			} catch {
 				console.warn("could not build update for context", context)
 				return undefined
@@ -493,13 +408,10 @@ class Editor {
 
 			try {
 				const contents = await promisify(fs.readFile)(url, { encoding: "utf8" })
-				const newContext = new Context(moduleName, uri, contents)
 
-				const navObject = await this.AnalyzeUri(newContext.uri, contents)
-				newContext.updateWithNavObject(navObject)
+				const newContext = await this.AnalyzeForNewContext(uri, contents, moduleName)
 				project.contexts.push(newContext)
 				context = newContext
-				// TODO: this.navigateToUpdatedSymbol
 			} catch {
 				console.warn("could not build context for uri", uri)
 				return undefined
@@ -522,7 +434,7 @@ class Editor {
 
 	async swapToSymbol(rawSymbol: SymbolInfo, updateStack: boolean = true) {
 		const context = (await this.retrieveContextForSymbol(rawSymbol))!
-		const contextSymbol = context.topLevelSymbols[rawSymbol.name]
+		const contextSymbol = context.getTopLevelSymbol(rawSymbol.name)!
 		const symbol = contextSymbol.symbol
 		const contents = contextSymbol.definitionString
 
@@ -550,7 +462,8 @@ class Editor {
 		this.activeEditorPane.context.textContent = context.name
 
 		// change which file we're tracking as "currently editing"
-		this.ChangeOwnedFile(context.uri, context.fileString)
+		// TODO: close old one?
+		this.adapter.changeOwnedFile(context.uri)
 
 		// new callers/callees are fetched ones
 		this.calleesOfActive = callees
@@ -600,9 +513,9 @@ class Editor {
 		}
 
 		// attempt to find the most updated copy of this symbol
-		const topLevelSymbol = context.topLevelSymbols[rawSymbol.name]
+		const topLevelSymbol = context.getTopLevelSymbol(rawSymbol.name)
 		if (topLevelSymbol) {
-			return { ...topLevelSymbol, context }
+			return { ...topLevelSymbol, context: context }
 		}
 
 		// If we didn't find the symbol at the top level, then
@@ -754,11 +667,11 @@ class Editor {
 	}
 
 	async setFile(text: string, filePath: string) {
-		this.pendingSwap = null
 		this.activeEditorPane.symbol = null
 		this.calleePanes.forEach((p) => p.symbol = null)
 		this.callerPanes.forEach((p) => p.symbol = null)
 
+		this.adapter.changeOwnedFile(null)
 		this.navObject.reset()
 
 		const url = pathToFileURL(path.resolve(filePath))
@@ -778,11 +691,22 @@ class Editor {
 		})
 		this.lspClient.changeConfiguration({ settings: baseSettings })
 
-		// change file and kick off reanalysis to find main initially
-		this.ChangeOwnedFile(uri, text)
+		// analyze context once to obtain top level symbols
+		const context = await this.AnalyzeForNewContext(uri, text, null)
 
-		const navObject = await this.AnalyzeUri(uri, text)
-		this.navigateToUpdatedSymbol(navObject)
+		// analyze the context again after linearizing code - line numbers could change
+		await this.ReanalyzeContext(context)
+
+		// this is now the first context in our new project
+		this.currentProject.contexts.push(context)
+
+		const mainSymbol = context.findStartingSymbol()
+		if (mainSymbol) {
+			// swap to the main symbol in this context
+			this.swapToSymbol(mainSymbol, true)
+		} else {
+			console.warn("no starting symbol detected")
+		}
 	}
 
 	// MARK: LSP/NavObject Interface
@@ -808,7 +732,7 @@ class Editor {
 		// ensure we have loaded the context for each location
 		const uris = new Set(locations.map((loc) => loc.uri))
 		const retrieveContexts = Array.from(uris).map((uri) =>
-			this.retrieveContextForUri(uri, "Not yet loaded")) // TODO: module name
+			this.retrieveContextForUri(uri, null))
 
 		await Promise.all(retrieveContexts)
 
@@ -848,35 +772,56 @@ class Editor {
 		return callers
 	}
 
-	ChangeOwnedFile = function(uri: string, contents: string): void {
-		this.lspClient.openDocument({
-			languageId: "python",
-			documentUri: uri,
-			initialText: contents,
-		})
-		// TODO: close old one? wait for open before changing adapter?
-		this.adapter.changeOwnedFile(uri, contents)
-	}
-
 	/**
 	 * Analyzes the document symbols in the given uri and updates the nav object.
 	 *
 	 * @param uri The uri of the file to analyze.
 	 * @param contents The contents of the file. Only used when it has not been opened before.
+	 * @returns The newly created context object for the given uri.
 	 */
-	AnalyzeUri(uri: string, contents: string): Thenable<NavObject> {
-		if (!this.lspClient.isDocumentOpen(uri)) {
-			this.lspClient.openDocument({
-				languageId: "python",
-				documentUri: uri,
-				initialText: contents,
-			})
+	async AnalyzeForNewContext(uri: string, contents: string, name: string | null): Promise<Context> {
+		// if this document is already open, there is a context for it
+		// so ReanalyzeContext should be used instead
+		console.assert(!this.lspClient.isDocumentOpen(uri))
+
+		this.lspClient.openDocument({
+			languageId: "python",
+			documentUri: uri,
+			initialText: contents,
+		})
+
+		const symbols = await this.lspClient.getDocumentSymbol(uri)
+
+		this.navObject.rebuildMaps(symbols ?? [], uri)
+
+		const context = new Context(name ?? "Loading", uri)
+		context.updateWithNavObject(contents, this.navObject)
+
+		if (name === null) {
+			context.name = context.findStartingSymbol()?.module ?? context.name
 		}
-		return this.lspClient.getDocumentSymbol(uri)
-			.then((symbols) => {
-				this.navObject.rebuildMaps(symbols ?? [], uri)
-				return this.navObject
-			})
+
+		return context
+	}
+
+	/**
+	 * Analyzes the document symbols in the given existing context and updates the nav object.
+	 *
+	 * @param context The context to analyze.
+	 */
+	async ReanalyzeContext(context: Context): Promise<void> {
+		// if a context exists, its document must've been opened
+		console.assert(this.lspClient.isDocumentOpen(context.uri))
+
+		// update the language server with the latest change before analyzing
+		const contents = context.getLinearizedCode()
+		this.lspClient.sendChange(context.uri, { text: contents })
+
+		const symbols = await this.lspClient.getDocumentSymbol(context.uri)
+
+		this.navObject.rebuildMaps(symbols ?? [], context.uri)
+
+		context.updateWithNavObject(contents, this.navObject)
 	}
 
 	// MARK: index.html Interface
@@ -905,13 +850,15 @@ class Editor {
 	 */
 	saveFile() {
 		(document.querySelector("#save-button-indicator-group")! as HTMLDivElement).classList.remove("save-button-with-indicator");
+
 		this.currentProject.contexts.forEach((context) => {
 			if (!context.hasChanges) { return }
 			const hasPath = context.uri !== null
+			const contents = context.getLinearizedCode()
 
 			if (hasPath) {
-				return promisify(fs.writeFile)(new NodeURL(context.uri), context.fileString, { encoding: "utf8" })
-					.then(() => this.lspClient.saveDocument({ uri: context.uri }, context.fileString))
+				return promisify(fs.writeFile)(new NodeURL(context.uri), contents, { encoding: "utf8" })
+					.then(() => this.lspClient.saveDocument({ uri: context.uri }, contents))
 			} else {
 				const dialog = electron.remote.dialog
 
@@ -920,12 +867,15 @@ class Editor {
 						if (!result.filePath) {
 							return Promise.reject()
 						}
-						return promisify(fs.writeFile)(result.filePath, context.fileString, { encoding: "utf8" })
-							.then(() => this.lspClient.saveDocument({ uri: context.uri }, context.fileString))
+						return promisify(fs.writeFile)(result.filePath, contents, { encoding: "utf8" })
+							.then(() => this.lspClient.saveDocument({ uri: context.uri }, contents))
 					})
 			}
 
 		})
+
+		;(document.querySelector("#save-button-indicator-group")! as HTMLDivElement)
+			.classList.remove("save-button-with-indicator")
 	}
 
 	runProject() {
@@ -940,29 +890,6 @@ class Editor {
 		ls.stdout.on("data", (data) => {
 			alert(data)
 		})
-	}
-
-	getjqTreeObject(): TreeItem[] {
-
-		const symbolToTreeItem = (symbol: SymbolInfo): TreeItem => {
-			return {
-				rayBensSymbol: symbol,
-				name: symbol.name,
-				id: symbol.detail,
-				children: (symbol.children ?? []).map(symbolToTreeItem)
-			}
-		}
-
-		return this.currentProject.contexts
-			.map((context) => {
-				const names = context.getSortedTopLevelSymbolNames()
-				return {
-					name: context.name,
-					id: context.uri,
-					children: names
-						.map((key) => symbolToTreeItem(context.topLevelSymbols[key].symbol))
-				}
-			})
 	}
 
 	togglePreviewPanePinned(pane: PaneObject) {
@@ -993,13 +920,22 @@ class Editor {
 			dragAndDrop: false
 		})
 
-		;(window as any).$("#tree1").tree("loadData", this.getjqTreeObject())
+		const contextTrees: DisplaySymbolTree[] = this.currentProject.contexts
+			.map((context) => {
+				return {
+					name: context.name,
+					id: context.uri,
+					children: context.getDisplaySymbolTree()
+				}
+			})
+
+		;(window as any).$("#tree1").tree("loadData", contextTrees)
 
 		;(window as any).$("#tree1").on(
 			"tree.click",
 			(e) => {
 				e.preventDefault()
-				const symbol = (e.node as TreeItem).rayBensSymbol
+				const symbol = (e.node as DisplaySymbolTree).rayBensSymbol
 				if (symbol) {
 					this.swapToPossiblyNestedSymbol(symbol)
 				}
@@ -1009,6 +945,4 @@ class Editor {
 }
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
-
-
 const editor = new Editor()
