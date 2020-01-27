@@ -47,17 +47,22 @@ class Editor {
 	currentProject: Project = new Project("Untitled", "") // TODO
 
 	constructor() {
+		const replacePaneElement = (id) => (codemirror) => {
+			const textarea = document.getElementById(id) as HTMLTextAreaElement
+			textarea.classList.forEach((cls) => codemirror.classList.add(cls))
+			codemirror.id = textarea.id
+			textarea.parentNode!.replaceChild(codemirror, textarea)
+		}
+
 		// creates a CodeMirror editor configured to look like a preview pane
 		const createPane = function(id, wrapping): PaneObject {
-			const editor = CodeMirror(document.getElementById(id)!, {
+			const editor = CodeMirror(replacePaneElement(id), {
 				mode: "python",
 				lineNumbers: true,
 				theme: "monokai",
 				readOnly: "nocursor",
 				lineWrapping: wrapping
 			})
-
-			editor.setSize("100%", "192.33px")
 
 			return {
 				editor: editor,
@@ -97,7 +102,7 @@ class Editor {
 		})
 
 		// create active editor pane
-		const activeEditor = CodeMirror(document.getElementById("main-pane")!, {
+		const activeEditor = CodeMirror(replacePaneElement("main-pane"), {
 			mode: "python",
 			lineNumbers: true,
 			theme: "monokai",
@@ -111,8 +116,6 @@ class Editor {
 				}
 			},
 		})
-
-		activeEditor.setSize("100%", "46.84em")
 
 		this.activeEditorPane = {
 			editor: activeEditor,
@@ -371,6 +374,7 @@ class Editor {
 		// populate panes
 		this.activeEditorPane.symbol = symbol
 		this.activeEditorPane.editor.setValue(contents)
+		this.activeEditorPane.context.textContent = context.name
 
 		// change which file we're tracking as "currently editing"
 		this.ChangeOwnedFile(context.uri, context.fileString)
@@ -378,7 +382,7 @@ class Editor {
 		// new callers/callees are fetched ones
 		for (let i = 0; i < 3; i++) {
 			const assignSymbols = async (symbols, panes) => {
-				let paneSymbolToSet: any = null
+				let paneSymbolToSet: SymbolInfo | null = null
 				let paneContentToSet: string | null = null
 				let paneContextStringToSet: string | null = null
 
@@ -390,7 +394,7 @@ class Editor {
 						if (paneContextSymbol) {
 							paneSymbolToSet = paneContextSymbol.symbol
 							paneContentToSet = paneContextSymbol.definitionString
-							paneContextStringToSet = `TODO,${paneContextSymbol.symbol.detail}`
+							paneContextStringToSet = `${paneContext.name},${paneContextSymbol.symbol.detail}`
 						} else {
 							paneContextStringToSet = `(${symbols[i].name}: not top level)`
 							console.warn("did not find top-level symbol for", symbols[i], "in", paneContext)
