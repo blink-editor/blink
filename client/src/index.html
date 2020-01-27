@@ -4,8 +4,87 @@
 		<meta charset="UTF-8">
 		<title>Blink</title>
 
-		<!-- global styles -->
-		<link rel="stylesheet" href="./style.css">
+		<style>
+		/* GLOBAL STYLES */
+		html, body {
+			margin: 0;
+			height: 100vh;
+		}
+
+		/* SIDEBAR */
+		#sidebar {
+			background-color: #727273;
+			background-image: linear-gradient(180deg,#727273 10%,#727273 100%);
+			background-size: cover;
+		}
+
+		.sidebar .sidebar-brand {
+			height: 4.375rem;
+			display: flex;
+			align-items: center;
+			justify-content: center;
+		}
+
+		.sidebar-brand-icon {
+			transform: rotate(-15deg);
+			font-size: 2rem;
+			color: white;
+		}
+
+		.sidebar-divider {
+			margin: 0 1rem 0 1rem;
+			border-top: 1px solid rgba(255,255,255,.15);
+		}
+
+		.sidebar .nav-item .nav-link {
+			text-align: center;
+			padding: .75rem 1rem;
+			width: 6.5rem;
+			font-size: .85rem;
+			color: white;
+		}
+
+		.sidebar .nav-item button {
+			background: #727273;
+			border: 0px;
+		}
+
+		/* PANES */
+		/* h-pane-context and h-pane-editor go together. */
+		/* the context gets 1.2rem, the editor gets the rest. */
+		.h-pane-context {
+			height: 1.2rem !important;
+		}
+		.h-pane-editor {
+			height: calc(100% - 1.2rem) !important;
+		}
+
+		.context-label {
+			background-color: #272822; /* monokai */
+			color: #75715e; /* monokai comment */
+		}
+
+		#top-left-pane-context, #top-mid-pane-context, #top-right-pane-context,
+		#side-top-pane-context, #side-mid-pane-context, #side-bottom-pane-context,
+		#main-pane-context {
+			padding-left: 32px;
+		}
+
+		#main-pane-context {
+			padding-left: 42px;
+		}
+
+		#top-left-pane-context, #top-mid-pane-context,
+		#top-left-pane, #top-mid-pane,
+		#main-pane-context, #main-pane {
+			border-right: 1px solid white;
+		}
+
+		#main-pane-context, #side-top-pane-context,
+		#side-mid-pane-context, #side-bottom-pane-context {
+			border-top: 1px solid white;
+		}
+		</style>
 
 		<!-- codemirror css -->
 		<link rel="stylesheet" href="node_modules/codemirror/lib/codemirror.css">
@@ -15,128 +94,122 @@
 
 		<!-- bootstrap -->
 		<link href="node_modules/bootstrap/dist/css/bootstrap.min.css" rel="stylesheet" />
-		<link href="./vendor/lib.css" rel="stylesheet">
-
-		<!-- plugins -->
-
-
-		<!-- other 3rd-party page plugins -->
-		<!-- <script src="node_modules/jquery-easing/dist/jquery.easing.1.3.umd.min.js"></script> -->
-		<!-- <script src="vendor/chart.js/Chart.min.js"></script> -->
 
 		<!-- fonts -->
 		<link href="node_modules/@fortawesome/fontawesome-free/css/all.min.css" rel="stylesheet" type="text/css">
-		<!-- TODO: bring in from node -->
-		<link href="https://fonts.googleapis.com/css?family=Nunito:200,200i,300,300i,400,400i,600,600i,700,700i,800,800i,900,900i" rel="stylesheet">
 	</head>
-	<body class="sidebar-toggled">
-		<div class="row no-gutters align-items-start">
-			<ul class="navbar-nav bg-gradient-primary sidebar sidebar-dark accordion" id="accordionSidebar">
-				<li class="nav-item active">
-					<!-- Sidebar - Brand -->
-					<a class="sidebar-brand d-flex align-items-center justify-content-center" href="index.html">
-						<div class="sidebar-brand-icon rotate-n-15">
-							<i class="far fa-eye"></i>
+
+	<body class="h-100">
+		<div class="row no-gutters h-100">
+			<nav id="sidebar" class="col-1 h-100">
+				<ul class="navbar-nav bg-gradient-primary sidebar sidebar-dark accordion" id="accordionSidebar">
+					<li class="nav-item active">
+						<!-- Sidebar - Brand -->
+						<a class="sidebar-brand d-flex align-items-center justify-content-center" href="index.html">
+							<div class="sidebar-brand-icon rotate-n-15">
+								<i class="fa far fa-eye"></i>
+							</div>
+						</a>
+
+						<!-- Divider -->
+						<hr class="sidebar-divider my-0">
+					</li>
+
+					<li class="nav-item active">
+						<button class="nav-link" onclick="editor.openFile()" href="" id="open-file">
+							<i class="fa fas fa-fw fa-folder-open"></i>
+						</button>
+					</li>
+
+					<li class="nav-item active">
+						<button class="nav-link" onclick="editor.saveFile()" href="" id="save-file">
+							<i class="fa fas fa-fw fa-save"></i>
+						</button>
+					</li>
+
+					<li class="nav-item active">
+						<button class="nav-link" onclick="">
+							<i class="fa fas fa-fw fa-play"></i>
+						</button>
+					</li>
+
+					<li class="nav-item active">
+						<button class="nav-link" onclick="">
+							<i class="fa fas fa-fw fa-bars"></i>
+						</button>
+					</li>
+				</ul>
+			</nav>
+
+			<div class="container col-11 h-100">
+				<div class="row no-gutters h-25">
+					<div class="col-4 container h-100">
+						<div class="row no-gutters h-pane-context">
+							<div class="col h-100 context-label" id="top-left-pane-context"></div>
 						</div>
-						<div class="sidebar-brand-text mx-3">Blink</div>
-					</a>
-
-					<!-- Divider -->
-					<hr class="sidebar-divider my-0">
-
-					<div class="modal fade bd-example-modal-lg" tabindex="-1" role="dialog" aria-labelledby="myLargeModalLabel" aria-hidden="true">
-						<div class="modal-dialog modal-lg">
-							<div class="modal-content">
-								...
+						<div class="row no-gutters h-pane-editor">
+							<textarea class="col h-100" id="top-left-pane"></textarea>
+						</div>
+					</div>
+					<div class="col-4 container h-100">
+						<div class="row no-gutters h-pane-context">
+							<div class="col h-100 context-label" id="top-mid-pane-context"></div>
+						</div>
+						<div class="row no-gutters h-pane-editor">
+							<textarea class="col h-100" id="top-mid-pane"></textarea>
+						</div>
+					</div>
+					<div class="col-4 container h-100">
+						<div class="row no-gutters h-pane-context">
+							<div class="col h-100 context-label" id="top-right-pane-context"></div>
+						</div>
+						<div class="row no-gutters h-pane-editor">
+							<textarea class="col h-100" id="top-right-pane"></textarea>
+						</div>
+					</div>
+				</div>
+				<div class="row no-gutters h-75">
+					<div class="col-8 container h-100">
+						<div class="row no-gutters h-pane-context">
+							<div class="col h-100 context-label" id="main-pane-context"></div>
+						</div>
+						<div class="row no-gutters h-pane-editor">
+							<textarea class="col h-100" id="main-pane"></textarea>
+						</div>
+					</div>
+					<div class="container col-4 h-100">
+						<div class="row no-gutters" style="height: 33.3333% !important">
+							<div class="col container h-100">
+								<div class="row no-gutters h-pane-context">
+									<div class="col h-100 context-label" id="side-top-pane-context"></div>
+								</div>
+								<div class="row no-gutters h-pane-editor">
+									<textarea class="col h-100" id="side-top-pane"></textarea>
+								</div>
+							</div>
+						</div>
+						<div class="row no-gutters" style="height: 33.3333% !important">
+							<div class="col container h-100">
+								<div class="row no-gutters h-pane-context">
+									<div class="col h-100 context-label" id="side-mid-pane-context"></div>
+								</div>
+								<div class="row no-gutters h-pane-editor">
+									<textarea class="col h-100" id="side-mid-pane"></textarea>
+								</div>
+							</div>
+						</div>
+						<div class="row no-gutters" style="height: 33.3333% !important">
+							<div class="col container h-100">
+								<div class="row no-gutters h-pane-context">
+									<div class="col h-100 context-label" id="side-bottom-pane-context"></div>
+								</div>
+								<div class="row no-gutters h-pane-editor">
+									<textarea class="col h-100" id="side-bottom-pane"></textarea>
+								</div>
 							</div>
 						</div>
 					</div>
-				</li>
-
-				<li class="nav-item active">
-					<button class="nav-link" onclick="editor.openFile()" href="" id="open-file">
-						<i class="fas fa-fw fa-folder-open"></i>
-					</button>
-
-						<!-- <span>Add</span> -->
-					</a>
-				</li>
-
-				<li class="nav-item active">
-					<button class="nav-link" onclick="editor.saveFile()" href="" id="save-file">
-						<i class="fas fa-fw fa-save"></i>
-					</button>
-
-						<!-- <span>Save</span> -->
-					</a>
-				</li>
-
-				<li class="nav-item active">
-					<a class="nav-link" href="">
-						<i class="fas fa-fw fa-play"></i>
-					</a>
-				</li>
-
-				<li class="nav-item active">
-					<a class="nav-link" href="">
-						<i class="fas fa-fw fa-bars"></i>
-						<!-- <span>Project Structure</span> -->
-					</a>
-				</li>
-
-
-				<!-- Nav Item - Pages Collapse Menu -->
-				<li class="nav-item">
-					<a class="nav-link collapsed" href="#" data-toggle="collapse" data-target="#collapseTwo" aria-expanded="true" aria-controls="collapseTwo">
-					</a>
-
-					<div id="collapseTwo" class="collapse" aria-labelledby="headingTwo" data-parent="#accordionSidebar">
-						<div class="bg-white py-2 collapse-inner rounded">
-							<h6 class="collapse-header">All settings:</h6>
-							<a class="collapse-item" href="">Display Settings</a>
-						</div>
-					</div>
-				</li>
-
-				<!-- Nav Item - Utilities Collapse Menu -->
-
-				<!-- Nav Item - Pages Collapse Menu -->
-				<li class="nav-item">
-
-					<div id="collapsePages" class="collapse" aria-labelledby="headingPages" data-parent="#accordionSidebar">
-					</div>
-				</li>
-			</ul>
-
-      <div id="top-pane-container" class="container">
-        <div class="row no-gutters align-items-start">
-          <div class="column col" id="top-left-pane">
-            <div class="context-banner" id="top-left-pane-context">dummy text</div>
-          </div>
-          <div class="column col" id="top-mid-pane">
-            <div class="context-banner" id="top-mid-pane-context">dummy text</div>
-          </div>
-          <div class="column col" id="top-right-pane">
-            <div class="context-banner" id="top-right-pane-context">dummy text</div>
-          </div>
-        </div>
-
-        <div class="row no-gutters align-items-start">
-          <div class="col-8" id="main-pane">
-            <div class="context-banner" id="main-pane-context">dummy text</div>
-          </div>
-          <div class="col-4" id="side-panes">
-            <div class="side-pane" id="side-top-pane">
-              <div class="context-banner" id="side-top-pane-context">dummy text</div>
-            </div>
-            <div class="side-pane" id="side-mid-pane">
-              <div class="context-banner" id="side-mid-pane-context">dummy text</div>
-            </div>
-            <div class="side-pane" id="side-bottom-pane">
-              <div class="context-banner" id="side-bottom-pane-context">dummy text</div>
-            </div>
-          </div>
-        </div>
+				</div>
 			</div>
 		</div>
 
@@ -151,6 +224,5 @@
 		</script>
 		<script src="node_modules/jquery/dist/jquery.min.js"></script>
 		<script src="node_modules/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
-		<script src="vendor/sb-admin-2.min.js"></script>
 	</body>
 </html>

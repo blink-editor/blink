@@ -36,7 +36,7 @@ export class Context{
 
 	constructor(name: string, uri: string, fileString: string) {
 		this.uri = uri
-		this.name = uri // TODO
+		this.name = name
 		this._fileString = fileString
 		this.topLevelCode = null
 		this.topLevelSymbols = {}
