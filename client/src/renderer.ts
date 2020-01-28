@@ -522,11 +522,6 @@ class Editor {
 	}
 }
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-const editor = new Editor()
-
-
-
 function toggleProjectStructure() {
 	editor.projectStructureToggled = !editor.projectStructureToggled
 	if (editor.projectStructureToggled) {
@@ -543,3 +538,10 @@ function toggleProjectStructure() {
 		document.querySelector("#panes")!.classList.remove('col-8')
 	}
 }
+
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+
+const editor = new Editor()
+
+
+
