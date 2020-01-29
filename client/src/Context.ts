@@ -23,8 +23,6 @@ const extractRangeOfFile = function(file, range): string {
 }
 
 export class Context{
-	// TODO: add topLevelCode & topLevelSymbols
-	// TODO: get rid of save
 	// TODO: add linerize function
 	public readonly name: string
 	public readonly uri: string
