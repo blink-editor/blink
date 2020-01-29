@@ -142,7 +142,7 @@
 					</li>
 
 					<li class="nav-item active">
-						<button class="nav-link" onclick="toggleProjectStructure()">
+						<button class="nav-link" onclick="editor.toggleProjectStructure()">
 							<i class="fa fas fa-fw fa-bars"></i>
 						</button>
 					</li>
@@ -237,44 +237,7 @@
 		</script>
 		<script src="node_modules/jquery/dist/jquery.min.js"></script>
 		<script src="node_modules/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
-		<script src="tree.jquery.js"></script>
-		<link rel="stylesheet" href="jqtree.css">
-		<script>
-			var data = [
-			    {
-			        name: 'node1',
-			        children: [
-			            { name: 'child1' },
-			            { name: 'child2' }
-			        ]
-			    },
-			    {
-			        name: 'node2',
-			        children: [
-			            { name: 'child3' }
-			        ]
-			    }
-			];
-
-			$(document).ready(function() { 
-				document.getElementById('tree1').tree({
-			    data: [
-				    {
-				      name: 'node1',
-				      children: [
-		            { name: 'child1' },
-		            { name: 'child2' }
-			        ]
-				    },
-				    {
-			        name: 'node2',
-			        children: [
-		            { name: 'child3' }
-			        ]
-				    }
-					]
-			  });
-			});	
-		</script>
+		<script src="node_modules/jqtree/build/tree.jquery.js"></script>
+		<link rel="stylesheet" href="node_modules/jqtree/jqtree.css">
 	</body>
 </html>
