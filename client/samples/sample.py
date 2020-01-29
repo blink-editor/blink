@@ -5,6 +5,8 @@ import nougat
 def firstFunction():
     print("first")
 
+def somth():
+    print("what the")
 
 def secondFunction():
     print("second")

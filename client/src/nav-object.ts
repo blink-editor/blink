@@ -86,11 +86,12 @@ export class NavObject {
 		}
 
 		// clear all entries with the given uri
-		for (const key in this.symToInfo) {
-			if (this.symToInfo[key].uri === uri) {
-				delete this.symToInfo[key]
+		for (const [key, symbol] of this.symToInfo) {
+			if (symbol.uri === uri) {
+				this.symToInfo.delete(key)
 			}
 		}
+
 		// add all symbols recieved
 		for (const symbol of symbols) {
 			addSymbolToMap(symbol, true)

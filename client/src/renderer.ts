@@ -40,6 +40,9 @@ class Editor {
 	calleePanes: [PaneObject, PaneObject, PaneObject]
 	callerPanes: [PaneObject, PaneObject, PaneObject]
 
+	navStack: SymbolInfo[] = []
+	curNavStackIndex = 0
+
 	activeEditorPane: PaneObject
 
 	pendingSwap: SymbolInfo | null = null
@@ -113,7 +116,62 @@ class Editor {
 				Tab: (cm) => {
 					if (cm.somethingSelected()) cm.execCommand("indentMore")
 					else cm.execCommand("insertSoftTab")
-				}
+				},
+				'Cmd-S': (cm) => {
+					this.saveFile()
+				},
+				'Cmd-1': (cm) => {
+					this.swapToCallee(0)
+				},
+				'Cmd-2': () => {
+					this.swapToCallee(1)
+				},
+				'Cmd-3': () => {
+					this.swapToCallee(2)
+				},
+				'Cmd-4': () => {
+					this.swapToCaller(0)
+				},
+				'Cmd-5': () => {
+					this.swapToCaller(1)
+				},
+				'Cmd-6': () => {
+					this.swapToCaller(2)
+				},
+				'Ctrl-S': (cm) => {
+					this.saveFile()
+				},
+				'Ctrl-1': (cm) => {
+					this.swapToCallee(0)
+				},
+				'Ctrl-2': () => {
+					this.swapToCallee(1)
+				},
+				'Ctrl-3': () => {
+					this.swapToCallee(2)
+				},
+				'Ctrl-4': () => {
+					this.swapToCaller(0)
+				},
+				'Ctrl-5': () => {
+					this.swapToCaller(1)
+				},
+				'Ctrl-6': () => {
+					this.swapToCaller(2)
+				},
+				'Cmd-[': () => {
+					this.navBack()
+				},
+				'Cmd-]': () => {
+					this.navForward()
+				},
+				'Ctrl-[': () => {
+					this.navBack()
+				},
+				'Ctrl-]': () => {
+					this.navForward()
+				},
+
 			},
 		})
 
@@ -285,7 +343,9 @@ class Editor {
 		if (newActiveSymbol) {
 			// we got a symbol, be it the active one or main
 			console.log("reanalyzed and obtained new active symbol", newActiveSymbol)
-			this.swapToSymbol(newActiveSymbol)
+
+			const shouldUpdateStack = this.navStack.length === 0
+			this.swapToSymbol(newActiveSymbol, shouldUpdateStack)
 		} else {
 			// we did not find the active symbol or main
 			console.error("no main symbol detected")
@@ -344,12 +404,20 @@ class Editor {
 		return context
 	}
 
-	async swapToSymbol(rawSymbol: SymbolInfo) {
+	async swapToSymbol(rawSymbol: SymbolInfo, updateStack: boolean = true) {
 		const context = (await this.retrieveContextForSymbol(rawSymbol))!
 		const contextSymbol = context.topLevelSymbols[rawSymbol.name]
 		const symbol = contextSymbol.symbol
-
 		const contents = contextSymbol.definitionString
+
+		if (updateStack) {
+			// update the navStack
+			if(this.curNavStackIndex != this.navStack.length -1 && this.navStack.length != 0){
+				this.navStack.length = this.curNavStackIndex + 1
+			}
+			this.navStack.push(rawSymbol)
+			this.curNavStackIndex = this.navStack.length - 1
+		}
 
 		// fetch new callees
 		const calleesAsync = this.FindCallees(symbol)
@@ -411,6 +479,24 @@ class Editor {
 
 			assignSymbols(callees, this.calleePanes)
 			assignSymbols(callers, this.callerPanes)
+		}
+	}
+
+	navBack() {
+		if (this.navStack.length > 0 && this.curNavStackIndex > 0) {
+			this.curNavStackIndex -= 1
+			this.swapToSymbol(this.navStack[this.curNavStackIndex], false)
+		} else {
+			console.warn("cannot go back End Of Stack ")
+		}
+	}
+
+	navForward() {
+		if (this.navStack.length > 0 && this.navStack.length - 1 >= this.curNavStackIndex) {
+			this.curNavStackIndex += 1
+			this.swapToSymbol(this.navStack[this.curNavStackIndex], false)
+		} else {
+			console.warn("cannot go forward End Of Stack ")
 		}
 	}
 
