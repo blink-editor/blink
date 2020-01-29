@@ -15,7 +15,7 @@ interface SymbolKey {
 
 // values in cache
 export interface SymbolInfo extends lsp.DocumentSymbol {
-	isTopLevel: boolean
+	children: SymbolInfo[]
 	uri: string
 	module: string
 }
@@ -54,30 +54,22 @@ export class NavObject {
 			return (symbols as lsp.DocumentSymbol[]).length === 0 || (symbols as lsp.DocumentSymbol[])[0].children !== undefined
 		}
 
-		// adds a documentSymbol and all of its children to symToInfo
-		const addSymbolToMap = (symbol: lsp.DocumentSymbol, isTopLevel: boolean) => {
-			// create map value
-			const symInfo: SymbolInfo = symbol as SymbolInfo
-			symInfo.isTopLevel = isTopLevel
+		// converst a DocumentSymbol to a SymbolInfo and returns it
+		const convertToSymbolInfo = (symbol: lsp.DocumentSymbol): SymbolInfo => {
+			// convert top-level
+			let module: string = (symbol as any)["rayBensModule"]
+			let symInfo: SymbolInfo = symbol as SymbolInfo
+			symInfo.module = module
 			symInfo.uri = uri
-			symInfo.module = (symbol as any)["rayBensModule"]
 
-			// create map key
-			const symKey: SymbolKey = {
-				name: symbol.name,
-				kind: symbol.kind,
-				module: symInfo.module,
-			}
-
-			// add to map
-			this.symToInfo.set(this._symbolKeyToString(symKey), symInfo)
-
-			// add children
+			// convert children
 			if (symbol.children !== null && symbol.children !== undefined) {
 				for (const child of symbol.children) {
-					addSymbolToMap(child, false)
+					convertToSymbolInfo(child)
 				}
 			}
+
+			return symInfo
 		}
 
 		// check that response is DocumentSymbol[]
@@ -92,39 +84,60 @@ export class NavObject {
 			}
 		}
 
-		// add all symbols recieved
+		// add all symbols recieved to map
 		for (const symbol of symbols) {
-			addSymbolToMap(symbol, true)
+			// create map key
+			const symKey: SymbolKey = {
+				name: symbol.name,
+				kind: symbol.kind,
+				module: (symbol as any)["rayBensModule"],
+			}
+			// create map value
+			const symInfo: SymbolInfo = convertToSymbolInfo(symbol)
+			// add to map
+			this.symToInfo.set(this._symbolKeyToString(symKey), symInfo)
 		}
 	}
 
 	/**
-	 * Finds the innermost symbol at a given location, if any
+	 * Finds the innermost parent symbol for a given location, if any
 	 * @param loc location of desired symbol
 	 */
 	bestSymbolForLocation(loc: lsp.Location): SymbolInfo | null {
-		let bestScore: number | null = null
-		let bestSymbol: SymbolInfo | null = null
-
-		const range = loc.range
-
-		// search for tightest enclosing scope for this reference
-		for (const [key, symbol] of this.symToInfo) {
-			const cachedRange = symbol.range
-
-			// test if cachedRange is the tightest known bound around range
-			if (((cachedRange.start.line <= range.start.line && cachedRange.end.line >= range.end.line) // range entirely within cachedRange (inclusive)
-					  || ((cachedRange.start.line === range.start.line && cachedRange.start.character <= range.start.character)
-					      && (cachedRange.end.line === range.end.line && cachedRange.end.character >= range.end.character)))
-					&& (bestScore === null || cachedRange.end.line - cachedRange.start.line < bestScore) // tightest line bound so far
-					&& (symbol.kind !== lsp.SymbolKind.Variable) // is not a variable declaration
-				  ) {
-					bestScore = cachedRange.end.line - cachedRange.start.line
-					bestSymbol = symbol
+		const findParentOfRange = (symbols: SymbolInfo[], range: lsp.Range, bestSymbol: SymbolInfo | null, bestScore: number | null): [SymbolInfo | null, number | null] => {
+			if (!symbols) {
+				return [bestSymbol, bestScore]
 			}
+
+			// search for tightest enclosing scope for this reference
+			for (const symbol of symbols) {
+				// test if symbol is the tightest known bound around range
+				if (((symbol.range.start.line <= range.start.line && symbol.range.end.line >= range.end.line) // range entirely within cachedRange (inclusive)
+						|| ((symbol.range.start.line === range.start.line && symbol.range.start.character <= range.start.character)
+							&& (symbol.range.end.line === range.end.line && symbol.range.end.character >= range.end.character)))
+						&& (bestScore === null || symbol.range.end.line - symbol.range.start.line < bestScore) // tightest line bound so far
+						&& (symbol.kind !== lsp.SymbolKind.Variable) // is not a variable declaration
+					) {
+						bestScore = symbol.range.end.line - symbol.range.start.line
+						bestSymbol = symbol
+				}
+				// test if children have tighter bound
+				if (symbol.children !== null && symbol.children !== undefined) {
+					const [bestSymbolOfChildren, bestScoreOfChildren] = findParentOfRange(symbol.children, range, bestSymbol, bestScore)
+
+					if (bestScore === null || (bestScoreOfChildren !== null && bestScore !== null && bestScoreOfChildren < bestScore)) {
+						bestScore = bestScoreOfChildren
+						bestSymbol = bestSymbolOfChildren
+					}
+				}
+			}
+
+			return [bestSymbol, bestScore]
 		}
 
-		return bestSymbol
+		const [symbol, score] = findParentOfRange(Array.from(this.symToInfo.values()), loc.range, null, null)
+
+		return symbol
 	}
 
 	/*
@@ -162,7 +175,7 @@ export class NavObject {
 	/*
 	 * Finds all the symbols referenced within the given symbol scope.
 	 * @param symbol  The symbol to find calls in.
-	 * @returns    An array of DocumentSymbol objects with ranges that enclose the definitions of functions being called in the given function.
+	 * @returns    An array of SymbolInfo objects with ranges that enclose the definitions of functions being called in the given function.
 	 */
 	findCallees(parentSymbol: SymbolInfo): Thenable<lsp.SymbolInformation[]> {
 		return this.client.getUsedDocumentSymbols(parentSymbol.uri)
@@ -209,24 +222,56 @@ export class NavObject {
 	}
 
 	findCachedSymbol(key: SymbolKey): SymbolInfo | undefined {
-		return this.symToInfo.get(this._symbolKeyToString(key))
+		const findSymbolByKey = (key: SymbolKey, symbols: SymbolInfo[]): SymbolInfo | undefined => {
+			// search given symbols
+			for (const symInfo of symbols) {
+				const childKey: SymbolKey = { name: symInfo.name, kind: symInfo.kind, module: symInfo.module }
+				if (this._symbolKeyToString(childKey) === this._symbolKeyToString(key)) {
+					return symInfo
+				}
+				// if not it, search children
+				else {
+					let result: SymbolInfo | undefined = symInfo.children !== null ? findSymbolByKey(key, symInfo.children) : undefined
+					// if found, return it, else continue search
+					if (result !== undefined) {
+						return result
+					}
+				}
+			}
+			// not found
+			return undefined
+		}
+
+		return findSymbolByKey(key, Array.from(this.symToInfo.values()))
 	}
 
-	// finds all symbols in the cache that are functions called "main" and returns them.
+	// finds all symbols in the cache that are functions/methods called "main" and returns them.
 	findMain(): SymbolInfo[] {
-		const results: SymbolInfo[] = []
-		for (const [key, symInfo] of this.symToInfo) {
-			const symKey = this._stringToSymbolKey(key)
-			if ((symKey.name.toLowerCase() === "main") && symKey.kind === lsp.SymbolKind.Function) {
-				results.push(symInfo)
+		// finds all symbols with the given name (case-insensitive)
+		const findSymbolByName = (name: string, symbols: SymbolInfo[]): SymbolInfo[] => {
+			let results: SymbolInfo[] = []
+			// search given symbols
+			for (const symInfo of symbols) {
+				if (symInfo.name.toLowerCase() === name.toLowerCase() && (symInfo.kind === lsp.SymbolKind.Function || symInfo.kind === lsp.SymbolKind.Method)) {
+					results.push(symInfo)
+				}
+				// search children
+				else {
+					let result: SymbolInfo[] = symInfo.children !== null ? findSymbolByName(name, symInfo.children) : []
+					results.concat(result)
+				}
 			}
+
+			return results
 		}
-		return results
+
+		return findSymbolByName("main", Array.from(this.symToInfo.values()))
+
 	}
 
 	findTopLevelSymbols(uri: string): SymbolInfo[] {
 		return [...this.symToInfo]
-			.filter(([key, symbol]) => symbol.isTopLevel === true && symbol.uri === uri)
+			.filter(([key, symbol]) => symbol.uri === uri)
 			.map(([key, symbol]) => symbol)
 	}
 }
