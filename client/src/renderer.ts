@@ -46,6 +46,11 @@ class Editor {
 
 	data: any = []
 
+	// TODO: make this an array of arrays
+	obj:any[] = []
+
+	temp: any
+
 	pendingSwap: SymbolInfo | null = null
 
 	projectStructureToggled: boolean = false
@@ -527,9 +532,9 @@ class Editor {
 
 
 	getjsTreeObject(): any[] {
-		var obj:any[] = []
+		// var obj:any[] = []
 
-		let temp;
+		// let temp;
 
 		let mainUri = this.navObject.findMain()[0].uri
 
@@ -537,23 +542,41 @@ class Editor {
 
 		topLevelSymbols.forEach((symbol) => {
 			if (!symbol.children) {
-				temp = {
+				this.temp = {
 	        name: symbol.name, id: this.nextId(),
 	        children: [ // empty children list
 	        ]
 	    	}
-				obj.push(temp)
+				this.obj.push(this.temp)
 			} else {
+				this.temp = {
+	        name: symbol.name, id: this.nextId(),
+	        children: [ // empty children list
+	        ]
+	    	}
+	    	symbol.children.forEach((childSymbol) => {
+	    		this.addToObj(childSymbol)
+	    	})
 				// recurse w/ addToObj
 			}
 		}) 
 
-		return obj
+		return this.obj
 	}
 
-	// addToObj(obj) {
-	// 	console.log('d')
-	// }
+	addToObj(symbol) {
+		if (!symbol.children) {
+			this.temp = {
+	      name: symbol.name, id: this.nextId(),
+	      children: [ // empty children list
+	      ]
+	    }
+			this.obj.push(this.temp)
+			} else {
+				debugger
+			// recurse w/ addToObj
+		}
+	}
 
 	nextId(): any  {
 		this.rednId++;
@@ -600,47 +623,6 @@ class Editor {
 		});
 	}
 }
-
-// function toggleProjectStructure() {
-// 	editor.projectStructureToggled = !editor.projectStructureToggled
-// 	if (editor.projectStructureToggled) {
-// 		document.querySelector("#project-structure-bar")!.classList.add('col-3')
-// 		document.querySelector("#project-structure-bar")!.classList.add('sidebar-true')
-// 		document.querySelector("#project-structure-bar")!.classList.remove('sidebar-false')
-// 		document.querySelector("#panes")!.classList.remove('col-11')
-// 		document.querySelector("#panes")!.classList.add('col-8')
-// 	} else {
-// 		document.querySelector("#project-structure-bar")!.classList.remove('col-3')
-// 		document.querySelector("#project-structure-bar")!.classList.add('sidebar-false')
-// 		document.querySelector("#project-structure-bar")!.classList.remove('sidebar-true')
-// 		document.querySelector("#panes")!.classList.add('col-11')
-// 		document.querySelector("#panes")!.classList.remove('col-8')
-// 	}
-	// var data = [
-	//     {
-	//         name: 'node1', id: 1,
-	//         children: [
-	//             { name: 'child1', id: 2 },
-	//             { name: 'child2', id: 3 }
-	//         ]
-	//     },
-	//     {
-	//         name: 'node2', id: 4,
-	//         children: [
-	//             { name: 'child3', id: 5 }
-	//         ]
-	//     }
-	// ];
-
-	// let data = editor
-
-	// (window as any).$('#tree1').tree({
-	//     data: data,
-	//     autoOpen: true,
-	//     dragAndDrop: true
-	// });
-
-// }
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 
