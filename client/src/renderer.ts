@@ -413,22 +413,9 @@ class Editor {
 			this.curNavStackIndex = this.navStack.length - 1
 		}
 
-		// fetch new callees
+		// fetch new callees and callers
 		const calleesAsync = this.FindCallees(symbol)
-
-		// TODO: make this language-agnostic
-		// determine where the cursor should be before the name of the symbol
-		const nameStartPos =
-			(symbol.kind === 5 /* SymbolKind.Class */) ? 6 // class Foo
-			: (symbol.kind === 13 /* SymbolKind.Variable */) ? 0 // foo = 5
-			: (symbol.kind === 14 /* SymbolKind.Constant */) ? 0 // foo = 5
-			: 4 // def foo
-
-		// fetch new callers
-		const callersAsync = this.FindCallers({
-			textDocument: { uri: symbol.uri },
-			position: { line: symbol.range.start.line, character: nameStartPos },
-		})
+		const callersAsync = this.FindCallers(symbol)
 
 		// don't update any panes / props until done
 		const [callees, callers] = await Promise.all([calleesAsync, callersAsync])
@@ -521,8 +508,19 @@ class Editor {
 		return this.adapter.navObject.findCallees(symbol)
 	}
 
-	async FindCallers(pos: lsp.TextDocumentPositionParams): Promise<SymbolInfo[]> {
-		const locations = await this.adapter.navObject.findCallers(pos)
+	async FindCallers(targetSymbol: SymbolInfo): Promise<SymbolInfo[]> {
+		// TODO: make this language-agnostic
+		// determine where the cursor should be before the name of the symbol
+		const nameStartPos =
+			(targetSymbol.kind === 5 /* SymbolKind.Class */) ? 6 // class Foo
+			: (targetSymbol.kind === 13 /* SymbolKind.Variable */) ? 0 // foo = 5
+			: (targetSymbol.kind === 14 /* SymbolKind.Constant */) ? 0 // foo = 5
+			: 4 // def foo
+
+		const locations = await this.adapter.navObject.findCallers({
+			textDocument: { uri: targetSymbol.uri },
+			position: { line: targetSymbol.range.start.line, character: nameStartPos },
+		})
 
 		// ensure we have loaded the context for each location
 		const uris = new Set(locations.map((loc) => loc.uri))
@@ -539,6 +537,13 @@ class Editor {
 
 			// if no symbol was found, the reference is in the global scope, so ignore it
 			if (symbol === null) {
+				continue
+			}
+
+			// if the symbol's own definition is found, skip it
+			if (symbol.name === targetSymbol.name
+					&& symbol.kind === targetSymbol.kind
+					&& symbol.uri === targetSymbol.uri) {
 				continue
 			}
 
