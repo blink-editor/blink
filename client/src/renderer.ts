@@ -30,6 +30,15 @@ interface PaneObject {
 	symbol: SymbolInfo | null
 }
 
+interface TreeItem {
+	// jqtree
+	name: string
+	id: any
+	children?: TreeItem[]
+	// our custom stuff
+	rayBensSymbol?: SymbolInfo
+}
+
 class Editor {
 	// program state
 	lspClient: client.LspClient
@@ -46,6 +55,8 @@ class Editor {
 	activeEditorPane: PaneObject
 
 	pendingSwap: SymbolInfo | null = null
+
+	projectStructureToggled: boolean = false
 
 	currentProject: Project = new Project("Untitled", "") // TODO
 
@@ -348,8 +359,7 @@ class Editor {
 			}
 
 			const uri = isLspSymbolInformation(symbol) ? symbol.location.uri : symbol.uri
-			// TODO: Create context module name automatically from filename?
-			const symmodule = isLspSymbolInformation(symbol) ? "" : symbol.module
+			const symmodule = isLspSymbolInformation(symbol) ? (symbol as any)["rayBensModule"] : symbol.module
 
 			const url = new NodeURL(uri)
 			console.assert(url.protocol == "file:")
@@ -474,14 +484,18 @@ class Editor {
 		this.calleePanes.forEach((p) => p.symbol = null)
 		this.callerPanes.forEach((p) => p.symbol = null)
 
-		const uri = pathToFileURL(path.resolve(fileDir)).toString()
-		const context = new Context("primary", uri, text) // TODO: name
+		const url = pathToFileURL(path.resolve(fileDir))
+		// language server normalizes drive letter to lowercase, so follow
+		if (process.platform === "win32" && (url.pathname ?? "")[2] == ":")
+			url.pathname = "/" + url.pathname[1].toLowerCase() + url.pathname.slice(2)
+		const uri = url.toString()
+
 		this.currentProject = new Project("Untitled", fileDir)
 
 		// change file and kick off reanalysis to find main initially
-		this.ChangeOwnedFile(context.uri, context.fileString)
+		this.ChangeOwnedFile(uri, text)
 
-		const navObject = await this.AnalyzeUri(context.uri, text)
+		const navObject = await this.AnalyzeUri(uri, text)
 		this.navigateToUpdatedSymbol(navObject)
 	}
 
@@ -572,7 +586,67 @@ class Editor {
 			}
 		})
 	}
+
+	getjqTreeObject(): TreeItem[] {
+
+		const symbolToTreeItem = (symbol: SymbolInfo): TreeItem => {
+			return {
+				rayBensSymbol: symbol,
+				name: symbol.name,
+				id: symbol.detail,
+				children: (symbol.children ?? []).map(symbolToTreeItem)
+			}
+		}
+
+		return this.currentProject.contexts
+			.map((context) => {
+				const names = context.getSortedTopLevelSymbolNames()
+				return {
+					name: context.name,
+					id: context.uri,
+					children: names
+						.map((key) => symbolToTreeItem(context.topLevelSymbols[key].symbol))
+				}
+			})
+	}
+
+	toggleProjectStructure() {
+		this.projectStructureToggled = !this.projectStructureToggled
+
+		if (this.projectStructureToggled) {
+			document.querySelector("#project-structure-bar")!.classList.add("col-3")
+			document.querySelector("#project-structure-bar")!.classList.add("sidebar-true")
+			document.querySelector("#project-structure-bar")!.classList.remove("sidebar-false")
+			document.querySelector("#panes")!.classList.remove("col-11")
+			document.querySelector("#panes")!.classList.add("col-8")
+		} else {
+			document.querySelector("#project-structure-bar")!.classList.remove("col-3")
+			document.querySelector("#project-structure-bar")!.classList.add("sidebar-false")
+			document.querySelector("#project-structure-bar")!.classList.remove("sidebar-true")
+			document.querySelector("#panes")!.classList.add("col-11")
+			document.querySelector("#panes")!.classList.remove("col-8")
+		}
+
+		;(window as any).$("#tree1").tree({
+			autoOpen: true,
+			dragAndDrop: true
+		})
+
+		;(window as any).$("#tree1").tree("loadData", this.getjqTreeObject())
+
+		;(window as any).$("#tree1").on(
+			"tree.click",
+			(e) => {
+				e.preventDefault()
+				const symbol = (e.node as TreeItem).rayBensSymbol
+				if (symbol) {
+					this.swapToSymbol(symbol)
+				}
+			}
+		)
+	}
 }
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
+
 const editor = new Editor()

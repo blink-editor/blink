@@ -18,6 +18,7 @@ export interface SymbolInfo extends lsp.DocumentSymbol {
 	children: SymbolInfo[]
 	uri: string
 	module: string
+	children: SymbolInfo[]
 }
 
 export class NavObject {

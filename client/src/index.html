@@ -39,7 +39,7 @@
 		.sidebar .nav-item .nav-link {
 			text-align: center;
 			padding: .75rem 1rem;
-			width: 6.5rem;
+			width: 100%;
 			font-size: .85rem;
 			color: white;
 		}
@@ -47,6 +47,14 @@
 		.sidebar .nav-item button {
 			background: #727273;
 			border: 0px;
+		}
+
+		.sidebar-true {
+			display: block;
+		}
+
+		.sidebar-false {
+			display: none;
 		}
 
 		/* PANES */
@@ -134,14 +142,19 @@
 					</li>
 
 					<li class="nav-item active">
-						<button class="nav-link" onclick="">
+						<button class="nav-link" onclick="editor.toggleProjectStructure()">
 							<i class="fa fas fa-fw fa-bars"></i>
 						</button>
 					</li>
 				</ul>
 			</nav>
 
-			<div class="container col-11 h-100">
+			<div id="project-structure-bar" class="sidebar-false">
+				<div>Project Explorer</div>
+				<div id="tree1"></div>
+			</div>
+
+			<div id="panes" class="container col-11 h-100">
 				<div class="row no-gutters h-25">
 					<div class="col-4 container h-100">
 						<div class="row no-gutters h-pane-context">
@@ -224,5 +237,7 @@
 		</script>
 		<script src="node_modules/jquery/dist/jquery.min.js"></script>
 		<script src="node_modules/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+		<script src="node_modules/jqtree/build/tree.jquery.js"></script>
+		<link rel="stylesheet" href="node_modules/jqtree/jqtree.css">
 	</body>
 </html>
