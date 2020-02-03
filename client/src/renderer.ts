@@ -197,10 +197,10 @@ class Editor {
 	}
 
 	openDemoFile() {
-		promisify(fs.readFile)("samples/sample.py", { encoding: "utf8" })
+		promisify(fs.readFile)("samples/modules/game.py", { encoding: "utf8" })
 			.then((sampleFileText) => {
 				console.assert(sampleFileText, "must load demo file text")
-				this.setFile(sampleFileText ?? "", "samples/sample.py")
+				this.setFile(sampleFileText ?? "", "samples/modules/game.py")
 			})
 	}
 
