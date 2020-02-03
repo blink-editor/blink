@@ -559,7 +559,7 @@ class Editor {
 	    		// this.addToObj(childSymbol, this.temp)
 	    	})
 			}
-		}) 
+		})  
 
 		return this.obj
 	}
