@@ -533,7 +533,7 @@ class Editor {
 		})
 	}
 
-	getjsTreeObject(): TreeItem[] {
+	getjqTreeObject(): TreeItem[] {
 		const symbolToTreeItem = (symbol: SymbolInfo): TreeItem => {
 			return {
 				rayBensSymbol: symbol,
@@ -559,25 +559,25 @@ class Editor {
 		this.projectStructureToggled = !this.projectStructureToggled
 
 		if (this.projectStructureToggled) {
-			document.querySelector("#project-structure-bar")!.classList.add('col-3')
-			document.querySelector("#project-structure-bar")!.classList.add('sidebar-true')
-			document.querySelector("#project-structure-bar")!.classList.remove('sidebar-false')
-			document.querySelector("#panes")!.classList.remove('col-11')
-			document.querySelector("#panes")!.classList.add('col-8')
+			document.querySelector("#project-structure-bar")!.classList.add("col-3")
+			document.querySelector("#project-structure-bar")!.classList.add("sidebar-true")
+			document.querySelector("#project-structure-bar")!.classList.remove("sidebar-false")
+			document.querySelector("#panes")!.classList.remove("col-11")
+			document.querySelector("#panes")!.classList.add("col-8")
 		} else {
-			document.querySelector("#project-structure-bar")!.classList.remove('col-3')
-			document.querySelector("#project-structure-bar")!.classList.add('sidebar-false')
-			document.querySelector("#project-structure-bar")!.classList.remove('sidebar-true')
-			document.querySelector("#panes")!.classList.add('col-11')
-			document.querySelector("#panes")!.classList.remove('col-8')
+			document.querySelector("#project-structure-bar")!.classList.remove("col-3")
+			document.querySelector("#project-structure-bar")!.classList.add("sidebar-false")
+			document.querySelector("#project-structure-bar")!.classList.remove("sidebar-true")
+			document.querySelector("#panes")!.classList.add("col-11")
+			document.querySelector("#panes")!.classList.remove("col-8")
 		}
-		const data = this.getjsTreeObject()
 
-		;(window as any).$('#tree1').tree({
-			data: data,
+		;(window as any).$("#tree1").tree({
 			autoOpen: true,
 			dragAndDrop: true
 		})
+
+		;(window as any).$("#tree1").tree("loadData", this.getjqTreeObject())
 
 		;(window as any).$("#tree1").on(
 			"tree.click",
