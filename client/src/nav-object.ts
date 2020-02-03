@@ -15,7 +15,7 @@ interface SymbolKey {
 
 // values in cache
 export interface SymbolInfo extends lsp.DocumentSymbol {
-	children: SymbolInfo[]
+	isTopLevel: boolean
 	uri: string
 	module: string
 	children: SymbolInfo[]
