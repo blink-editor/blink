@@ -31,9 +31,12 @@ interface PaneObject {
 }
 
 interface TreeItem {
+	// jqtree
 	name: string
 	id: any
 	children?: TreeItem[]
+	// our custom stuff
+	rayBensSymbol?: SymbolInfo
 }
 
 class Editor {
@@ -533,6 +536,7 @@ class Editor {
 	getjsTreeObject(): TreeItem[] {
 		const symbolToTreeItem = (symbol: SymbolInfo): TreeItem => {
 			return {
+				rayBensSymbol: symbol,
 				name: symbol.name,
 				id: symbol.detail,
 				children: (symbol.children ?? []).map(symbolToTreeItem)
@@ -574,6 +578,17 @@ class Editor {
 			autoOpen: true,
 			dragAndDrop: true
 		})
+
+		;(window as any).$("#tree1").on(
+			"tree.click",
+			(e) => {
+				e.preventDefault()
+				const symbol = (e.node as TreeItem).rayBensSymbol
+				if (symbol) {
+					this.swapToSymbol(symbol)
+				}
+			}
+		)
 	}
 }
 
