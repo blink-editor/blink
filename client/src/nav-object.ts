@@ -6,25 +6,36 @@
 import * as lsp from "vscode-languageserver-protocol"
 import { LspClient } from "./langserver-client"
 
-// keys in cache
+// keys in symToInfo and usedSyms
 interface SymbolKey {
 	name: string
 	kind: lsp.SymbolKind
 	module: string
 }
 
-// values in cache
+// values in symToInfo
 export interface SymbolInfo extends lsp.DocumentSymbol {
 	children: SymbolInfo[]
 	uri: string
-	module: string
+	module: string // rayBensModule
+}
+
+// values in usedSyms
+export interface UsedSymbolInfo extends lsp.SymbolInformation {
+	module: string // rayBensModule
+	callees: string[] // keys
 }
 
 export class NavObject {
-	private symToInfo: Map<string, SymbolInfo> = new Map()
+	// maps stringified SymbolKey to SymbolInfo. Definition heirarchy of symbols in files.
+	private symToInfo: Map<string, SymbolInfo>
+	// maps stringified SymbolKey to UsedSymbolInfo. All usages of a symbol in file.
+	private usedSyms: Map<string, UsedSymbolInfo>
 	private client: LspClient
 
 	public constructor(client: LspClient) {
+		this.symToInfo = new Map()
+		this.usedSyms = new Map()
 		this.client = client
 	}
 
@@ -46,9 +57,9 @@ export class NavObject {
 	}
 
 	/*
-	 * Rebuilds symToInfo. Should be called on file load, return, save.
+	 * Rebuilds symToInfo and usedSyms. Should be called on file load, return, save.
 	 */
-	public rebuildMaps(symbols: lsp.DocumentSymbol[] | lsp.SymbolInformation[], uri: string) {
+	public rebuildMaps(definedSymbols: lsp.DocumentSymbol[] | lsp.SymbolInformation[], usedSymbols: lsp.SymbolInformation[], uri: string) {
 		// Used to check that the given parameter is type documentSymbol[]
 		function isDocumentSymbolArray(symbols: lsp.DocumentSymbol[] | lsp.SymbolInformation[]): symbols is lsp.DocumentSymbol[] {
 			return (symbols as lsp.DocumentSymbol[]).length === 0 || (symbols as lsp.DocumentSymbol[])[0].children !== undefined
@@ -57,8 +68,8 @@ export class NavObject {
 		// converst a DocumentSymbol to a SymbolInfo and returns it
 		const convertToSymbolInfo = (symbol: lsp.DocumentSymbol): SymbolInfo => {
 			// convert top-level
-			let module: string = (symbol as any)["rayBensModule"]
-			let symInfo: SymbolInfo = symbol as SymbolInfo
+			const module: string = (symbol as any)["rayBensModule"]
+			const symInfo: SymbolInfo = symbol as SymbolInfo
 			symInfo.module = module
 			symInfo.uri = uri
 
@@ -73,30 +84,60 @@ export class NavObject {
 		}
 
 		// check that response is DocumentSymbol[]
-		if (!isDocumentSymbolArray(symbols)) {
+		if (!isDocumentSymbolArray(definedSymbols)) {
 			throw new Error("expected DocumentSymbol[], got something else")
 		}
 
-		// clear all entries with the given uri
+		// clear all symToInfo entries with the given URI
 		for (const [key, symbol] of this.symToInfo) {
 			if (symbol.uri === uri) {
 				this.symToInfo.delete(key)
 			}
 		}
 
-		// add all symbols recieved to map
-		for (const symbol of symbols) {
+		// clear all usedSyms entries with the given URI
+		for (const [key, symbol] of this.usedSyms) {
+			if (symbol.location.uri === uri) {
+				this.usedSyms.delete(key)
+			}
+		}
+
+		// add all documentSymbols recieved to symToInfo
+		for (const symbol of definedSymbols) {
 			// create map key
 			const symKey: SymbolKey = {
 				name: symbol.name,
 				kind: symbol.kind,
-				module: (symbol as any)["rayBensModule"],
+				module: (symbol as any)["rayBensModule"]
 			}
 			// create map value
 			const symInfo: SymbolInfo = convertToSymbolInfo(symbol)
 			// add to map
 			this.symToInfo.set(this._symbolKeyToString(symKey), symInfo)
 		}
+
+		// add all unique-key symbolInformations recieved to usedSyms
+		for (const symbol of usedSymbols) {
+			// create map key
+			const symKey: SymbolKey = {
+				name: symbol.name,
+				kind: symbol.kind,
+				module: (symbol as any)["rayBensModule"]
+			}
+			// if not already added (unique-key)
+			if (this.usedSyms[this._symbolKeyToString(symKey)] === undefined) {
+				// create map value
+				const module: string = (symbol as any)["rayBensModule"]
+				const symInfo: UsedSymbolInfo = symbol as UsedSymbolInfo
+				symInfo.module = module
+				symInfo.location.uri = uri
+				symInfo.callees = []
+				// add to map
+				this.usedSyms.set(this._symbolKeyToString(symKey), symInfo)
+			}
+		}
+
+		// populate callees in usedSyms
 	}
 
 	/**
@@ -273,5 +314,10 @@ export class NavObject {
 		return [...this.symToInfo]
 			.filter(([key, symbol]) => symbol.uri === uri)
 			.map(([key, symbol]) => symbol)
+	}
+
+	// updates the linearization order according to user edits.
+	updateLinearization() {
+
 	}
 }

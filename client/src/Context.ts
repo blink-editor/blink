@@ -82,7 +82,7 @@ export class Context{
 	 *
 	 * @returns entire file
 	 */
-	getLinearizedCode(): string {
+	getLinearizedCode(): string { // TODO
 		return this.getSortedTopLevelSymbolNames()
 			.map((n) => this.topLevelSymbols[n].definitionString)
 			.join("\n\n") + this.topLevelCode
