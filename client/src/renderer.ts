@@ -541,6 +541,7 @@ class Editor {
 		let topLevelSymbols = this.navObject.findTopLevelSymbols(mainUri)
 
 		topLevelSymbols.forEach((symbol) => {
+
 			this.temp = {
 	        name: symbol.name, id: this.nextId(),
 	        children: [ // empty children list
@@ -623,6 +624,17 @@ class Editor {
 		    autoOpen: true,
 		    dragAndDrop: true
 		});
+
+
+		;(window as any).$('#tree1').on(
+		    'tree.click',
+		    function(event) {
+		        // The clicked node is 'event.node'
+		        var node = event.node;
+		        this.swapToSymbol(node.name);
+		        alert(node.name);
+		    }
+		);
 	}
 }
 
