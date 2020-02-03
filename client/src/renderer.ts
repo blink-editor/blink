@@ -104,6 +104,30 @@ class Editor {
 			})
 		})
 
+		const MacKeyBindings = {
+			"Cmd-S": () => this.saveFile(),
+			"Cmd-1": () => this.swapToCallee(0),
+			"Cmd-2": () => this.swapToCallee(1),
+			"Cmd-3": () => this.swapToCallee(2),
+			"Cmd-4": () => this.swapToCaller(0),
+			"Cmd-5": () => this.swapToCaller(1),
+			"Cmd-6": () => this.swapToCaller(2),
+			"Cmd-[": () => this.navBack(),
+			"Cmd-]": () => this.navForward(),
+		}
+
+		const WindowsKeyBindings = {
+			"Ctrl-S": () => this.saveFile(),
+			"Ctrl-1": () => this.swapToCallee(0),
+			"Ctrl-2": () => this.swapToCallee(1),
+			"Ctrl-3": () => this.swapToCallee(2),
+			"Ctrl-4": () => this.swapToCaller(0),
+			"Ctrl-5": () => this.swapToCaller(1),
+			"Ctrl-6": () => this.swapToCaller(2),
+			"Ctrl-[": () => this.navBack(),
+			"Ctrl-]": () => this.navForward(),
+		}
+
 		// create active editor pane
 		const activeEditor = CodeMirror(replacePaneElement("main-pane"), {
 			mode: "python",
@@ -112,67 +136,11 @@ class Editor {
 			gutters: ["CodeMirror-linenumbers", "CodeMirror-lsp"],
 			indentUnit: 4,
 			indentWithTabs: false,
-			extraKeys: {
+			extraKeys: Object.assign({
 				Tab: (cm) => {
 					if (cm.somethingSelected()) cm.execCommand("indentMore")
-					else cm.execCommand("insertSoftTab")
-				},
-				'Cmd-S': (cm) => {
-					this.saveFile()
-				},
-				'Cmd-1': (cm) => {
-					this.swapToCallee(0)
-				},
-				'Cmd-2': () => {
-					this.swapToCallee(1)
-				},
-				'Cmd-3': () => {
-					this.swapToCallee(2)
-				},
-				'Cmd-4': () => {
-					this.swapToCaller(0)
-				},
-				'Cmd-5': () => {
-					this.swapToCaller(1)
-				},
-				'Cmd-6': () => {
-					this.swapToCaller(2)
-				},
-				'Ctrl-S': (cm) => {
-					this.saveFile()
-				},
-				'Ctrl-1': (cm) => {
-					this.swapToCallee(0)
-				},
-				'Ctrl-2': () => {
-					this.swapToCallee(1)
-				},
-				'Ctrl-3': () => {
-					this.swapToCallee(2)
-				},
-				'Ctrl-4': () => {
-					this.swapToCaller(0)
-				},
-				'Ctrl-5': () => {
-					this.swapToCaller(1)
-				},
-				'Ctrl-6': () => {
-					this.swapToCaller(2)
-				},
-				'Cmd-[': () => {
-					this.navBack()
-				},
-				'Cmd-]': () => {
-					this.navForward()
-				},
-				'Ctrl-[': () => {
-					this.navBack()
-				},
-				'Ctrl-]': () => {
-					this.navForward()
-				},
-
-			},
+				}
+			}, (process.platform === "darwin") ? MacKeyBindings : WindowsKeyBindings),
 		})
 
 		this.activeEditorPane = {
