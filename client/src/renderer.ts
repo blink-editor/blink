@@ -30,6 +30,12 @@ interface PaneObject {
 	symbol: SymbolInfo | null
 }
 
+interface TreeItem {
+	name: string
+	id: any
+	children?: TreeItem[]
+}
+
 class Editor {
 	// program state
 	lspClient: client.LspClient
@@ -41,15 +47,6 @@ class Editor {
 	callerPanes: [PaneObject, PaneObject, PaneObject]
 
 	activeEditorPane: PaneObject
-
-	rednId: any = 0
-
-	data: any = []
-
-	// TODO: make this an array of arrays
-	obj:any[] = []
-
-	temp: any
 
 	pendingSwap: SymbolInfo | null = null
 
@@ -530,59 +527,25 @@ class Editor {
 		})
 	}
 
-
-	getjsTreeObject(): any[] {
-		// var obj:any[] = []
-
-		// let temp;
-
-		let mainUri = this.navObject.findMain()[0].uri
-
-		let topLevelSymbols = this.navObject.findTopLevelSymbols(mainUri)
-
-		topLevelSymbols.forEach((symbol) => {
-			this.temp = {
-	        name: symbol.name, id: this.nextId(),
-	        children: [ // empty children list
-	        ]
-	    	}
-			this.obj.push(this.temp)
-
-			if (!symbol.children || symbol.children.length == 0) {
-				// do nothing for now
-			} else {
-	    	symbol.children.forEach((childSymbol, index) => {
-	    		let parent = this.obj.find(x => {
-	    			return x.name == this.temp.name
-	    		})
-	    		// parent.children.push(this.temp)
-	    		// this.addToObj(childSymbol, this.temp)
-	    	})
+	getjsTreeObject(): TreeItem[] {
+		const symbolToTreeItem = (symbol: SymbolInfo): TreeItem => {
+			return {
+				name: symbol.name,
+				id: symbol.detail,
+				children: (symbol.children ?? []).map(symbolToTreeItem)
 			}
-		})  
+		}
 
-		return this.obj
-	}
-
-	// addToObj(symbol, parent) {
-	// 	if (!symbol.children || symbol.children.length == 0) {
-	// 		this.temp = {
-	//       name: symbol.name, id: this.nextId(),
-	//       children: [ // empty children list
-	//       ]
-	//     }
-	// 		parent.children.push({name: symbol.name, id: this.nextId(), 
-	// 			children: [
-	// 			]
-	// 		})
-	// 	} else {
-	// 		// recurse w/ addToObj
-	// 	}
-	// }
-	// TODO: Replace Id with a better identifier for symbols
-	nextId(): any  {
-		this.rednId++;
-		return this.rednId.toString()
+		return this.currentProject.contexts
+			.map((context) => {
+				const names = context.getSortedTopLevelSymbolNames()
+				return {
+					name: context.name,
+					id: context.uri,
+					children: names
+						.map((key) => symbolToTreeItem(context.topLevelSymbols[key].symbol))
+				}
+			})
 	}
 
 	toggleProjectStructure() {
@@ -601,34 +564,16 @@ class Editor {
 			document.querySelector("#panes")!.classList.add('col-11')
 			document.querySelector("#panes")!.classList.remove('col-8')
 		}
-		this.data = this.getjsTreeObject();
-		// var data = [
-	 //    {
-	 //        name: 'node1', id: 1,
-	 //        children: [
-	 //            { name: 'child1', id: 2 },
-	 //            { name: 'child2', id: 3 }
-	 //        ]
-	 //    },
-	 //    {
-	 //        name: 'node2', id: 4,
-	 //        children: [
-	 //            { name: 'child3', id: 5 }
-	 //        ]
-	 //    }
-		// ];
+		const data = this.getjsTreeObject()
 
 		;(window as any).$('#tree1').tree({
-		    data: this.data,
-		    autoOpen: true,
-		    dragAndDrop: true
-		});
+			data: data,
+			autoOpen: true,
+			dragAndDrop: true
+		})
 	}
 }
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 
 const editor = new Editor()
-
-
-
