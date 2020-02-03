@@ -521,8 +521,31 @@ class Editor {
 		return this.adapter.navObject.findCallees(symbol)
 	}
 
-	FindCallers(pos: lsp.TextDocumentPositionParams): Thenable<SymbolInfo[]> {
-		return this.adapter.navObject.findCallers(pos)
+	async FindCallers(pos: lsp.TextDocumentPositionParams): Promise<SymbolInfo[]> {
+		const locations = await this.adapter.navObject.findCallers(pos)
+
+		// ensure we have loaded the context for each location
+		const uris = new Set(locations.map((loc) => loc.uri))
+		const retrieveContexts = Array.from(uris).map((uri) =>
+			this.retrieveContextForUri(uri, "Not yet loaded")) // TODO: module name
+
+		await Promise.all(retrieveContexts)
+
+		const callers: SymbolInfo[] = []
+
+		// for each reference recieved, find parent scope
+		for (const loc of locations) {
+			const symbol = this.navObject.bestSymbolForLocation(loc)
+
+			// if no symbol was found, the reference is in the global scope, so ignore it
+			if (symbol === null) {
+				continue
+			}
+
+			callers.push(symbol)
+		}
+
+		return callers
 	}
 
 	ChangeOwnedFile = function(uri: string, contents: string): void {

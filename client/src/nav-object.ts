@@ -148,7 +148,7 @@ export class NavObject {
 	 * @param symPos  A position object representing the position of the name of the function to find callers of.
 	 * @returns       An array of DocumentSymbol objects with ranges that enclose the definitions of calling functions.
 	 */
-	findCallers(symPos: lsp.TextDocumentPositionParams): Thenable<SymbolInfo[]> {
+	findCallers(symPos: lsp.TextDocumentPositionParams): Thenable<lsp.Location[]> {
 		const request: lsp.ReferenceParams = {
 		  textDocument: symPos.textDocument,
 		  position: symPos.position,
@@ -158,21 +158,7 @@ export class NavObject {
 		}
 
 		return this.client.getReferencesWithRequest(request)
-			.then((response: lsp.Location[] | null) => {
-				const output: SymbolInfo[] = []
-
-				// for each reference recieved, find parent scope
-				for (const receivedRef of (response ?? [])) {
-					const symbol = this.bestSymbolForLocation(receivedRef)
-
-					// if no parents to caller, was called from global scope, so ignore it
-					if (symbol !== null) {
-						output.push(symbol)
-					}
-				}
-
-				return output
-			})
+			.then((response) => response ?? [])
 	}
 
 	/*
