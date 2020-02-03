@@ -16,6 +16,13 @@ export class Project {
 		this.directory = filePath
 	}
 
+	// TODO: this isn't language-agnostic
+	contextForUri(uri: string): Context | undefined {
+		return this.contexts
+			.filter((context) => context.uri == uri)
+			[0]
+	}
+
 	contextForSymbol(symbol: SymbolInfo | lsp.SymbolInformation): Context | undefined {
 		function isLspSymbolInformation(x: SymbolInfo | lsp.SymbolInformation): x is lsp.SymbolInformation {
 			return (x as lsp.SymbolInformation).location !== undefined
@@ -23,8 +30,6 @@ export class Project {
 
 		const uri = isLspSymbolInformation(symbol) ? symbol.location.uri : symbol.uri
 
-		return this.contexts
-			.filter((context) => context.uri == uri)
-			[0]
+		return this.contextForUri(uri)
 	}
 }

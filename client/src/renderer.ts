@@ -187,7 +187,7 @@ class Editor {
 			}, this.activeEditorPane.editor)
 
 			this.adapter.onChange = this.onFileChanged.bind(this)
-			this.adapter.onShouldSwap = this.swapToSymbol.bind(this)
+			this.adapter.onGoToLocation = this.goToLocation.bind(this)
 			this.adapter.getLineOffset = this.getFirstLineOfActiveSymbolWithinFile.bind(this)
 
 			this.lspClient.once("initialized", () => {
@@ -265,6 +265,18 @@ class Editor {
 		return lineno
 	}
 
+	async goToLocation(location: lsp.Location) {
+		const context = await this.retrieveContextForUri(location.uri, "Not yet loaded") // TODO: name
+		if (!context) {
+			console.warn("could not retrieve context for location", location)
+		}
+		// TODO: ask context for symbol instead
+		const locatedSymbol = this.navObject.bestSymbolForLocation(location)
+		if (locatedSymbol) {
+			this.swapToSymbol(locatedSymbol)
+		}
+	}
+
 	swapToCallee(index) {
 		if (index >= this.calleePanes.length) {
 			return
@@ -331,10 +343,10 @@ class Editor {
 		}
 	}
 
-	async retrieveContextForSymbol(symbol: SymbolInfo | lsp.SymbolInformation): Promise<Context | undefined> {
+	async retrieveContextForUri(uri: string, moduleName: string): Promise<Context | undefined> {
 		// obtain the definition string of the new symbol
 		const project = this.currentProject
-		let context = project.contextForSymbol(symbol)
+		let context = project.contextForUri(uri)
 
 		// if we are not "fresh" - meaning the user has inserted newlines
 		// then the line numbers for our caller and callee panes may be wrong
@@ -346,7 +358,7 @@ class Editor {
 				// TODO: this.pendingSwap
 				// TODO: this.navigateToUpdatedSymbol
 			} catch {
-				console.warn("could not build update for symbol", symbol)
+				console.warn("could not build update for context", context)
 				return undefined
 			}
 		}
@@ -354,19 +366,12 @@ class Editor {
 		// if the context wasn't found - meaning we haven't loaded this file
 		// then go ahead and load up the file
 		if (!context) {
-			function isLspSymbolInformation(x: SymbolInfo | lsp.SymbolInformation): x is lsp.SymbolInformation {
-				return (x as lsp.SymbolInformation).location !== undefined
-			}
-
-			const uri = isLspSymbolInformation(symbol) ? symbol.location.uri : symbol.uri
-			const symmodule = isLspSymbolInformation(symbol) ? (symbol as any)["rayBensModule"] : symbol.module
-
 			const url = new NodeURL(uri)
 			console.assert(url.protocol == "file:")
 
 			try {
 				const contents = await promisify(fs.readFile)(url, { encoding: "utf8" })
-				const newContext = new Context(symmodule, uri, contents)
+				const newContext = new Context(moduleName, uri, contents)
 
 				const navObject = await this.AnalyzeUri(newContext.uri, contents)
 				newContext.updateWithNavObject(navObject)
@@ -374,12 +379,23 @@ class Editor {
 				context = newContext
 				// TODO: this.navigateToUpdatedSymbol
 			} catch {
-				console.warn("could not build context for symbol", symbol)
+				console.warn("could not build context for uri", uri)
 				return undefined
 			}
 		}
 
 		return context
+	}
+
+	async retrieveContextForSymbol(symbol: SymbolInfo | lsp.SymbolInformation): Promise<Context | undefined> {
+		function isLspSymbolInformation(x: SymbolInfo | lsp.SymbolInformation): x is lsp.SymbolInformation {
+			return (x as lsp.SymbolInformation).location !== undefined
+		}
+
+		const uri = isLspSymbolInformation(symbol) ? symbol.location.uri : symbol.uri
+		const symmodule = isLspSymbolInformation(symbol) ? (symbol as any)["rayBensModule"] : symbol.module
+
+		return this.retrieveContextForUri(uri, symmodule)
 	}
 
 	async swapToSymbol(rawSymbol: SymbolInfo, updateStack: boolean = true) {
