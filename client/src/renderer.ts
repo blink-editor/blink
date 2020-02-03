@@ -328,8 +328,7 @@ class Editor {
 			}
 
 			const uri = isLspSymbolInformation(symbol) ? symbol.location.uri : symbol.uri
-			// TODO: Create context module name automatically from filename?
-			const symmodule = isLspSymbolInformation(symbol) ? "" : symbol.module
+			const symmodule = isLspSymbolInformation(symbol) ? (symbol as any)["rayBensModule"] : symbol.module
 
 			const url = new NodeURL(uri)
 			console.assert(url.protocol == "file:")
@@ -428,14 +427,18 @@ class Editor {
 		this.calleePanes.forEach((p) => p.symbol = null)
 		this.callerPanes.forEach((p) => p.symbol = null)
 
-		const uri = pathToFileURL(path.resolve(fileDir)).toString()
-		const context = new Context("primary", uri, text) // TODO: name
+		const url = pathToFileURL(path.resolve(fileDir))
+		// language server normalizes drive letter to lowercase, so follow
+		if (process.platform === "win32" && (url.pathname ?? "")[2] == ":")
+			url.pathname = "/" + url.pathname[1].toLowerCase() + url.pathname.slice(2)
+		const uri = url.toString()
+
 		this.currentProject = new Project("Untitled", fileDir)
 
 		// change file and kick off reanalysis to find main initially
-		this.ChangeOwnedFile(context.uri, context.fileString)
+		this.ChangeOwnedFile(uri, text)
 
-		const navObject = await this.AnalyzeUri(context.uri, text)
+		const navObject = await this.AnalyzeUri(uri, text)
 		this.navigateToUpdatedSymbol(navObject)
 	}
 
