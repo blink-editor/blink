@@ -541,43 +541,45 @@ class Editor {
 		let topLevelSymbols = this.navObject.findTopLevelSymbols(mainUri)
 
 		topLevelSymbols.forEach((symbol) => {
-			if (!symbol.children) {
-				this.temp = {
+			this.temp = {
 	        name: symbol.name, id: this.nextId(),
 	        children: [ // empty children list
 	        ]
 	    	}
-				this.obj.push(this.temp)
+			this.obj.push(this.temp)
+
+			if (!symbol.children || symbol.children.length == 0) {
+				// do nothing for now
 			} else {
-				this.temp = {
-	        name: symbol.name, id: this.nextId(),
-	        children: [ // empty children list
-	        ]
-	    	}
-	    	symbol.children.forEach((childSymbol) => {
-	    		this.addToObj(childSymbol)
+	    	symbol.children.forEach((childSymbol, index) => {
+	    		let parent = this.obj.find(x => {
+	    			return x.name == this.temp.name
+	    		})
+	    		// parent.children.push(this.temp)
+	    		// this.addToObj(childSymbol, this.temp)
 	    	})
-				// recurse w/ addToObj
 			}
 		}) 
 
 		return this.obj
 	}
 
-	addToObj(symbol) {
-		if (!symbol.children) {
-			this.temp = {
-	      name: symbol.name, id: this.nextId(),
-	      children: [ // empty children list
-	      ]
-	    }
-			this.obj.push(this.temp)
-			} else {
-				debugger
-			// recurse w/ addToObj
-		}
-	}
-
+	// addToObj(symbol, parent) {
+	// 	if (!symbol.children || symbol.children.length == 0) {
+	// 		this.temp = {
+	//       name: symbol.name, id: this.nextId(),
+	//       children: [ // empty children list
+	//       ]
+	//     }
+	// 		parent.children.push({name: symbol.name, id: this.nextId(), 
+	// 			children: [
+	// 			]
+	// 		})
+	// 	} else {
+	// 		// recurse w/ addToObj
+	// 	}
+	// }
+	// TODO: Replace Id with a better identifier for symbols
 	nextId(): any  {
 		this.rednId++;
 		return this.rednId.toString()
