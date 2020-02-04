@@ -380,6 +380,11 @@ export class CodeMirrorAdapter extends IEditorAdapter<CodeMirror.Editor> {
 	}
 
 	public handleDiagnostic(response: lsp.PublishDiagnosticsParams) {
+		if (response.uri !== this.document?.uri) {
+			console.warn("received diagnostics for uri", response.uri, "not ours", this.document?.uri)
+			return
+		}
+
 		this.editor.clearGutter("CodeMirror-lsp")
 		this.markedDiagnostics.forEach((marker) => {
 			marker.clear()
