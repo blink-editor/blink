@@ -487,6 +487,8 @@ class Editor {
 		this.calleePanes.forEach((p) => p.symbol = null)
 		this.callerPanes.forEach((p) => p.symbol = null)
 
+		this.navObject.reset()
+
 		const url = pathToFileURL(path.resolve(fileDir))
 		// language server normalizes drive letter to lowercase, so follow
 		if (process.platform === "win32" && (url.pathname ?? "")[2] == ":")

@@ -47,6 +47,13 @@ export class NavObject {
 	}
 
 	/*
+	 * Clears the symbol cache.
+	 */
+	public reset() {
+		this.symToInfo = new Map()
+	}
+
+	/*
 	 * Rebuilds symToInfo. Should be called on file load, return, save.
 	 */
 	public rebuildMaps(symbols: lsp.DocumentSymbol[] | lsp.SymbolInformation[], uri: string) {
