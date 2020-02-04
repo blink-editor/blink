@@ -4,7 +4,8 @@
 import * as fs from "fs"
 import * as path from "path"
 import { promisify } from "util"
-import { URL as NodeURL, pathToFileURL } from "url"
+import { URL as NodeURL, pathToFileURL, fileURLToPath } from "url"
+import { spawn } from "child_process"
 
 import * as electron from "electron"
 import CodeMirror from "codemirror"
@@ -628,6 +629,21 @@ class Editor {
 						return promisify(fs.writeFile)(result.filePath, context.fileString, { encoding: "utf8" })
 					})
 			}
+		})
+	}
+
+	runProject() {
+		const symbol = this.activeEditorPane.symbol
+		if (!symbol) { return }
+		const scriptPath = fileURLToPath(new NodeURL(symbol.uri))
+
+		const ls = spawn(
+			"python3",
+			[scriptPath]
+		)
+
+		ls.stdout.on("data", (data) => {
+			alert(data)
 		})
 	}
 
