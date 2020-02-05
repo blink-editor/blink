@@ -65,6 +65,7 @@ class Application {
 		const window = new BrowserWindow({
 			width: 1200,
 			height: 796,
+			backgroundColor: '#2e2c29',
 			webPreferences: {
 				// contextIsolation: true,
 				nodeIntegration: true // TODO: Set up web pack
