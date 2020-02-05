@@ -693,6 +693,4 @@ class Editor {
 	}
 }
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-
 const editor = new Editor()
