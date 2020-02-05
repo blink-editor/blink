@@ -187,7 +187,7 @@ class Editor {
 			}, this.activeEditorPane.editor)
 
 			this.adapter.onChange = this.onFileChanged.bind(this)
-			this.adapter.onShouldSwap = this.swapToSymbol.bind(this)
+			this.adapter.onGoToLocation = this.goToLocation.bind(this)
 			this.adapter.getLineOffset = this.getFirstLineOfActiveSymbolWithinFile.bind(this)
 
 			this.lspClient.once("initialized", () => {
@@ -197,10 +197,10 @@ class Editor {
 	}
 
 	openDemoFile() {
-		promisify(fs.readFile)("samples/sample.py", { encoding: "utf8" })
+		promisify(fs.readFile)("samples/modules/game.py", { encoding: "utf8" })
 			.then((sampleFileText) => {
 				console.assert(sampleFileText, "must load demo file text")
-				this.setFile(sampleFileText ?? "", "samples/sample.py")
+				this.setFile(sampleFileText ?? "", "samples/modules/game.py")
 			})
 	}
 
@@ -263,6 +263,18 @@ class Editor {
 		console.assert(found)
 
 		return lineno
+	}
+
+	async goToLocation(location: lsp.Location) {
+		const context = await this.retrieveContextForUri(location.uri, "Not yet loaded") // TODO: name
+		if (!context) {
+			console.warn("could not retrieve context for location", location)
+		}
+		// TODO: ask context for symbol instead
+		const locatedSymbol = this.navObject.bestSymbolForLocation(location)
+		if (locatedSymbol) {
+			this.swapToSymbol(locatedSymbol)
+		}
 	}
 
 	swapToCallee(index) {
@@ -331,10 +343,10 @@ class Editor {
 		}
 	}
 
-	async retrieveContextForSymbol(symbol: SymbolInfo | lsp.SymbolInformation): Promise<Context | undefined> {
+	async retrieveContextForUri(uri: string, moduleName: string): Promise<Context | undefined> {
 		// obtain the definition string of the new symbol
 		const project = this.currentProject
-		let context = project.contextForSymbol(symbol)
+		let context = project.contextForUri(uri)
 
 		// if we are not "fresh" - meaning the user has inserted newlines
 		// then the line numbers for our caller and callee panes may be wrong
@@ -346,7 +358,7 @@ class Editor {
 				// TODO: this.pendingSwap
 				// TODO: this.navigateToUpdatedSymbol
 			} catch {
-				console.warn("could not build update for symbol", symbol)
+				console.warn("could not build update for context", context)
 				return undefined
 			}
 		}
@@ -354,19 +366,12 @@ class Editor {
 		// if the context wasn't found - meaning we haven't loaded this file
 		// then go ahead and load up the file
 		if (!context) {
-			function isLspSymbolInformation(x: SymbolInfo | lsp.SymbolInformation): x is lsp.SymbolInformation {
-				return (x as lsp.SymbolInformation).location !== undefined
-			}
-
-			const uri = isLspSymbolInformation(symbol) ? symbol.location.uri : symbol.uri
-			const symmodule = isLspSymbolInformation(symbol) ? (symbol as any)["rayBensModule"] : symbol.module
-
 			const url = new NodeURL(uri)
 			console.assert(url.protocol == "file:")
 
 			try {
 				const contents = await promisify(fs.readFile)(url, { encoding: "utf8" })
-				const newContext = new Context(symmodule, uri, contents)
+				const newContext = new Context(moduleName, uri, contents)
 
 				const navObject = await this.AnalyzeUri(newContext.uri, contents)
 				newContext.updateWithNavObject(navObject)
@@ -374,12 +379,23 @@ class Editor {
 				context = newContext
 				// TODO: this.navigateToUpdatedSymbol
 			} catch {
-				console.warn("could not build context for symbol", symbol)
+				console.warn("could not build context for uri", uri)
 				return undefined
 			}
 		}
 
 		return context
+	}
+
+	async retrieveContextForSymbol(symbol: SymbolInfo | lsp.SymbolInformation): Promise<Context | undefined> {
+		function isLspSymbolInformation(x: SymbolInfo | lsp.SymbolInformation): x is lsp.SymbolInformation {
+			return (x as lsp.SymbolInformation).location !== undefined
+		}
+
+		const uri = isLspSymbolInformation(symbol) ? symbol.location.uri : symbol.uri
+		const symmodule = isLspSymbolInformation(symbol) ? (symbol as any)["rayBensModule"] : symbol.module
+
+		return this.retrieveContextForUri(uri, symmodule)
 	}
 
 	async swapToSymbol(rawSymbol: SymbolInfo, updateStack: boolean = true) {
@@ -397,22 +413,9 @@ class Editor {
 			this.curNavStackIndex = this.navStack.length - 1
 		}
 
-		// fetch new callees
+		// fetch new callees and callers
 		const calleesAsync = this.FindCallees(symbol)
-
-		// TODO: make this language-agnostic
-		// determine where the cursor should be before the name of the symbol
-		const nameStartPos =
-			(symbol.kind === 5 /* SymbolKind.Class */) ? 6 // class Foo
-			: (symbol.kind === 13 /* SymbolKind.Variable */) ? 0 // foo = 5
-			: (symbol.kind === 14 /* SymbolKind.Constant */) ? 0 // foo = 5
-			: 4 // def foo
-
-		// fetch new callers
-		const callersAsync = this.FindCallers({
-			textDocument: { uri: symbol.uri },
-			position: { line: symbol.range.start.line, character: nameStartPos },
-		})
+		const callersAsync = this.FindCallers(symbol)
 
 		// don't update any panes / props until done
 		const [callees, callers] = await Promise.all([calleesAsync, callersAsync])
@@ -484,6 +487,8 @@ class Editor {
 		this.calleePanes.forEach((p) => p.symbol = null)
 		this.callerPanes.forEach((p) => p.symbol = null)
 
+		this.navObject.reset()
+
 		const url = pathToFileURL(path.resolve(fileDir))
 		// language server normalizes drive letter to lowercase, so follow
 		if (process.platform === "win32" && (url.pathname ?? "")[2] == ":")
@@ -505,8 +510,49 @@ class Editor {
 		return this.adapter.navObject.findCallees(symbol)
 	}
 
-	FindCallers(pos: lsp.TextDocumentPositionParams): Thenable<SymbolInfo[]> {
-		return this.adapter.navObject.findCallers(pos)
+	async FindCallers(targetSymbol: SymbolInfo): Promise<SymbolInfo[]> {
+		// TODO: make this language-agnostic
+		// determine where the cursor should be before the name of the symbol
+		const nameStartPos =
+			(targetSymbol.kind === 5 /* SymbolKind.Class */) ? 6 // class Foo
+			: (targetSymbol.kind === 13 /* SymbolKind.Variable */) ? 0 // foo = 5
+			: (targetSymbol.kind === 14 /* SymbolKind.Constant */) ? 0 // foo = 5
+			: 4 // def foo
+
+		const locations = await this.adapter.navObject.findCallers({
+			textDocument: { uri: targetSymbol.uri },
+			position: { line: targetSymbol.range.start.line, character: nameStartPos },
+		})
+
+		// ensure we have loaded the context for each location
+		const uris = new Set(locations.map((loc) => loc.uri))
+		const retrieveContexts = Array.from(uris).map((uri) =>
+			this.retrieveContextForUri(uri, "Not yet loaded")) // TODO: module name
+
+		await Promise.all(retrieveContexts)
+
+		const callers: SymbolInfo[] = []
+
+		// for each reference recieved, find parent scope
+		for (const loc of locations) {
+			const symbol = this.navObject.bestSymbolForLocation(loc)
+
+			// if no symbol was found, the reference is in the global scope, so ignore it
+			if (symbol === null) {
+				continue
+			}
+
+			// if the symbol's own definition is found, skip it
+			if (symbol.name === targetSymbol.name
+					&& symbol.kind === targetSymbol.kind
+					&& symbol.uri === targetSymbol.uri) {
+				continue
+			}
+
+			callers.push(symbol)
+		}
+
+		return callers
 	}
 
 	ChangeOwnedFile = function(uri: string, contents: string): void {

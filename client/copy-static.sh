@@ -22,4 +22,4 @@ cp ./node_modules/jqtree/jqtree.css ./dist/node_modules/jqtree/jqtree.css
 # cp ./node_modules/jquery-easing/dist/jquery.easing.1.3.umd.min.js ./dist/node_modules/jquery-easing/dist/jquery.easing.1.3.umd.min.js
 cp ./node_modules/@fortawesome/fontawesome-free/css/all.min.css ./dist/node_modules/@fortawesome/fontawesome-free/css/all.min.css
 cp ./node_modules/@fortawesome/fontawesome-free/webfonts/* ./dist/node_modules/@fortawesome/fontawesome-free/webfonts/
-cp ./samples/* ./dist/samples/
+cp -r ./samples/* ./dist/samples/

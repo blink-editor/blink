@@ -15,7 +15,7 @@ interface SymbolKey {
 
 // values in cache
 export interface SymbolInfo extends lsp.DocumentSymbol {
-	children: SymbolInfo[]
+	isTopLevel: boolean
 	uri: string
 	module: string
 	children: SymbolInfo[]
@@ -44,6 +44,13 @@ export class NavObject {
 	_stringToSymbolKey(str: string): SymbolKey {
 		const arr = JSON.parse(str)
 		return { name: arr[0], kind: arr[1], module: arr[2] }
+	}
+
+	/*
+	 * Clears the symbol cache.
+	 */
+	public reset() {
+		this.symToInfo = new Map()
 	}
 
 	/*
@@ -105,15 +112,17 @@ export class NavObject {
 	 * @param loc location of desired symbol
 	 */
 	bestSymbolForLocation(loc: lsp.Location): SymbolInfo | null {
-		const findParentOfRange = (symbols: SymbolInfo[], range: lsp.Range, bestSymbol: SymbolInfo | null, bestScore: number | null): [SymbolInfo | null, number | null] => {
+		const findParentOfRange = (symbols: SymbolInfo[], location: lsp.Location, bestSymbol: SymbolInfo | null, bestScore: number | null): [SymbolInfo | null, number | null] => {
 			if (!symbols) {
 				return [bestSymbol, bestScore]
 			}
 
 			// search for tightest enclosing scope for this reference
 			for (const symbol of symbols) {
+				const range = location.range
 				// test if symbol is the tightest known bound around range
-				if (((symbol.range.start.line <= range.start.line && symbol.range.end.line >= range.end.line) // range entirely within cachedRange (inclusive)
+				if (symbol.uri === location.uri
+						&& ((symbol.range.start.line <= range.start.line && symbol.range.end.line >= range.end.line) // range entirely within cachedRange (inclusive)
 						|| ((symbol.range.start.line === range.start.line && symbol.range.start.character <= range.start.character)
 							&& (symbol.range.end.line === range.end.line && symbol.range.end.character >= range.end.character)))
 						&& (bestScore === null || symbol.range.end.line - symbol.range.start.line < bestScore) // tightest line bound so far
@@ -124,7 +133,7 @@ export class NavObject {
 				}
 				// test if children have tighter bound
 				if (symbol.children !== null && symbol.children !== undefined) {
-					const [bestSymbolOfChildren, bestScoreOfChildren] = findParentOfRange(symbol.children, range, bestSymbol, bestScore)
+					const [bestSymbolOfChildren, bestScoreOfChildren] = findParentOfRange(symbol.children, location, bestSymbol, bestScore)
 
 					if (bestScore === null || (bestScoreOfChildren !== null && bestScore !== null && bestScoreOfChildren < bestScore)) {
 						bestScore = bestScoreOfChildren
@@ -136,7 +145,7 @@ export class NavObject {
 			return [bestSymbol, bestScore]
 		}
 
-		const [symbol, score] = findParentOfRange(Array.from(this.symToInfo.values()), loc.range, null, null)
+		const [symbol, score] = findParentOfRange(Array.from(this.symToInfo.values()), loc, null, null)
 
 		return symbol
 	}
@@ -146,7 +155,7 @@ export class NavObject {
 	 * @param symPos  A position object representing the position of the name of the function to find callers of.
 	 * @returns       An array of DocumentSymbol objects with ranges that enclose the definitions of calling functions.
 	 */
-	findCallers(symPos: lsp.TextDocumentPositionParams): Thenable<SymbolInfo[]> {
+	findCallers(symPos: lsp.TextDocumentPositionParams): Thenable<lsp.Location[]> {
 		const request: lsp.ReferenceParams = {
 		  textDocument: symPos.textDocument,
 		  position: symPos.position,
@@ -156,21 +165,7 @@ export class NavObject {
 		}
 
 		return this.client.getReferencesWithRequest(request)
-			.then((response: lsp.Location[] | null) => {
-				const output: SymbolInfo[] = []
-
-				// for each reference recieved, find parent scope
-				for (const receivedRef of (response ?? [])) {
-					const symbol = this.bestSymbolForLocation(receivedRef)
-
-					// if no parents to caller, was called from global scope, so ignore it
-					if (symbol !== null) {
-						output.push(symbol)
-					}
-				}
-
-				return output
-			})
+			.then((response) => response ?? [])
 	}
 
 	/*

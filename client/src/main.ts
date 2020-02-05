@@ -67,7 +67,6 @@ class Application {
 			height: 796,
 			webPreferences: {
 				// contextIsolation: true,
-				preload: path.join(__dirname, "preload.js"),
 				nodeIntegration: true // TODO: Set up web pack
 			},
 		})
