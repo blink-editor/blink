@@ -675,7 +675,8 @@ class Editor {
 
 		;(window as any).$("#tree1").tree({
 			autoOpen: true,
-			dragAndDrop: false
+			dragAndDrop: false,
+			color: "white"
 		})
 
 		;(window as any).$("#tree1").tree("loadData", this.getjqTreeObject())
