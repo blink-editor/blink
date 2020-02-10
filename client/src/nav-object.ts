@@ -7,7 +7,7 @@ import * as lsp from "vscode-languageserver-protocol"
 import { LspClient } from "./langserver-client"
 
 // keys in symToInfo and usedSyms
-interface SymbolKey {
+export interface SymbolKey {
 	name: string
 	kind: lsp.SymbolKind
 	module: string
@@ -15,27 +15,28 @@ interface SymbolKey {
 
 // values in symToInfo
 export interface SymbolInfo extends lsp.DocumentSymbol {
-	children: SymbolInfo[]
-	uri: string
 	module: string // rayBensModule
+	uri: string
+	children: SymbolInfo[] | undefined
 }
 
 // values in usedSyms
-export interface UsedSymbolInfo extends lsp.SymbolInformation {
+export interface SymbolCalleeInfo extends lsp.DocumentSymbol {
 	module: string // rayBensModule
+	uri: string
 	callees: string[] // keys
 }
 
 export class NavObject {
 	// maps stringified SymbolKey to SymbolInfo. Definition heirarchy of symbols in files.
 	private symToInfo: Map<string, SymbolInfo>
-	// maps stringified SymbolKey to UsedSymbolInfo. All usages of a symbol in file.
-	private usedSyms: Map<string, UsedSymbolInfo>
+	// maps stringified SymbolKey to SymbolCalleeInfo. Dependency map of symbols in files.
+	private symCallees: Map<string, SymbolCalleeInfo>
 	private client: LspClient
 
 	public constructor(client: LspClient) {
 		this.symToInfo = new Map()
-		this.usedSyms = new Map()
+		this.symCallees = new Map()
 		this.client = client
 	}
 
@@ -59,10 +60,15 @@ export class NavObject {
 	/*
 	 * Rebuilds symToInfo and usedSyms. Should be called on file load, return, save.
 	 */
-	public rebuildMaps(definedSymbols: lsp.DocumentSymbol[] | lsp.SymbolInformation[], usedSymbols: lsp.SymbolInformation[], uri: string) {
+	public rebuildMaps(definedSymbols: lsp.DocumentSymbol[] | lsp.SymbolInformation[], usedSymbols: lsp.SymbolInformation[] | lsp.DocumentSymbol[], uri: string) {
 		// Used to check that the given parameter is type documentSymbol[]
 		function isDocumentSymbolArray(symbols: lsp.DocumentSymbol[] | lsp.SymbolInformation[]): symbols is lsp.DocumentSymbol[] {
 			return (symbols as lsp.DocumentSymbol[]).length === 0 || (symbols as lsp.DocumentSymbol[])[0].children !== undefined
+		}
+
+		// Used to check that the given parameter is type symbolInformation[]
+		function isSymbolInformationArray(symbols: lsp.SymbolInformation[] | lsp.DocumentSymbol[]): symbols is lsp.SymbolInformation[] {
+			return (symbols as lsp.SymbolInformation[]).length === 0 || (symbols as lsp.SymbolInformation[])[0].location !== undefined
 		}
 
 		// converst a DocumentSymbol to a SymbolInfo and returns it
@@ -83,9 +89,41 @@ export class NavObject {
 			return symInfo
 		}
 
-		// check that response is DocumentSymbol[]
+		// adds a DocumentSymbol to symCallees, along with its children
+		const addToCalleeMapWithChildren = (symbol: lsp.DocumentSymbol) => {
+			// convert top-level
+			const module: string = (symbol as any)["rayBensModule"]
+			const symInfo: SymbolCalleeInfo = symbol as SymbolCalleeInfo
+			symInfo.module = module
+			symInfo.uri = uri
+			symInfo.callees = []
+
+			// convert children
+			if (symbol.children !== null && symbol.children !== undefined) {
+				for (const child of symbol.children) {
+					addToCalleeMapWithChildren(child)
+				}
+			}
+
+			// create map key
+			const symKey: SymbolKey = {
+				name: symbol.name,
+				kind: symbol.kind,
+				module: (symbol as any)["rayBensModule"]
+			}
+
+			// add to map
+			this.symCallees.set(this._symbolKeyToString(symKey), symInfo)
+		}
+
+		// check that definedSymbols is DocumentSymbol[]
 		if (!isDocumentSymbolArray(definedSymbols)) {
 			throw new Error("expected DocumentSymbol[], got something else")
+		}
+
+		// check that usedSymbols is DocumentSymbol[]
+		if (!isSymbolInformationArray(usedSymbols)) {
+			throw new Error("expected SymbolInformation[], got something else")
 		}
 
 		// clear all symToInfo entries with the given URI
@@ -96,48 +134,61 @@ export class NavObject {
 		}
 
 		// clear all usedSyms entries with the given URI
-		for (const [key, symbol] of this.usedSyms) {
-			if (symbol.location.uri === uri) {
-				this.usedSyms.delete(key)
+		for (const [key, symbol] of this.symCallees) {
+			if (symbol.uri === uri) {
+				this.symCallees.delete(key)
 			}
 		}
 
 		// add all documentSymbols recieved to symToInfo
 		for (const symbol of definedSymbols) {
-			// create map key
+			// create symToInfo key
 			const symKey: SymbolKey = {
 				name: symbol.name,
 				kind: symbol.kind,
 				module: (symbol as any)["rayBensModule"]
 			}
-			// create map value
+			// create symToInfo value
 			const symInfo: SymbolInfo = convertToSymbolInfo(symbol)
-			// add to map
+			// add to symToInfo
 			this.symToInfo.set(this._symbolKeyToString(symKey), symInfo)
-		}
 
-		// add all unique-key symbolInformations recieved to usedSyms
-		for (const symbol of usedSymbols) {
-			// create map key
-			const symKey: SymbolKey = {
-				name: symbol.name,
-				kind: symbol.kind,
-				module: (symbol as any)["rayBensModule"]
-			}
-			// if not already added (unique-key)
-			if (this.usedSyms[this._symbolKeyToString(symKey)] === undefined) {
-				// create map value
-				const module: string = (symbol as any)["rayBensModule"]
-				const symInfo: UsedSymbolInfo = symbol as UsedSymbolInfo
-				symInfo.module = module
-				symInfo.location.uri = uri
-				symInfo.callees = []
-				// add to map
-				this.usedSyms.set(this._symbolKeyToString(symKey), symInfo)
-			}
+			// add to symCallees
+			addToCalleeMapWithChildren(symbol)
 		}
 
 		// populate callees in usedSyms
+		console.log(this.symCallees)
+		const ignoredKinds: lsp.SymbolKind[] = [lsp.SymbolKind.Function, lsp.SymbolKind.Class]
+		for (const [docSymKey, docSymbol] of this.symToInfo) {
+			if (docSymbol.uri !== uri)
+				continue
+
+			for (const usedSymbol of usedSymbols) {
+				const docRange = docSymbol.range
+				const usedRange = (usedSymbol as any)["rayBensUsageRange"]
+				// if usedRange within docRange && if order matters in relationship && if usedDef is in file,
+				// then docSymbol is dependent on usedSymbol
+				if (((docRange.start.line <= usedRange.start.line && docRange.end.line >= usedRange.end.line)
+						|| ((docRange.start.line === usedRange.start.line && docRange.start.character <= usedRange.start.character)
+							&& (docRange.end.line === usedRange.end.line && docRange.end.character >= usedRange.end.character)))
+					&& !(ignoredKinds.includes(docSymbol.kind) && ignoredKinds.includes(usedSymbol.kind))
+					&& (usedSymbol.location.uri === uri)
+				) {
+					console.log("FOUND DEPENDENT")
+					const calleeKey: SymbolKey = {
+						name: usedSymbol.name,
+						kind: usedSymbol.kind,
+						module: (usedSymbol as any)["rayBensModule"]
+					}
+					console.log(docSymKey)
+					console.log(this.symCallees.get(docSymKey))
+					this.symCallees.get(docSymKey)?.callees.push(this._symbolKeyToString(calleeKey))
+				}
+			}
+		}
+		console.log("DONE")
+		console.log(this.symCallees)
 	}
 
 	/**
@@ -154,10 +205,10 @@ export class NavObject {
 			for (const symbol of symbols) {
 				// test if symbol is the tightest known bound around range
 				if (((symbol.range.start.line <= range.start.line && symbol.range.end.line >= range.end.line) // range entirely within cachedRange (inclusive)
-						|| ((symbol.range.start.line === range.start.line && symbol.range.start.character <= range.start.character)
-							&& (symbol.range.end.line === range.end.line && symbol.range.end.character >= range.end.character)))
-						&& (bestScore === null || symbol.range.end.line - symbol.range.start.line < bestScore) // tightest line bound so far
-						&& (symbol.kind !== lsp.SymbolKind.Variable) // is not a variable declaration
+					|| ((symbol.range.start.line === range.start.line && symbol.range.start.character <= range.start.character)
+						&& (symbol.range.end.line === range.end.line && symbol.range.end.character >= range.end.character)))
+					&& (bestScore === null || symbol.range.end.line - symbol.range.start.line < bestScore) // tightest line bound so far
+					&& (symbol.kind !== lsp.SymbolKind.Variable) // is not a variable declaration
 					) {
 						bestScore = symbol.range.end.line - symbol.range.start.line
 						bestSymbol = symbol
@@ -204,7 +255,7 @@ export class NavObject {
 					const symbol = this.bestSymbolForLocation(receivedRef)
 
 					// if no parents to caller, was called from global scope, so ignore it
-					if (symbol !== null) {
+					if (symbol) {
 						output.push(symbol)
 					}
 				}
@@ -272,7 +323,7 @@ export class NavObject {
 				}
 				// if not it, search children
 				else {
-					let result: SymbolInfo | undefined = symInfo.children !== null ? findSymbolByKey(key, symInfo.children) : undefined
+					let result: SymbolInfo | undefined = symInfo.children ? findSymbolByKey(key, symInfo.children) : undefined
 					// if found, return it, else continue search
 					if (result !== undefined) {
 						return result
@@ -290,7 +341,7 @@ export class NavObject {
 	findMain(): SymbolInfo[] {
 		// finds all symbols with the given name (case-insensitive)
 		const findSymbolByName = (name: string, symbols: SymbolInfo[]): SymbolInfo[] => {
-			let results: SymbolInfo[] = []
+			const results: SymbolInfo[] = []
 			// search given symbols
 			for (const symInfo of symbols) {
 				if (symInfo.name.toLowerCase() === name.toLowerCase() && (symInfo.kind === lsp.SymbolKind.Function || symInfo.kind === lsp.SymbolKind.Method)) {
@@ -298,14 +349,14 @@ export class NavObject {
 				}
 				// search children
 				else {
-					let result: SymbolInfo[] = symInfo.children !== null ? findSymbolByName(name, symInfo.children) : []
+					const result: SymbolInfo[] = symInfo.children ? findSymbolByName(name, symInfo.children) : []
 					results.concat(result)
 				}
 			}
 
 			return results
 		}
-
+		console.log(this.symToInfo)
 		return findSymbolByName("main", Array.from(this.symToInfo.values()))
 
 	}

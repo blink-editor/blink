@@ -551,9 +551,10 @@ class Editor {
 				initialText: contents,
 			})
 		}
-		return this.lspClient.getDocumentSymbol(uri)
-			.then((symbols) => {
-				this.navObject.rebuildMaps(symbols ?? [], uri)
+
+		return Promise.all([this.lspClient.getDocumentSymbol(uri), this.lspClient.getUsedDocumentSymbols(uri)])
+			.then(([docSymbols, usedSymbols]) => {
+				this.navObject.rebuildMaps(docSymbols ?? [], usedSymbols ?? [], uri)
 				return this.navObject
 			})
 	}
