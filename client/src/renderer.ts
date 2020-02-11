@@ -54,6 +54,11 @@ class Editor {
 
 	activeEditorPane: PaneObject
 
+	calleesOfActive: lsp.SymbolInformation[] = []
+	callersOfActive: SymbolInfo[] = []
+	calleeIndex = 0
+	callerIndex = 0
+
 	pendingSwap: SymbolInfo | null = null
 
 	projectStructureToggled: boolean = false
@@ -116,28 +121,15 @@ class Editor {
 		})
 
 		const MacKeyBindings = {
-			"Cmd-S": () => this.saveFile(),
-			"Cmd-1": () => this.swapToCallee(0),
-			"Cmd-2": () => this.swapToCallee(1),
-			"Cmd-3": () => this.swapToCallee(2),
-			"Cmd-4": () => this.swapToCaller(0),
-			"Cmd-5": () => this.swapToCaller(1),
-			"Cmd-6": () => this.swapToCaller(2),
 			"Cmd-[": () => this.navBack(),
 			"Cmd-]": () => this.navForward(),
 		}
 
 		const WindowsKeyBindings = {
-			"Ctrl-S": () => this.saveFile(),
-			"Ctrl-1": () => this.swapToCallee(0),
-			"Ctrl-2": () => this.swapToCallee(1),
-			"Ctrl-3": () => this.swapToCallee(2),
-			"Ctrl-4": () => this.swapToCaller(0),
-			"Ctrl-5": () => this.swapToCaller(1),
-			"Ctrl-6": () => this.swapToCaller(2),
 			"Ctrl-[": () => this.navBack(),
 			"Ctrl-]": () => this.navForward(),
 		}
+
 
 		// create active editor pane
 		const activeEditor = CodeMirror(replacePaneElement("main-pane"), {
@@ -152,6 +144,7 @@ class Editor {
 					if (cm.somethingSelected()) cm.execCommand("indentMore")
 				}
 			}, (process.platform === "darwin") ? MacKeyBindings : WindowsKeyBindings),
+
 		})
 
 		this.activeEditorPane = {
@@ -166,6 +159,28 @@ class Editor {
 			this.connectToServer()
 		})
 		electron.ipcRenderer.send("try-starting-server")
+
+		// listen for keyboard shortcut events from the main process menu
+		const onShortcut = (name, fn) => electron.ipcRenderer.on(name, fn)
+		onShortcut("Open", () => this.openFile())
+		onShortcut("Save", () => this.saveFile())
+		onShortcut("PanePageRight", () => this.panePageRight())
+		onShortcut("PanePageLeft", () => this.panePageLeft())
+		onShortcut("PanePageUp", () => this.panePageUp())
+		onShortcut("PanePageDown", () => this.panePageDown())
+		onShortcut("JumpPane1", () => this.swapToCallee(0))
+		onShortcut("JumpPane2", () => this.swapToCallee(1))
+		onShortcut("JumpPane3", () => this.swapToCallee(2))
+		onShortcut("JumpPane4", () => this.swapToCaller(0))
+		onShortcut("JumpPane5", () => this.swapToCaller(1))
+		onShortcut("JumpPane6", () => this.swapToCaller(2))
+		onShortcut("NavigateBack", () => this.navBack())
+		onShortcut("navigateForward", () => this.navForward())
+		onShortcut("Undo", () => this.activeEditorPane.editor.undo())
+		onShortcut("Redo", () => this.activeEditorPane.editor.redo())
+		onShortcut("SelectAll", () => {
+			CodeMirror.commands.selectAll(this.activeEditorPane.editor)
+		})
 	}
 
 	/**
@@ -291,6 +306,28 @@ class Editor {
 		}
 
 		this.swapToSymbol(this.callerPanes[index].symbol!)
+	}
+
+	panePageUp() {
+		this.calleeIndex = Math.max(this.calleeIndex - 3, 0)
+		this.updatePreviewPanes()
+	}
+
+	panePageDown() {
+		const maxIndex = Math.max(Math.floor((this.calleesOfActive.length - 1) / 3) * 3, 0)
+		this.calleeIndex = Math.min(this.calleeIndex + 3, maxIndex)
+		this.updatePreviewPanes()
+	}
+
+	panePageLeft() {
+		this.callerIndex = Math.max(this.callerIndex - 3, 0)
+		this.updatePreviewPanes()
+	}
+
+	panePageRight() {
+		const maxIndex = Math.max(Math.floor((this.callersOfActive.length - 1) / 3) * 3, 0)
+		this.callerIndex = Math.min(this.callerIndex + 3, maxIndex)
+		this.updatePreviewPanes()
 	}
 
 	navigateToUpdatedSymbol(navObject: NavObject) {
@@ -423,14 +460,24 @@ class Editor {
 		// populate panes
 		this.activeEditorPane.symbol = symbol
 		this.activeEditorPane.editor.setValue(contents)
+		// TODO: keep history per-symbol?
+		this.activeEditorPane.editor.clearHistory()
 		this.activeEditorPane.context.textContent = context.name
 
 		// change which file we're tracking as "currently editing"
 		this.ChangeOwnedFile(context.uri, context.fileString)
 
 		// new callers/callees are fetched ones
-		for (let i = 0; i < 3; i++) {
-			const assignSymbols = async (symbols, panes) => {
+		this.calleesOfActive = callees
+		this.callersOfActive = callers
+		this.calleeIndex = 0
+		this.callerIndex = 0
+		this.updatePreviewPanes()
+	}
+
+	updatePreviewPanes() {
+		const assignSymbols = async (symbols, index, panes) => {
+			for (let i = index; i < index + 3; i++) {
 				let paneSymbolToSet: SymbolInfo | null = null
 				let paneContentToSet: string | null = null
 				let paneContextStringToSet: string | null = null
@@ -453,14 +500,14 @@ class Editor {
 					}
 				}
 
-				panes[i].symbol = paneSymbolToSet
-				panes[i].editor.setValue(paneContentToSet ?? "")
-				panes[i].context.textContent = paneContextStringToSet ?? "(no symbol)"
+				panes[i - index].symbol = paneSymbolToSet
+				panes[i - index].editor.setValue(paneContentToSet ?? "")
+				panes[i - index].context.textContent = paneContextStringToSet ?? "(no symbol)"
 			}
-
-			assignSymbols(callees, this.calleePanes)
-			assignSymbols(callers, this.callerPanes)
 		}
+
+		assignSymbols(this.calleesOfActive, this.calleeIndex, this.calleePanes)
+		assignSymbols(this.callersOfActive, this.callerIndex, this.callerPanes)
 	}
 
 	navBack() {
@@ -473,7 +520,7 @@ class Editor {
 	}
 
 	navForward() {
-		if (this.navStack.length > 0 && this.navStack.length - 1 >= this.curNavStackIndex) {
+		if (this.navStack.length > 0 && this.navStack.length - 1 > this.curNavStackIndex) {
 			this.curNavStackIndex += 1
 			this.swapToSymbol(this.navStack[this.curNavStackIndex], false)
 		} else {
