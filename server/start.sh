@@ -1,2 +1,2 @@
 #!/usr/bin/env sh
-pipenv run pyls --tcp -vv
+poetry run python3 -m "python-language-server.pyls" --tcp -vv

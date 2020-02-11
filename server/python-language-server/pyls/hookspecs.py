@@ -53,12 +53,12 @@ def pyls_document_highlight(config, workspace, document, position):
 
 
 @hookspec
-def pyls_used_document_symbols(config, workspace, document):
+def pyls_document_symbols(config, workspace, document):
     pass
 
 
 @hookspec
-def pyls_document_symbols(config, workspace, document):
+def pyls_used_document_symbols(config, workspace, document):
     pass
 
 
@@ -69,6 +69,11 @@ def pyls_execute_command(config, workspace, command, arguments):
 
 @hookspec
 def pyls_experimental_capabilities(config, workspace):
+    pass
+
+
+@hookspec(firstresult=True)
+def pyls_folding_range(config, workspace, document):
     pass
 
 
@@ -89,6 +94,11 @@ def pyls_hover(config, workspace, document, position):
 
 @hookspec
 def pyls_initialize(config, workspace):
+    pass
+
+
+@hookspec
+def pyls_initialized():
     pass
 
 

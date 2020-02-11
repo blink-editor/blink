@@ -1,0 +1,13 @@
+[tool.poetry]
+name = "blink-server-python-language-server"
+version = "0.0.1"
+description = ""
+authors = []
+
+[tool.poetry.dependencies]
+python = "^3.7"
+python-language-server = {path = "python-language-server"}
+pyflakes = "^2.1.1"
+
+[tool.poetry.scripts]
+pyls = "python-language-server.pyls.__main__:main"

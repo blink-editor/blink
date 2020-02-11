@@ -21,6 +21,9 @@ jobs:
       - checkout
       - run: apt-get update
       - run: apt-get install exuberant-ctags
+      # To test Jedi environments
+      - run: python3 -m venv /tmp/pyenv
+      - run: /tmp/pyenv/bin/python -m pip install loghub
       - run: pip install -e .[all] .[test]
       - run: py.test -v test/
 
