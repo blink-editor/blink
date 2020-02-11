@@ -1,5 +1,5 @@
 import * as lsp from "vscode-languageserver-protocol"
-import { SymbolInfo } from "./nav-object"
+import { SymbolKey, SymbolInfo, SymbolCalleeInfo } from "./nav-object"
 
 const extractRangeOfFile = function(file, range): string {
 	const allLines = file.split("\n") // TODO: worry about other line endings
@@ -63,17 +63,30 @@ export class Context{
 	}
 
 	getSortedTopLevelSymbolNames() {
-		// sort the top level symbols by their original line number
-		const symbolNames: string[] = Object.keys(this.topLevelSymbols)
-		symbolNames.sort((a, b) => {
-			const linea = this.topLevelSymbols[a].symbol.range.start.line
-			const lineb = this.topLevelSymbols[b].symbol.range.start.line
+		const sortedSymbolNames: string[] = []
 
-			return (linea < lineb) ? -1
-				: (linea > lineb) ? 1
-				: 0
+		Object.keys(this.topLevelSymbols).forEach(name => {
+			if (this.topLevelSymbols[name].symbol.kind === lsp.SymbolKind.Module) {
+				sortedSymbolNames.push(name)
+			}
 		})
-		return symbolNames
+
+		Object.keys(this.topLevelSymbols).forEach(name => {
+			if (this.topLevelSymbols[name].symbol.kind === lsp.SymbolKind.Function
+				|| this.topLevelSymbols[name].symbol.kind === lsp.SymbolKind.Class) {
+				sortedSymbolNames.push(name)
+			}
+		})
+
+		Object.keys(this.topLevelSymbols).forEach(name => {
+			if (this.topLevelSymbols[name].symbol.kind !== lsp.SymbolKind.Module
+				&& this.topLevelSymbols[name].symbol.kind !== lsp.SymbolKind.Function
+				&& this.topLevelSymbols[name].symbol.kind !== lsp.SymbolKind.Class) {
+				sortedSymbolNames.push(name)
+			}
+		})
+
+		return sortedSymbolNames
 	}
 
 	/**
