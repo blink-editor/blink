@@ -165,7 +165,6 @@ export class NavObject {
 		}
 
 		// populate callees in usedSyms
-		console.log(this.symCallees)
 		const ignoredKinds: lsp.SymbolKind[] = [lsp.SymbolKind.Function, lsp.SymbolKind.Class]
 		for (const [docSymKey, docSymbol] of this.symToInfo) {
 			if (docSymbol.uri !== uri)
@@ -182,20 +181,15 @@ export class NavObject {
 					&& !(ignoredKinds.includes(docSymbol.kind) && ignoredKinds.includes(usedSymbol.kind))
 					&& (usedSymbol.location.uri === uri)
 				) {
-					console.log("FOUND DEPENDENT")
 					const calleeKey: SymbolKey = {
 						name: usedSymbol.name,
 						kind: usedSymbol.kind,
 						module: (usedSymbol as any)["rayBensModule"]
 					}
-					console.log(docSymKey)
-					console.log(this.symCallees.get(docSymKey))
 					this.symCallees.get(docSymKey)?.callees.push(this._symbolKeyToString(calleeKey))
 				}
 			}
 		}
-		console.log("DONE")
-		console.log(this.symCallees)
 	}
 
 	/**
