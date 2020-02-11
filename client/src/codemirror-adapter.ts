@@ -192,7 +192,7 @@ export class CodeMirrorAdapter extends IEditorAdapter<CodeMirror.Editor> {
 	private document: AdapterDocument | null
 	public onChange: (text: string) => string
 	public getLineOffset: () => number
-	public onShouldSwap: (sym: SymbolInfo) => void
+	public onGoToLocation: (loc: lsp.Location) => void
 
 	constructor(connection: LspClient, navObject: NavObject, options: ITextEditorOptions, editor: CodeMirror.Editor) {
 		super(connection, options, editor)
@@ -380,6 +380,11 @@ export class CodeMirrorAdapter extends IEditorAdapter<CodeMirror.Editor> {
 	}
 
 	public handleDiagnostic(response: lsp.PublishDiagnosticsParams) {
+		if (response.uri !== this.document?.uri) {
+			console.warn("received diagnostics for uri", response.uri, "not ours", this.document?.uri)
+			return
+		}
+
 		this.editor.clearGutter("CodeMirror-lsp")
 		this.markedDiagnostics.forEach((marker) => {
 			marker.clear()
@@ -423,20 +428,15 @@ export class CodeMirrorAdapter extends IEditorAdapter<CodeMirror.Editor> {
 
 	public handleGoToDef(location: lsp.Location | lsp.Location[] | lsp.LocationLink[] | null) {
 		this._removeTooltip()
+
 		if (!location) {
 			return
 		}
 
-		if(lsp.Location.is(location)){
-			const locatedSymbol = this.navObject.bestSymbolForLocation(location)
-			if(locatedSymbol){
-				this.onShouldSwap(locatedSymbol)
-			}
-		}else if(lsp.Location.is(location[0])){
-			const locatedSymbol = this.navObject.bestSymbolForLocation(location[0])
-			if(locatedSymbol){
-				this.onShouldSwap(locatedSymbol)
-			}
+		if (lsp.Location.is(location)) {
+			this.onGoToLocation(location)
+		} else if(lsp.Location.is(location[0])) {
+			this.onGoToLocation(location[0])
 		}
 	}
 
