@@ -1,7 +1,3 @@
-// NOTES:
-// nesting is determined by lines -- this can likely be improved, what if same line?
-// bradley mentioned a better data structure to store ranges -- what is it and will it actually be faster?
-
 
 import * as lsp from "vscode-languageserver-protocol"
 import { LspClient } from "./langserver-client"
