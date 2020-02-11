@@ -133,7 +133,7 @@ export class NavObject {
 			}
 		}
 
-		// clear all usedSyms entries with the given URI
+		// clear all symCallees entries with the given URI
 		for (const [key, symbol] of this.symCallees) {
 			if (symbol.uri === uri) {
 				this.symCallees.delete(key)
@@ -168,7 +168,7 @@ export class NavObject {
 				const docRange = docSymbol.range
 				const usedRange = (usedSymbol as any)["rayBensUsageRange"]
 				// if usedRange within docRange && if order matters in relationship && if usedDef is in file,
-				// then docSymbol is dependent on usedSymbol
+				// then docSymbol is dependent on usedSymbol, add as dependee
 				if (((docRange.start.line <= usedRange.start.line && docRange.end.line >= usedRange.end.line)
 						|| ((docRange.start.line === usedRange.start.line && docRange.start.character <= usedRange.start.character)
 							&& (docRange.end.line === usedRange.end.line && docRange.end.character >= usedRange.end.character)))

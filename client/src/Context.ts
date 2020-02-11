@@ -65,12 +65,14 @@ export class Context{
 	getSortedTopLevelSymbolNames() {
 		const sortedSymbolNames: string[] = []
 
+		// first add imports (modules)
 		Object.keys(this.topLevelSymbols).forEach(name => {
 			if (this.topLevelSymbols[name].symbol.kind === lsp.SymbolKind.Module) {
 				sortedSymbolNames.push(name)
 			}
 		})
 
+		// then add functions and classes
 		Object.keys(this.topLevelSymbols).forEach(name => {
 			if (this.topLevelSymbols[name].symbol.kind === lsp.SymbolKind.Function
 				|| this.topLevelSymbols[name].symbol.kind === lsp.SymbolKind.Class) {
@@ -78,6 +80,7 @@ export class Context{
 			}
 		})
 
+		// then add everything else
 		Object.keys(this.topLevelSymbols).forEach(name => {
 			if (this.topLevelSymbols[name].symbol.kind !== lsp.SymbolKind.Module
 				&& this.topLevelSymbols[name].symbol.kind !== lsp.SymbolKind.Function
