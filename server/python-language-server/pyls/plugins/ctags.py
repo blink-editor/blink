@@ -8,6 +8,7 @@ import subprocess
 
 from pyls import hookimpl, uris
 from pyls.lsp import SymbolKind
+from fuzzywuzzy import fuzz
 
 log = logging.getLogger(__name__)
 
@@ -179,7 +180,7 @@ class CtagsPlugin(object):
 
         symbols = []
         for tag_file in settings.get('tagFiles', []):
-            symbols.extend(parse_tags(self._format_path(tag_file['filePath']), query))
+            symbols.extend(parse_tags(self._format_path(tag_file['filePath']), query).sort(key=lambda x: x['score'], reversed=True))
 
         return symbols
 
@@ -229,8 +230,9 @@ def parse_tag(line, query):
 
     name = match.group('name')
 
-    # TODO(gatesn): Support a fuzzy match, but for now do a naive substring match
-    if query.lower() not in name.lower():
+    # fuzzy match -- if substring match of 90% or better
+    fuzzy_score = fuzz.partial_ratio(query.lower(), name.lower())
+    if fuzzy_score < 90:
         return None
 
     line = int(match.group('line')) - 1
@@ -244,7 +246,8 @@ def parse_tag(line, query):
                 'start': {'line': line, 'character': 0},
                 'end': {'line': line, 'character': 0}
             }
-        }
+        },
+        'score': fuzzy_score # levenshtein ratio
     }
 
 
