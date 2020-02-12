@@ -106,18 +106,34 @@ export class Context {
 		return this.topLevelSymbols[name]
 	}
 
-	getSortedTopLevelSymbolNames() {
-		// sort the top level symbols by their original line number
-		const symbolNames: string[] = Object.keys(this.topLevelSymbols)
-		symbolNames.sort((a, b) => {
-			const linea = this.topLevelSymbols[a].symbol.range.start.line
-			const lineb = this.topLevelSymbols[b].symbol.range.start.line
+	private getSortedTopLevelSymbolNames(): string[] {
+		const sortedSymbolNames: string[] = []
 
-			return (linea < lineb) ? -1
-				: (linea > lineb) ? 1
-				: 0
+		// first add imports (modules)
+		Object.keys(this.topLevelSymbols).forEach(name => {
+			if (this.topLevelSymbols[name].symbol.kind === lsp.SymbolKind.Module) {
+				sortedSymbolNames.push(name)
+			}
 		})
-		return symbolNames
+
+		// then add functions and classes
+		Object.keys(this.topLevelSymbols).forEach(name => {
+			if (this.topLevelSymbols[name].symbol.kind === lsp.SymbolKind.Function
+				|| this.topLevelSymbols[name].symbol.kind === lsp.SymbolKind.Class) {
+				sortedSymbolNames.push(name)
+			}
+		})
+
+		// then add everything else
+		Object.keys(this.topLevelSymbols).forEach(name => {
+			if (this.topLevelSymbols[name].symbol.kind !== lsp.SymbolKind.Module
+				&& this.topLevelSymbols[name].symbol.kind !== lsp.SymbolKind.Function
+				&& this.topLevelSymbols[name].symbol.kind !== lsp.SymbolKind.Class) {
+				sortedSymbolNames.push(name)
+			}
+		})
+
+		return sortedSymbolNames
 	}
 
 	/**
@@ -160,13 +176,16 @@ export class Context {
 			})
 
 		// order DNRs by member dependencies
-		// TODO: currently sorting by original order
-		DNRs.sort(([_ka, sa], [_kb, sb]) => {
-			const linea = sa.symbol.range.start.line
-			const lineb = sb.symbol.range.start.line
+		const orderedNames = this.getSortedTopLevelSymbolNames()
+		const nameIndices: { [key: string]: number} =
+			orderedNames.reduce((acc, [k, _], i) => { acc[k] = i; return acc }, {})
 
-			return (linea < lineb) ? -1
-				: (linea > lineb) ? 1
+		DNRs.sort(([ka, _sa], [kb, _sb]) => {
+			const ia = nameIndices[ka]
+			const ib = nameIndices[kb]
+
+			return (ia < ib) ? -1
+				: (ia > ib) ? 1
 				: 0
 		})
 

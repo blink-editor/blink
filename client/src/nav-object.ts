@@ -7,7 +7,7 @@ import * as lsp from "vscode-languageserver-protocol"
 import { LspClient } from "./langserver-client"
 
 // keys in cache
-interface SymbolKey {
+export interface SymbolKey {
 	name: string
 	kind: lsp.SymbolKind
 	module: string
