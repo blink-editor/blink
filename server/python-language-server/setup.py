@@ -78,6 +78,7 @@ setup(
         ],
         'pyls': [
             'autopep8 = pyls.plugins.autopep8_format',
+            'ctags = pyls.plugins.ctags:INSTANCE',
             'flake8 = pyls.plugins.flake8_lint',
             'jedi_completion = pyls.plugins.jedi_completion',
             'jedi_definition = pyls.plugins.definition',

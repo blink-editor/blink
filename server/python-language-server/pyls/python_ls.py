@@ -181,6 +181,7 @@ class PythonLanguageServer(MethodDispatcher):
                     'changeNotifications': True
                 }
             },
+            'workspaceSymbolProvider': True,
             'experimental': merge(self._hook('pyls_experimental_capabilities'))
         }
         log.info('Server capabilities: %s', server_capabilities)
@@ -277,6 +278,12 @@ class PythonLanguageServer(MethodDispatcher):
     def signature_help(self, doc_uri, position):
         return self._hook('pyls_signature_help', doc_uri, position=position)
 
+    def workspace_symbols(self, query):
+        if len(query) < 3:
+            # Avoid searching for symbols with no query
+            return None
+        return flatten(self._hook('pyls_workspace_symbols', query=query))
+
     def m_text_document__did_close(self, textDocument=None, **_kwargs):
         workspace = self._match_uri_to_workspace(textDocument['uri'])
         workspace.rm_document(textDocument['uri'])
@@ -298,6 +305,7 @@ class PythonLanguageServer(MethodDispatcher):
         self.lint(textDocument['uri'], is_saved=False)
 
     def m_text_document__did_save(self, textDocument=None, **_kwargs):
+        self._hook('pyls_document_did_save', textDocument['uri'])
         self.lint(textDocument['uri'], is_saved=True)
 
     def m_text_document__code_action(self, textDocument=None, range=None, context=None, **_kwargs):
@@ -388,8 +396,11 @@ class PythonLanguageServer(MethodDispatcher):
                 if doc_uri not in changed_py_files:
                     self.lint(doc_uri, is_saved=False)
 
-    def m_workspace__execute_command(self, command=None, arguments=None):
+    def m_workspace__execute_command(self, command=None, arguments=None, **_kwargs):
         return self.execute_command(command, arguments)
+
+    def m_workspace__symbol(self, query=None, **_kwargs):
+        return self.workspace_symbols(query)
 
 
 def flatten(list_of_lists):
