@@ -71,6 +71,7 @@ class Editor {
 			textarea.classList.forEach((cls) => codemirror.classList.add(cls))
 			codemirror.id = textarea.id
 			textarea.parentNode!.replaceChild(codemirror, textarea)
+			this.addJumpToSymByNameListener()
 		}
 
 		// creates a CodeMirror editor configured to look like a preview pane
@@ -176,6 +177,7 @@ class Editor {
 		onShortcut("JumpPane6", () => this.swapToCaller(2))
 		onShortcut("NavigateBack", () => this.navBack())
 		onShortcut("navigateForward", () => this.navForward())
+		onShortcut("JumpByName", () => {this.jumpToSymByName()})
 		onShortcut("Undo", () => this.activeEditorPane.editor.undo())
 		onShortcut("Redo", () => this.activeEditorPane.editor.redo())
 		onShortcut("SelectAll", () => {
@@ -328,6 +330,43 @@ class Editor {
 		const maxIndex = Math.max(Math.floor((this.callersOfActive.length - 1) / 3) * 3, 0)
 		this.callerIndex = Math.min(this.callerIndex + 3, maxIndex)
 		this.updatePreviewPanes()
+	}
+
+	// brings up prompt allowing user to fuzzy search for symbol and jump to it
+	jumpToSymByName() {
+		// make prompt visible (display flex)
+		const modalContainer = (document.querySelector("#modal-container") as HTMLDivElement)
+		modalContainer.style.display = "flex"
+
+		// make button to close window
+
+		// make prompt invisible (display none)
+		//modalContainer.style.display = "none"
+	}
+
+	addJumpToSymByNameListener() {
+		// move this listener to somewhere else
+		const nameInput = (document.querySelector("#find-name-input") as HTMLInputElement)
+		nameInput.addEventListener("input", () => {
+		  // query string
+			const text = nameInput.value
+
+			// make lsp call
+			const results = [
+				`${text} Result 1`, `${text} Result 2`, `${text} Result 3`,
+				`${text} Result 4`, `${text} Result 5`, `${text} Result 6`
+			]
+
+			// refresh results list
+			const list = document.querySelector("#find-name-result-list")!
+			Array.from(list.children).forEach((e) => list.removeChild(e))
+			results.forEach((result) => {
+				const el = document.createElement("li")
+				el.classList.add("response-list-item")
+				el.innerText = result
+				list.appendChild(el)
+			})
+		})
 	}
 
 	navigateToUpdatedSymbol(navObject: NavObject) {
