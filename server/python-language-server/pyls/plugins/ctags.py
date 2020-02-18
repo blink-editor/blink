@@ -232,6 +232,9 @@ def parse_tag(line, query):
 
     # fuzzy match -- if substring match of 90% or better
     fuzzy_score = fuzz.partial_ratio(query.lower(), name.lower())
+    log.debug(name)
+    log.debug(query)
+    log.debug(fuzzy_score)
     if fuzzy_score < 90:
         return None
 

@@ -22,6 +22,7 @@ import "codemirror/mode/python/python"
 // import "codemirror/lib/codemirror.css"
 // import "codemirror/theme/monokai.css"
 import "codemirror/addon/hint/show-hint"
+import { SymbolInformation } from "vscode-languageserver-protocol"
 // import "codemirror/addon/hint/show-hint.css"
 
 interface PaneObject {
@@ -177,7 +178,7 @@ class Editor {
 		onShortcut("JumpPane6", () => this.swapToCaller(2))
 		onShortcut("NavigateBack", () => this.navBack())
 		onShortcut("navigateForward", () => this.navForward())
-		onShortcut("JumpByName", () => {this.jumpToSymByName()})
+		onShortcut("JumpByName", () => {this.jumpToSymByName(true)})
 		onShortcut("Undo", () => this.activeEditorPane.editor.undo())
 		onShortcut("Redo", () => this.activeEditorPane.editor.redo())
 		onShortcut("SelectAll", () => {
@@ -332,16 +333,13 @@ class Editor {
 		this.updatePreviewPanes()
 	}
 
-	// brings up prompt allowing user to fuzzy search for symbol and jump to it
-	jumpToSymByName() {
-		// make prompt visible (display flex)
+	// opens/closes prompt allowing user to fuzzy search for symbol and jump to it
+	jumpToSymByName(visible) {
 		const modalContainer = (document.querySelector("#modal-container") as HTMLDivElement)
-		modalContainer.style.display = "flex"
-
-		// make button to close window
-
-		// make prompt invisible (display none)
-		//modalContainer.style.display = "none"
+		if (visible)
+			modalContainer.style.display = "flex"
+		else
+			modalContainer.style.display = "none"
 	}
 
 	addJumpToSymByNameListener() {
@@ -349,22 +347,30 @@ class Editor {
 		const nameInput = (document.querySelector("#find-name-input") as HTMLInputElement)
 		nameInput.addEventListener("input", () => {
 		  // query string
-			const text = nameInput.value
-
-			// make lsp call
-			const results = [
-				`${text} Result 1`, `${text} Result 2`, `${text} Result 3`,
-				`${text} Result 4`, `${text} Result 5`, `${text} Result 6`
-			]
+			const query = nameInput.value
 
 			// refresh results list
 			const list = document.querySelector("#find-name-result-list")!
 			Array.from(list.children).forEach((e) => list.removeChild(e))
-			results.forEach((result) => {
-				const el = document.createElement("li")
-				el.classList.add("response-list-item")
-				el.innerText = result
-				list.appendChild(el)
+
+			// make lsp call
+			this.lspClient.getWorkspaceSymbols(query).then(results => {
+				results?.forEach(async (result) => {
+					// add symbol to list of results
+					const el = document.createElement("li")
+					el.classList.add("response-list-item")
+					el.innerText = result.name
+					// use closure to specify which symbol to swap to when clicked
+					const paneContext = await this.retrieveContextForSymbol(result)
+					const contextSymbol = paneContext?.topLevelSymbols[result.name]
+					if (contextSymbol) {
+						el.addEventListener("click", () => {
+							this.swapToSymbol(contextSymbol.symbol)
+						})
+					}
+
+					list.appendChild(el)
+				})
 			})
 		})
 	}

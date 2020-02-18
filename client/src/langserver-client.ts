@@ -137,6 +137,7 @@ export interface LspClient {
 	// TODO: refactor
 	getUsedDocumentSymbols(uri: string): Thenable<lsp.DocumentSymbol[] | lsp.SymbolInformation[] | null>
 	getReferencesWithRequest(request: lsp.ReferenceParams): Thenable<lsp.Location[] | null>
+	getWorkspaceSymbols(query: string): Thenable<lsp.SymbolInformation[] | null>
 }
 
 export function createTcpRpcConnection(
@@ -624,6 +625,10 @@ export class LspClientImpl extends events.EventEmitter implements LspClient {
 
 	public getReferencesWithRequest(request: lsp.ReferenceParams): Thenable<lsp.Location[] | null> {
 		return this.connection.sendRequest("textDocument/references", request)
+	}
+
+	public getWorkspaceSymbols(query: string): Thenable<lsp.SymbolInformation[] | null> {
+		return this.connection.sendRequest("workspace/symbol", { query: query })
 	}
 
 	/**

@@ -86,5 +86,11 @@ export const clientCapabilities: lsp.ClientCapabilities = {
 		didChangeConfiguration: {
 			dynamicRegistration: true,
 		},
+		symbol: {
+			dynamicRegistration: true,
+			symbolKind: {
+				valueSet: supportedSymbols,
+			}
+		}
 	},
 }
