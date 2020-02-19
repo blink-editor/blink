@@ -133,14 +133,16 @@ class CtagsPlugin(object):
     @hookimpl
     def pyls_document_did_open(self, config, workspace):
         """Since initial settings are sent after initialization, we use didOpen as the hook instead."""
+        log.debug("ASDF1")
         if self._started:
+            log.debug("ASDF2")
             return
         self._started = True
         self._workspace = workspace
 
         settings = config.plugin_settings('ctags')
         ctags_exe = _ctags_exe(settings)
-
+        log.debug("ASDF3")
         for tag_file in settings.get('tagFiles', []):
             mode = tag_file.get('onStart', DEFAULT_ON_START_MODE)
 
@@ -150,6 +152,8 @@ class CtagsPlugin(object):
 
             tag_file_path = self._format_path(tag_file['filePath'])
             tags_dir = self._format_path(tag_file['directory'])
+            log.debug("ASDF")
+            log.debug(tags_dir)
 
             execute(ctags_exe, tag_file_path, tags_dir, mode == CtagMode.APPEND)
 
@@ -176,11 +180,17 @@ class CtagsPlugin(object):
 
     @hookimpl
     def pyls_workspace_symbols(self, config, query):
+        log.debug("HERE-2")
         settings = config.plugin_settings('ctags')
 
         symbols = []
+        log.debug(settings.get('tagFiles', []))
         for tag_file in settings.get('tagFiles', []):
-            symbols.extend(parse_tags(self._format_path(tag_file['filePath']), query).sort(key=lambda x: x['score'], reversed=True))
+            log.debug("HERE-1")
+            tags = list(parse_tags(self._format_path(tag_file['filePath']), query))
+            log.debug(tags)
+            log.debug(symbols)
+            symbols.extend(sorted(tags, key=lambda x: x['score'], reverse=True))
 
         return symbols
 
@@ -210,11 +220,14 @@ def execute(ctags_exe, tag_file, directory, append=False):
 
 
 def parse_tags(tag_file, query):
+    log.debug("HERE")
     if not os.path.exists(tag_file):
+        log.debug("HERE1")
         return
 
     with io.open(tag_file, 'rb') as f:
         for line in f:
+            log.debug("HERE2")
             tag = parse_tag(line.decode('utf-8', errors='ignore'), query)
             if tag:
                 yield tag

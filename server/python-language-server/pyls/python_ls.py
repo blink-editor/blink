@@ -279,8 +279,8 @@ class PythonLanguageServer(MethodDispatcher):
         return self._hook('pyls_signature_help', doc_uri, position=position)
 
     def workspace_symbols(self, query):
-        if len(query) < 3:
-            # Avoid searching for symbols with no query
+        # Avoid searching for symbols with no query
+        if len(query) == 0:
             return None
         return flatten(self._hook('pyls_workspace_symbols', query=query))
 

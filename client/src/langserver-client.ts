@@ -309,7 +309,7 @@ export class LspClientImpl extends events.EventEmitter implements LspClient {
 		})
 
 		this.connection.onError((e) => {
-			logger?.error(`onError (${event})`)
+			logger?.error(`onError (${e})`)
 		})
 
 		if (logger !== undefined) {
@@ -352,6 +352,16 @@ export class LspClientImpl extends events.EventEmitter implements LspClient {
 						plugins: {
 							pycodestyle: {
 								enabled: false
+							},
+							ctags: {
+								ctagsPath: "C:/Users/benro/Desktop/Blink/ctags.exe",
+								tagFiles: [
+									{
+										filePath: "C:/Users/benro/Desktop/Blink/.blink/tags",
+										directory: "C:/Users/benro/Desktop/Blink/client/samples/"
+									}
+								],
+								enabled: true
 							}
 						}
 					}
