@@ -358,7 +358,7 @@ export class LspClientImpl extends events.EventEmitter implements LspClient {
 								tagFiles: [
 									{
 										filePath: "C:/Users/benro/Desktop/Blink/.blink/tags",
-										directory: "C:/Users/benro/Desktop/Blink/client/samples/"
+										directory: "C:/Users/benro/Desktop/Blink/client/samples/modules"
 									}
 								],
 								enabled: true

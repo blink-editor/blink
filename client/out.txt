@@ -1,0 +1,1714 @@
+
+> blink@0.0.1 start C:\Users\benro\Desktop\Blink\client
+> npm run build && electron ./dist/main.js
+
+
+> blink@0.0.1 build C:\Users\benro\Desktop\Blink\client
+> npm run build-ts && npm run build-static
+
+
+> blink@0.0.1 build-ts C:\Users\benro\Desktop\Blink\client
+> tsc
+
+
+> blink@0.0.1 build-static C:\Users\benro\Desktop\Blink\client
+> sh ./copy-static.sh
+
+
+main.ts [object Object]
+stderr: 2020-02-20 15:30:48,471 UTC - INFO - pyls.python_ls - Serving PythonLanguageServer on (127.0.0.1, 2087)
+
+stderr: 2020-02-20 15:30:48,511 UTC - DEBUG - pyls_jsonrpc.endpoint - Handling request from client {'jsonrpc': '2.0', 'id': 0, 'method': 'initialize', 'params': {'capabilities': {'textDocument': {'hover': {'dynamicRegistration': True, 'contentFormat': ['plaintext', 'markdown']}, 'synchronization': {'dynamicRegistration': True, 'willSave': False, 'didSave': False, 'willSaveWaitUntil': False}, 'completion': {'dynamicRegistration': True, 'completionItem': {'snippetSupport': False, 'commitCharactersSupport': True, 'documentationFormat': ['plaintext', 'markdown'], 'deprecatedSupport': False, 'preselectSupport': False}, 'contextSupport': False}, 'signatureHelp': {'dynamicRegistration': True, 'signatureInformation': {'documentationFormat': ['plaintext', 'markdown']}}, 'declaration': {'dynamicRegistration': True, 'linkSupport': True}, 'definition': {'dynamicRegistration': True, 'linkSupport': True}, 'typeDefinition': {'dynamicRegistration': True, 'linkSupport': True}, 'implementation': {'dynamicRegistration': True, 'linkSupport': True}, 'documentSymbol': {'dynamicRegistration': True, 'symbolKind': {'valueSet': [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26]}, 'hierarchicalDocumentSymbolSupport': True}}, 'workspace': {'didChangeConfiguration': {'dynamicRegistration': True}, 'symbol': {'dynamicRegistration': True, 'symbolKind': {'valueSet': [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26]}}}}, 'initializationOptions': None, 'processId': 13748, 'rootUri': None, 'workspaceFolders': None, 'trace': 'off'}}
+
+stderr: 2020-02-20 15:30:48,512 UTC - DEBUG - pyls.python_ls - Language server initialized with 13748 None None None
+
+stderr: 2020-02-20 15:30:48,627 UTC - WARNING - pyls.config.config - Failed to load pyls entry point 'autopep8': No module named 'autopep8'
+
+stderr: c:\users\benro\.virtualenvs\server-ugadhott\lib\site-packages\fuzzywuzzy\fuzz.py:11: UserWarning: Using slow pure-python SequenceMatcher. Install python-Levenshtein to remove this warning
+  warnings.warn('Using slow pure-python SequenceMatcher. Install python-Levenshtein to remove this warning')
+2020-02-20 15:30:48,670 UTC - WARNING - pyls.config.config - Failed to load pyls entry point 'flake8': No module named 'flake8'
+
+stderr: 2020-02-20 15:30:48,825 UTC - WARNING - pyls.config.config - Failed to load pyls entry point 'mccabe': No module named 'mccabe'
+
+stderr: 2020-02-20 15:30:48,848 UTC - WARNING - pyls.config.config - Failed to load pyls entry point 'pycodestyle': No module named 'pycodestyle'
+
+stderr: 2020-02-20 15:30:48,859 UTC - WARNING - pyls.config.config - Failed to load pyls entry point 'pydocstyle': No module named 'pydocstyle'
+
+stderr: 2020-02-20 15:30:49,013 UTC - WARNING - pyls.config.config - Failed to load pyls entry point 'pylint': No module named 'pylint'
+
+stderr: 2020-02-20 15:30:49,032 UTC - WARNING - pyls.config.config - Failed to load pyls entry point 'rope_completion': No module named 'rope'
+
+stderr: 2020-02-20 15:30:49,048 UTC - WARNING - pyls.config.config - Failed to load pyls entry point 'rope_rename': No module named 'rope'
+
+stderr: 2020-02-20 15:30:49,076 UTC - WARNING - pyls.config.config - Failed to load pyls entry point 'yapf': No module named 'yapf'
+
+stderr: 2020-02-20 15:30:49,095 UTC - INFO - pyls.config.config - Loaded pyls plugin ctags from <pyls.plugins.ctags.CtagsPlugin object at 0x000001379790F048>
+2020-02-20 15:30:49,095 UTC - INFO - pyls.config.config - Loaded pyls plugin jedi_completion from <module 'pyls.plugins.jedi_completion' from 'c:\\users\\benro\\desktop\\blink\\server\\python-language-server\\pyls\\plugins\\jedi_completion.py'>
+
+stderr: 2020-02-20 15:30:49,095 UTC - INFO - pyls.config.config - Loaded pyls plugin jedi_definition from <module 'pyls.plugins.definition' from 'c:\\users\\benro\\desktop\\blink\\server\\python-language-server\\pyls\\plugins\\definition.py'>
+2020-02-20 15:30:49,100 UTC - INFO - pyls.config.config - Loaded pyls plugin jedi_highlight from <module 'pyls.plugins.highlight' from 'c:\\users\\benro\\desktop\\blink\\server\\python-language-server\\pyls\\plugins\\highlight.py'>
+2020-02-20 15:30:49,100 UTC - INFO - pyls.config.config - Loaded pyls plugin jedi_hover from <module 'pyls.plugins.hover' from 'c:\\users\\benro\\desktop\\blink\\server\\python-language-server\\pyls\\plugins\\hover.py'>
+
+stderr: 2020-02-20 15:30:49,100 UTC - INFO - pyls.config.config - Loaded pyls plugin jedi_references from <module 'pyls.plugins.references' from 'c:\\users\\benro\\desktop\\blink\\server\\python-language-server\\pyls\\plugins\\references.py'>
+2020-02-20 15:30:49,100 UTC - INFO - pyls.config.config - Loaded pyls plugin jedi_signature_help from <module 'pyls.plugins.signature' from 'c:\\users\\benro\\desktop\\blink\\server\\python-language-server\\pyls\\plugins\\signature.py'>
+
+stderr: 2020-02-20 15:30:49,100 UTC - INFO - pyls.config.config - Loaded pyls plugin jedi_symbols from <module 'pyls.plugins.symbols' from 'c:\\users\\benro\\desktop\\blink\\server\\python-language-server\\pyls\\plugins\\symbols.py'>
+2020-02-20 15:30:49,100 UTC - INFO - pyls.config.config - Loaded pyls plugin jedi_used_symbols from <module 'pyls.plugins.used_symbols' from 'c:\\users\\benro\\desktop\\blink\\server\\python-language-server\\pyls\\plugins\\used_symbols.py'>
+
+stderr: 2020-02-20 15:30:49,101 UTC - INFO - pyls.config.config - Loaded pyls plugin preload from <module 'pyls.plugins.preload_imports' from 'c:\\users\\benro\\desktop\\blink\\server\\python-language-server\\pyls\\plugins\\preload_imports.py'>
+2020-02-20 15:30:49,101 UTC - INFO - pyls.config.config - Loaded pyls plugin pyflakes from <module 'pyls.plugins.pyflakes_lint' from 'c:\\users\\benro\\desktop\\blink\\server\\python-language-server\\pyls\\plugins\\pyflakes_lint.py'>
+
+stderr: 2020-02-20 15:30:49,101 UTC - DEBUG - pyls.config.config -   pyls_settings [hook]
+      config: <pyls.config.config.Config object at 0x0000013797D3FB08>
+
+
+stderr: 2020-02-20 15:30:49,101 UTC - DEBUG - pyls.config.config -   finish pyls_settings --> [{'plugins': {'preload': {'modules': ['OpenGL', 'PIL', 'array', 'audioop', 'binascii', 'cPickle', 'cStringIO', 'cmath', 'collections', 'datetime', 'errno', 'exceptions', 'gc', 'imageop', 'imp', 'itertools', 'marshal', 'math', 'matplotlib', 'mmap', 'mpmath', 'msvcrt', 'networkx', 'nose', 'nt', 'numpy', 'operator', 'os', 'os.path', 'pandas', 'parser', 'rgbimg', 'scipy', 'signal', 'skimage', 'sklearn', 'statsmodels', 'strop', 'sympy', 'sys', 'thread', 'time', 'wx', 'xxsubtype', 'zipimport', 'zlib']}}, 'rope': {'extensionModules': ['OpenGL', 'PIL', 'array', 'audioop', 'binascii', 'cPickle', 'cStringIO', 'cmath', 'collections', 'datetime', 'errno', 'exceptions', 'gc', 'imageop', 'imp', 'itertools', 'marshal', 'math', 'matplotlib', 'mmap', 'mpmath', 'msvcrt', 'networkx', 'nose', 'nt', 'numpy', 'operator', 'os', 'os.path', 'pandas', 'parser', 'rgbimg', 'scipy', 'signal', 'skimage', 'sklearn', 'statsmodels', 'strop', 'sympy', 'sys', 'thread', 'time', 'wx', 'xxsubtype', 'zipimport', 'zlib']}}] [hook]
+
+2020-02-20 15:30:49,101 UTC - DEBUG - pyls.config.config - With user configuration: {}
+
+stderr: 2020-02-20 15:30:49,102 UTC - DEBUG - pyls.config.config - With plugin configuration: {'plugins': {'preload': {'modules': ['OpenGL', 'PIL', 'array', 'audioop', 'binascii', 'cPickle', 'cStringIO', 'cmath', 'collections', 'datetime', 'errno', 'exceptions', 'gc', 'imageop', 'imp', 'itertools', 'marshal', 'math', 'matplotlib', 'mmap', 'mpmath', 'msvcrt', 'networkx', 'nose', 'nt', 'numpy', 'operator', 'os', 'os.path', 'pandas', 'parser', 'rgbimg', 'scipy', 'signal', 'skimage', 'sklearn', 'statsmodels', 'strop', 'sympy', 'sys', 'thread', 'time', 'wx', 'xxsubtype', 'zipimport', 'zlib']}}, 'rope': {'extensionModules': ['OpenGL', 'PIL', 'array', 'audioop', 'binascii', 'cPickle', 'cStringIO', 'cmath', 'collections', 'datetime', 'errno', 'exceptions', 'gc', 'imageop', 'imp', 'itertools', 'marshal', 'math', 'matplotlib', 'mmap', 'mpmath', 'msvcrt', 'networkx', 'nose', 'nt', 'numpy', 'operator', 'os', 'os.path', 'pandas', 'parser', 'rgbimg', 'scipy', 'signal', 'skimage', 'sklearn', 'statsmodels', 'strop', 'sympy', 'sys', 'thread', 'time', 'wx', 'xxsubtype', 'zipimport', 'zlib']}}
+
+stderr: 2020-02-20 15:30:49,102 UTC - DEBUG - pyls.config.config - With lsp configuration: {'plugins': {'preload': {'modules': ['OpenGL', 'PIL', 'array', 'audioop', 'binascii', 'cPickle', 'cStringIO', 'cmath', 'collections', 'datetime', 'errno', 'exceptions', 'gc', 'imageop', 'imp', 'itertools', 'marshal', 'math', 'matplotlib', 'mmap', 'mpmath', 'msvcrt', 'networkx', 'nose', 'nt', 'numpy', 'operator', 'os', 'os.path', 'pandas', 'parser', 'rgbimg', 'scipy', 'signal', 'skimage', 'sklearn', 'statsmodels', 'strop', 'sympy', 'sys', 'thread', 'time', 'wx', 'xxsubtype', 'zipimport', 'zlib']}}, 'rope': {'extensionModules': ['OpenGL', 'PIL', 'array', 'audioop', 'binascii', 'cPickle', 'cStringIO', 'cmath', 'collections', 'datetime', 'errno', 'exceptions', 'gc', 'imageop', 'imp', 'itertools', 'marshal', 'math', 'matplotlib', 'mmap', 'mpmath', 'msvcrt', 'networkx', 'nose', 'nt', 'numpy', 'operator', 'os', 'os.path', 'pandas', 'parser', 'rgbimg', 'scipy', 'signal', 'skimage', 'sklearn', 'statsmodels', 'strop', 'sympy', 'sys', 'thread', 'time', 'wx', 'xxsubtype', 'zipimport', 'zlib']}}
+2020-02-20 15:30:49,102 UTC - DEBUG - pyls.config.config - With project configuration: {'plugins': {'preload': {'modules': ['OpenGL', 'PIL', 'array', 'audioop', 'binascii', 'cPickle', 'cStringIO', 'cmath', 'collections', 'datetime', 'errno', 'exceptions', 'gc', 'imageop', 'imp', 'itertools', 'marshal', 'math', 'matplotlib', 'mmap', 'mpmath', 'msvcrt', 'networkx', 'nose', 'nt', 'numpy', 'operator', 'os', 'os.path', 'pandas', 'parser', 'rgbimg', 'scipy', 'signal', 'skimage', 'sklearn', 'statsmodels', 'strop', 'sympy', 'sys', 'thread', 'time', 'wx', 'xxsubtype', 'zipimport', 'zlib']}}, 'rope': {'extensionModules': ['OpenGL', 'PIL', 'array', 'audioop', 'binascii', 'cPickle', 'cStringIO', 'cmath', 'collections', 'datetime', 'errno', 'exceptions', 'gc', 'imageop', 'imp', 'itertools', 'marshal', 'math', 'matplotlib', 'mmap', 'mpmath', 'msvcrt', 'networkx', 'nose', 'nt', 'numpy', 'operator', 'os', 'os.path', 'pandas', 'parser', 'rgbimg', 'scipy', 'signal', 'skimage', 'sklearn', 'statsmodels', 'strop', 'sympy', 'sys', 'thread', 'time', 'wx', 'xxsubtype', 'zipimport', 'zlib']}}
+
+stderr: 2020-02-20 15:30:49,102 UTC - INFO - pyls.config.config - Disabled plugins: []
+
+stderr: 2020-02-20 15:30:49,102 UTC - DEBUG - pyls.config.config -   pyls_dispatchers [hook]
+      config: <pyls.config.config.Config object at 0x0000013797D3FB08>
+      workspace: <pyls.workspace.Workspace object at 0x0000013797D3FA88>
+      document: None
+
+2020-02-20 15:30:49,103 UTC - DEBUG - pyls.config.config -   finish pyls_dispatchers --> [] [hook]
+
+
+stderr: 2020-02-20 15:30:49,103 UTC - DEBUG - pyls.config.config -   pyls_initialize [hook]
+      config: <pyls.config.config.Config object at 0x0000013797D3FB08>
+      workspace: <pyls.workspace.Workspace object at 0x0000013797D3FA88>
+      document: None
+
+
+stderr: 2020-02-20 15:30:49,103 UTC - DEBUG - pyls.config.config - With user configuration: {}
+2020-02-20 15:30:49,103 UTC - DEBUG - pyls.config.config - With plugin configuration: {'plugins': {'preload': {'modules': ['OpenGL', 'PIL', 'array', 'audioop', 'binascii', 'cPickle', 'cStringIO', 'cmath', 'collections', 'datetime', 'errno', 'exceptions', 'gc', 'imageop', 'imp', 'itertools', 'marshal', 'math', 'matplotlib', 'mmap', 'mpmath', 'msvcrt', 'networkx', 'nose', 'nt', 'numpy', 'operator', 'os', 'os.path', 'pandas', 'parser', 'rgbimg', 'scipy', 'signal', 'skimage', 'sklearn', 'statsmodels', 'strop', 'sympy', 'sys', 'thread', 'time', 'wx', 'xxsubtype', 'zipimport', 'zlib']}}, 'rope': {'extensionModules': ['OpenGL', 'PIL', 'array', 'audioop', 'binascii', 'cPickle', 'cStringIO', 'cmath', 'collections', 'datetime', 'errno', 'exceptions', 'gc', 'imageop', 'imp', 'itertools', 'marshal', 'math', 'matplotlib', 'mmap', 'mpmath', 'msvcrt', 'networkx', 'nose', 'nt', 'numpy', 'operator', 'os', 'os.path', 'pandas', 'parser', 'rgbimg', 'scipy', 'signal', 'skimage', 'sklearn', 'statsmodels', 'strop', 'sympy', 'sys', 'thread', 'time', 'wx', 'xxsubtype', 'zipimport', 'zlib']}}
+
+stderr: 2020-02-20 15:30:49,103 UTC - DEBUG - pyls.config.config - With lsp configuration: {'plugins': {'preload': {'modules': ['OpenGL', 'PIL', 'array', 'audioop', 'binascii', 'cPickle', 'cStringIO', 'cmath', 'collections', 'datetime', 'errno', 'exceptions', 'gc', 'imageop', 'imp', 'itertools', 'marshal', 'math', 'matplotlib', 'mmap', 'mpmath', 'msvcrt', 'networkx', 'nose', 'nt', 'numpy', 'operator', 'os', 'os.path', 'pandas', 'parser', 'rgbimg', 'scipy', 'signal', 'skimage', 'sklearn', 'statsmodels', 'strop', 'sympy', 'sys', 'thread', 'time', 'wx', 'xxsubtype', 'zipimport', 'zlib']}}, 'rope': {'extensionModules': ['OpenGL', 'PIL', 'array', 'audioop', 'binascii', 'cPickle', 'cStringIO', 'cmath', 'collections', 'datetime', 'errno', 'exceptions', 'gc', 'imageop', 'imp', 'itertools', 'marshal', 'math', 'matplotlib', 'mmap', 'mpmath', 'msvcrt', 'networkx', 'nose', 'nt', 'numpy', 'operator', 'os', 'os.path', 'pandas', 'parser', 'rgbimg', 'scipy', 'signal', 'skimage', 'sklearn', 'statsmodels', 'strop', 'sympy', 'sys', 'thread', 'time', 'wx', 'xxsubtype', 'zipimport', 'zlib']}}
+
+stderr: 2020-02-20 15:30:49,103 UTC - DEBUG - pyls.config.config - With project configuration: {'plugins': {'preload': {'modules': ['OpenGL', 'PIL', 'array', 'audioop', 'binascii', 'cPickle', 'cStringIO', 'cmath', 'collections', 'datetime', 'errno', 'exceptions', 'gc', 'imageop', 'imp', 'itertools', 'marshal', 'math', 'matplotlib', 'mmap', 'mpmath', 'msvcrt', 'networkx', 'nose', 'nt', 'numpy', 'operator', 'os', 'os.path', 'pandas', 'parser', 'rgbimg', 'scipy', 'signal', 'skimage', 'sklearn', 'statsmodels', 'strop', 'sympy', 'sys', 'thread', 'time', 'wx', 'xxsubtype', 'zipimport', 'zlib']}}, 'rope': {'extensionModules': ['OpenGL', 'PIL', 'array', 'audioop', 'binascii', 'cPickle', 'cStringIO', 'cmath', 'collections', 'datetime', 'errno', 'exceptions', 'gc', 'imageop', 'imp', 'itertools', 'marshal', 'math', 'matplotlib', 'mmap', 'mpmath', 'msvcrt', 'networkx', 'nose', 'nt', 'numpy', 'operator', 'os', 'os.path', 'pandas', 'parser', 'rgbimg', 'scipy', 'signal', 'skimage', 'sklearn', 'statsmodels', 'strop', 'sympy', 'sys', 'thread', 'time', 'wx', 'xxsubtype', 'zipimport', 'zlib']}}
+
+stderr: 2020-02-20 15:30:49,105 UTC - DEBUG - pyls.plugins.preload_imports - Preloaded module array
+
+stderr: 2020-02-20 15:30:49,108 UTC - DEBUG - pyls.plugins.preload_imports - Preloaded module audioop
+
+stderr: 2020-02-20 15:30:49,108 UTC - DEBUG - pyls.plugins.preload_imports - Preloaded module binascii
+
+stderr: 2020-02-20 15:30:49,109 UTC - DEBUG - pyls.plugins.preload_imports - Preloaded module cmath
+
+stderr: 2020-02-20 15:30:49,109 UTC - DEBUG - pyls.plugins.preload_imports - Preloaded module collections
+2020-02-20 15:30:49,112 UTC - DEBUG - pyls.plugins.preload_imports - Preloaded module datetime
+
+stderr: 2020-02-20 15:30:49,112 UTC - DEBUG - pyls.plugins.preload_imports - Preloaded module errno
+
+stderr: 2020-02-20 15:30:49,113 UTC - DEBUG - pyls.plugins.preload_imports - Preloaded module gc
+
+stderr: 2020-02-20 15:30:49,115 UTC - DEBUG - pyls.plugins.preload_imports - Preloaded module imp
+2020-02-20 15:30:49,115 UTC - DEBUG - pyls.plugins.preload_imports - Preloaded module itertools
+
+stderr: 2020-02-20 15:30:49,115 UTC - DEBUG - pyls.plugins.preload_imports - Preloaded module marshal
+2020-02-20 15:30:49,115 UTC - DEBUG - pyls.plugins.preload_imports - Preloaded module math
+
+stderr: 2020-02-20 15:30:49,116 UTC - DEBUG - pyls.plugins.preload_imports - Preloaded module mmap
+
+stderr: 2020-02-20 15:30:49,118 UTC - DEBUG - pyls.plugins.preload_imports - Preloaded module msvcrt
+
+stderr: 2020-02-20 15:30:49,120 UTC - DEBUG - pyls.plugins.preload_imports - Preloaded module nt
+
+stderr: 2020-02-20 15:30:49,122 UTC - DEBUG - pyls.plugins.preload_imports - Preloaded module operator
+2020-02-20 15:30:49,122 UTC - DEBUG - pyls.plugins.preload_imports - Preloaded module os
+2020-02-20 15:30:49,122 UTC - DEBUG - pyls.plugins.preload_imports - Preloaded module os.path
+
+stderr: 2020-02-20 15:30:49,124 UTC - DEBUG - pyls.plugins.preload_imports - Preloaded module parser
+
+stderr: 2020-02-20 15:30:49,126 UTC - DEBUG - pyls.plugins.preload_imports - Preloaded module signal
+
+stderr: 2020-02-20 15:30:49,128 UTC - DEBUG - pyls.plugins.preload_imports - Preloaded module sys
+
+stderr: 2020-02-20 15:30:49,132 UTC - DEBUG - pyls.plugins.preload_imports - Preloaded module time
+
+stderr: 2020-02-20 15:30:49,134 UTC - DEBUG - pyls.plugins.preload_imports - Preloaded module xxsubtype
+2020-02-20 15:30:49,134 UTC - DEBUG - pyls.plugins.preload_imports - Preloaded module zipimport
+
+stderr: 2020-02-20 15:30:49,134 UTC - DEBUG - pyls.plugins.preload_imports - Preloaded module zlib
+2020-02-20 15:30:49,134 UTC - DEBUG - pyls.config.config -   finish pyls_initialize --> [] [hook]
+
+
+stderr: 2020-02-20 15:30:49,134 UTC - DEBUG - pyls.config.config -   pyls_commands [hook]
+      config: <pyls.config.config.Config object at 0x0000013797D3FB08>
+      workspace: <pyls.workspace.Workspace object at 0x0000013797D3FA88>
+      document: None
+
+
+stderr: 2020-02-20 15:30:49,134 UTC - DEBUG - pyls.config.config -   finish pyls_commands --> [] [hook]
+
+2020-02-20 15:30:49,134 UTC - DEBUG - pyls.config.config -   pyls_experimental_capabilities [hook]
+      config: <pyls.config.config.Config object at 0x0000013797D3FB08>
+      workspace: <pyls.workspace.Workspace object at 0x0000013797D3FA88>
+      document: None
+
+
+stderr: 2020-02-20 15:30:49,134 UTC - DEBUG - pyls.config.config -   finish pyls_experimental_capabilities --> [] [hook]
+
+
+stderr: 2020-02-20 15:30:49,135 UTC - INFO - pyls.python_ls - Server capabilities: {'codeActionProvider': True, 'codeLensProvider': {'resolveProvider': False}, 'completionProvider': {'resolveProvider': False, 'triggerCharacters': ['.']}, 'documentFormattingProvider': True, 'documentHighlightProvider': True, 'documentRangeFormattingProvider': True, 'documentSymbolProvider': True, 'definitionProvider': True, 'executeCommandProvider': {'commands': []}, 'hoverProvider': True, 'referencesProvider': True, 'renameProvider': True, 'signatureHelpProvider': {'triggerCharacters': ['(', ',', '=']}, 'textDocumentSync': {'change': 2, 'save': {'includeText': True}, 'openClose': True}, 'workspace': {'workspaceFolders': {'supported': True, 'changeNotifications': True}}, 'workspaceSymbolProvider': True, 'experimental': {}}
+
+stderr: 2020-02-20 15:30:49,135 UTC - DEBUG - pyls_jsonrpc.endpoint - Got result from synchronous request handler: {'capabilities': {'codeActionProvider': True, 'codeLensProvider': {'resolveProvider': False}, 'completionProvider': {'resolveProvider': False, 'triggerCharacters': ['.']}, 'documentFormattingProvider': True, 'documentHighlightProvider': True, 'documentRangeFormattingProvider': True, 'documentSymbolProvider': True, 'definitionProvider': True, 'executeCommandProvider': {'commands': []}, 'hoverProvider': True, 'referencesProvider': True, 'renameProvider': True, 'signatureHelpProvider': {'triggerCharacters': ['(', ',', '=']}, 'textDocumentSync': {'change': 2, 'save': {'includeText': True}, 'openClose': True}, 'workspace': {'workspaceFolders': {'supported': True, 'changeNotifications': True}}, 'workspaceSymbolProvider': True, 'experimental': {}}}
+
+stderr: 2020-02-20 15:30:49,144 UTC - DEBUG - pyls_jsonrpc.endpoint - Handling notification from client {'jsonrpc': '2.0', 'method': 'initialized', 'params': None}
+
+stderr: 2020-02-20 15:30:49,145 UTC - DEBUG - pyls_jsonrpc.endpoint - Handling notification from client {'jsonrpc': '2.0', 'method': 'workspace/didChangeConfiguration', 'params': {'settings': {'pyls': {'plugins': {'pycodestyle': {'enabled': False}, 'ctags': {'ctagsPath': 'C:/Users/benro/Desktop/Blink/ctags.exe', 'tagFiles': [{'filePath': 'C:/Users/benro/Desktop/Blink/.blink/tags', 'directory': 'C:/Users/benro/Desktop/Blink/client/samples/'}], 'enabled': True}}}}}}
+
+stderr: 2020-02-20 15:30:49,145 UTC - INFO - pyls.config.config - Updated settings to {'plugins': {'pycodestyle': {'enabled': False}, 'ctags': {'ctagsPath': 'C:/Users/benro/Desktop/Blink/ctags.exe', 'tagFiles': [{'filePath': 'C:/Users/benro/Desktop/Blink/.blink/tags', 'directory': 'C:/Users/benro/Desktop/Blink/client/samples/'}], 'enabled': True}}}
+
+stderr: 2020-02-20 15:30:49,145 UTC - DEBUG - pyls.config.config - With user configuration: {}
+
+stderr: 2020-02-20 15:30:49,146 UTC - DEBUG - pyls.config.config - With plugin configuration: {'plugins': {'preload': {'modules': ['OpenGL', 'PIL', 'array', 'audioop', 'binascii', 'cPickle', 'cStringIO', 'cmath', 'collections', 'datetime', 'errno', 'exceptions', 'gc', 'imageop', 'imp', 'itertools', 'marshal', 'math', 'matplotlib', 'mmap', 'mpmath', 'msvcrt', 'networkx', 'nose', 'nt', 'numpy', 'operator', 'os', 'os.path', 'pandas', 'parser', 'rgbimg', 'scipy', 'signal', 'skimage', 'sklearn', 'statsmodels', 'strop', 'sympy', 'sys', 'thread', 'time', 'wx', 'xxsubtype', 'zipimport', 'zlib']}}, 'rope': {'extensionModules': ['OpenGL', 'PIL', 'array', 'audioop', 'binascii', 'cPickle', 'cStringIO', 'cmath', 'collections', 'datetime', 'errno', 'exceptions', 'gc', 'imageop', 'imp', 'itertools', 'marshal', 'math', 'matplotlib', 'mmap', 'mpmath', 'msvcrt', 'networkx', 'nose', 'nt', 'numpy', 'operator', 'os', 'os.path', 'pandas', 'parser', 'rgbimg', 'scipy', 'signal', 'skimage', 'sklearn', 'statsmodels', 'strop', 'sympy', 'sys', 'thread', 'time', 'wx', 'xxsubtype', 'zipimport', 'zlib']}}
+
+stderr: 2020-02-20 15:30:49,146 UTC - DEBUG - pyls.config.config - With lsp configuration: {'plugins': {'ctags': {'ctagsPath': 'C:/Users/benro/Desktop/Blink/ctags.exe', 'tagFiles': [{'filePath': 'C:/Users/benro/Desktop/Blink/.blink/tags', 'directory': 'C:/Users/benro/Desktop/Blink/client/samples/'}], 'enabled': True}, 'preload': {'modules': ['OpenGL', 'PIL', 'array', 'audioop', 'binascii', 'cPickle', 'cStringIO', 'cmath', 'collections', 'datetime', 'errno', 'exceptions', 'gc', 'imageop', 'imp', 'itertools', 'marshal', 'math', 'matplotlib', 'mmap', 'mpmath', 'msvcrt', 'networkx', 'nose', 'nt', 'numpy', 'operator', 'os', 'os.path', 'pandas', 'parser', 'rgbimg', 'scipy', 'signal', 'skimage', 'sklearn', 'statsmodels', 'strop', 'sympy', 'sys', 'thread', 'time', 'wx', 'xxsubtype', 'zipimport', 'zlib']}, 'pycodestyle': {'enabled': False}}, 'rope': {'extensionModules': ['OpenGL', 'PIL', 'array', 'audioop', 'binascii', 'cPickle', 'cStringIO', 'cmath', 'collections', 'datetime', 'errno', 'exceptions', 'gc', 'imageop', 'imp', 'itertools', 'marshal', 'math', 'matplotlib', 'mmap', 'mpmath', 'msvcrt', 'networkx', 'nose', 'nt', 'numpy', 'operator', 'os', 'os.path', 'pandas', 'parser', 'rgbimg', 'scipy', 'signal', 'skimage', 'sklearn', 'statsmodels', 'strop', 'sympy', 'sys', 'thread', 'time', 'wx', 'xxsubtype', 'zipimport', 'zlib']}}
+
+stderr: 2020-02-20 15:30:49,146 UTC - DEBUG - pyls.config.config - With project configuration: {'plugins': {'ctags': {'ctagsPath': 'C:/Users/benro/Desktop/Blink/ctags.exe', 'tagFiles': [{'filePath': 'C:/Users/benro/Desktop/Blink/.blink/tags', 'directory': 'C:/Users/benro/Desktop/Blink/client/samples/'}], 'enabled': True}, 'preload': {'modules': ['OpenGL', 'PIL', 'array', 'audioop', 'binascii', 'cPickle', 'cStringIO', 'cmath', 'collections', 'datetime', 'errno', 'exceptions', 'gc', 'imageop', 'imp', 'itertools', 'marshal', 'math', 'matplotlib', 'mmap', 'mpmath', 'msvcrt', 'networkx', 'nose', 'nt', 'numpy', 'operator', 'os', 'os.path', 'pandas', 'parser', 'rgbimg', 'scipy', 'signal', 'skimage', 'sklearn', 'statsmodels', 'strop', 'sympy', 'sys', 'thread', 'time', 'wx', 'xxsubtype', 'zipimport', 'zlib']}, 'pycodestyle': {'enabled': False}}, 'rope': {'extensionModules': ['OpenGL', 'PIL', 'array', 'audioop', 'binascii', 'cPickle', 'cStringIO', 'cmath', 'collections', 'datetime', 'errno', 'exceptions', 'gc', 'imageop', 'imp', 'itertools', 'marshal', 'math', 'matplotlib', 'mmap', 'mpmath', 'msvcrt', 'networkx', 'nose', 'nt', 'numpy', 'operator', 'os', 'os.path', 'pandas', 'parser', 'rgbimg', 'scipy', 'signal', 'skimage', 'sklearn', 'statsmodels', 'strop', 'sympy', 'sys', 'thread', 'time', 'wx', 'xxsubtype', 'zipimport', 'zlib']}}
+
+stderr: 2020-02-20 15:30:49,147 UTC - INFO - pyls.config.config - Disabled plugins: [None]
+
+stderr: 2020-02-20 15:30:49,152 UTC - DEBUG - pyls_jsonrpc.endpoint - Handling notification from client {'jsonrpc': '2.0', 'method': 'textDocument/didOpen', 'params': {'textDocument': {'uri': 'file:///c:/Users/benro/Desktop/Blink/client/samples/modules/game.py', 'languageId': 'python', 'text': 'import player\r\nimport world\r\nimport util\r\n\r\ndef main():\r\n    p = player.get_player()\r\n    w = world.get_starting_world()\r\n    print("Player ability:", player.get_ability(p))\r\n    print("Monsters:\\n" + "\\n".join(w))\r\n    print(f"Likelihood of failure: {util.square(10)}%")\r\n\r\nif __name__ == "__main__":\r\n    main()\r\n', 'version': 0}}}
+
+stderr: 2020-02-20 15:30:49,153 UTC - DEBUG - pyls.config.config -   pyls_document_did_open [hook]
+      config: <pyls.config.config.Config object at 0x0000013797D3FB08>
+      workspace: <pyls.workspace.Workspace object at 0x0000013797D3FA88>
+      document: file:///c:/Users/benro/Desktop/Blink/client/samples/modules/game.py
+
+
+stderr: 2020-02-20 15:30:49,154 UTC - DEBUG - pyls.config.config - With user configuration: {}
+2020-02-20 15:30:49,154 UTC - DEBUG - pyls.config.config - With plugin configuration: {'plugins': {'preload': {'modules': ['OpenGL', 'PIL', 'array', 'audioop', 'binascii', 'cPickle', 'cStringIO', 'cmath', 'collections', 'datetime', 'errno', 'exceptions', 'gc', 'imageop', 'imp', 'itertools', 'marshal', 'math', 'matplotlib', 'mmap', 'mpmath', 'msvcrt', 'networkx', 'nose', 'nt', 'numpy', 'operator', 'os', 'os.path', 'pandas', 'parser', 'rgbimg', 'scipy', 'signal', 'skimage', 'sklearn', 'statsmodels', 'strop', 'sympy', 'sys', 'thread', 'time', 'wx', 'xxsubtype', 'zipimport', 'zlib']}}, 'rope': {'extensionModules': ['OpenGL', 'PIL', 'array', 'audioop', 'binascii', 'cPickle', 'cStringIO', 'cmath', 'collections', 'datetime', 'errno', 'exceptions', 'gc', 'imageop', 'imp', 'itertools', 'marshal', 'math', 'matplotlib', 'mmap', 'mpmath', 'msvcrt', 'networkx', 'nose', 'nt', 'numpy', 'operator', 'os', 'os.path', 'pandas', 'parser', 'rgbimg', 'scipy', 'signal', 'skimage', 'sklearn', 'statsmodels', 'strop', 'sympy', 'sys', 'thread', 'time', 'wx', 'xxsubtype', 'zipimport', 'zlib']}}
+
+stderr: 2020-02-20 15:30:49,154 UTC - DEBUG - pyls.config.config - With lsp configuration: {'plugins': {'ctags': {'ctagsPath': 'C:/Users/benro/Desktop/Blink/ctags.exe', 'tagFiles': [{'filePath': 'C:/Users/benro/Desktop/Blink/.blink/tags', 'directory': 'C:/Users/benro/Desktop/Blink/client/samples/'}], 'enabled': True}, 'preload': {'modules': ['OpenGL', 'PIL', 'array', 'audioop', 'binascii', 'cPickle', 'cStringIO', 'cmath', 'collections', 'datetime', 'errno', 'exceptions', 'gc', 'imageop', 'imp', 'itertools', 'marshal', 'math', 'matplotlib', 'mmap', 'mpmath', 'msvcrt', 'networkx', 'nose', 'nt', 'numpy', 'operator', 'os', 'os.path', 'pandas', 'parser', 'rgbimg', 'scipy', 'signal', 'skimage', 'sklearn', 'statsmodels', 'strop', 'sympy', 'sys', 'thread', 'time', 'wx', 'xxsubtype', 'zipimport', 'zlib']}, 'pycodestyle': {'enabled': False}}, 'rope': {'extensionModules': ['OpenGL', 'PIL', 'array', 'audioop', 'binascii', 'cPickle', 'cStringIO', 'cmath', 'collections', 'datetime', 'errno', 'exceptions', 'gc', 'imageop', 'imp', 'itertools', 'marshal', 'math', 'matplotlib', 'mmap', 'mpmath', 'msvcrt', 'networkx', 'nose', 'nt', 'numpy', 'operator', 'os', 'os.path', 'pandas', 'parser', 'rgbimg', 'scipy', 'signal', 'skimage', 'sklearn', 'statsmodels', 'strop', 'sympy', 'sys', 'thread', 'time', 'wx', 'xxsubtype', 'zipimport', 'zlib']}}
+
+stderr: 2020-02-20 15:30:49,154 UTC - DEBUG - pyls.config.config - With project configuration: {'plugins': {'ctags': {'ctagsPath': 'C:/Users/benro/Desktop/Blink/ctags.exe', 'tagFiles': [{'filePath': 'C:/Users/benro/Desktop/Blink/.blink/tags', 'directory': 'C:/Users/benro/Desktop/Blink/client/samples/'}], 'enabled': True}, 'preload': {'modules': ['OpenGL', 'PIL', 'array', 'audioop', 'binascii', 'cPickle', 'cStringIO', 'cmath', 'collections', 'datetime', 'errno', 'exceptions', 'gc', 'imageop', 'imp', 'itertools', 'marshal', 'math', 'matplotlib', 'mmap', 'mpmath', 'msvcrt', 'networkx', 'nose', 'nt', 'numpy', 'operator', 'os', 'os.path', 'pandas', 'parser', 'rgbimg', 'scipy', 'signal', 'skimage', 'sklearn', 'statsmodels', 'strop', 'sympy', 'sys', 'thread', 'time', 'wx', 'xxsubtype', 'zipimport', 'zlib']}, 'pycodestyle': {'enabled': False}}, 'rope': {'extensionModules': ['OpenGL', 'PIL', 'array', 'audioop', 'binascii', 'cPickle', 'cStringIO', 'cmath', 'collections', 'datetime', 'errno', 'exceptions', 'gc', 'imageop', 'imp', 'itertools', 'marshal', 'math', 'matplotlib', 'mmap', 'mpmath', 'msvcrt', 'networkx', 'nose', 'nt', 'numpy', 'operator', 'os', 'os.path', 'pandas', 'parser', 'rgbimg', 'scipy', 'signal', 'skimage', 'sklearn', 'statsmodels', 'strop', 'sympy', 'sys', 'thread', 'time', 'wx', 'xxsubtype', 'zipimport', 'zlib']}}
+
+stderr: 2020-02-20 15:30:49,155 UTC - DEBUG - pyls.plugins.ctags - C:/Users/benro/Desktop/Blink/client/samples/
+
+stderr: 2020-02-20 15:30:49,155 UTC - INFO - pyls.plugins.ctags - Executing exuberant ctags: ['C:/Users/benro/Desktop/Blink/ctags.exe', '-f', 'C:/Users/benro/Desktop/Blink/.blink/tags', '--languages=Python', '-R', '--tag-relative=yes', '--exclude=.git', '--exclude=env', '--exclude=log', '--exclude=tmp', '--exclude=doc', '--exclude=deps', '--exclude=node_modules', '--exclude=.vscode', '--exclude=public/assets', '--exclude=*.git*', '--exclude=*.pyc', '--exclude=*.pyo', '--exclude=.DS_Store', '--exclude=**/*.jar', '--exclude=**/*.class', '--exclude=**/.idea/', '--exclude=build', '--exclude=Builds', '--exclude=doc', '--fields=Knz', '--extra=+f', 'C:/Users/benro/Desktop/Blink/client/samples/']
+
+stderr: 2020-02-20 15:30:50,908 UTC - INFO - pyls.plugins.ctags - ctags: b''
+2020-02-20 15:30:50,909 UTC - DEBUG - pyls.config.config -   finish pyls_document_did_open --> [] [hook]
+
+
+stderr: 2020-02-20 15:30:50,909 UTC - DEBUG - pyls_jsonrpc.endpoint - Handling notification from client {'jsonrpc': '2.0', 'method': 'textDocument/didChange', 'params': {'textDocument': {'uri': 'file:///c:/Users/benro/Desktop/Blink/client/samples/modules/game.py', 'version': 0}, 'contentChanges': [{'text': 'import player\r\nimport world\r\nimport util\r\n\r\ndef main():\r\n    p = player.get_player()\r\n    w = world.get_starting_world()\r\n    print("Player ability:", player.get_ability(p))\r\n    print("Monsters:\\n" + "\\n".join(w))\r\n    print(f"Likelihood of failure: {util.square(10)}%")\r\n\r\nif __name__ == "__main__":\r\n    main()\r\n'}]}}
+
+stderr: 2020-02-20 15:30:50,911 UTC - DEBUG - pyls_jsonrpc.endpoint - Handling request from client {'jsonrpc': '2.0', 'id': 1, 'method': 'textDocument/documentSymbol', 'params': {'textDocument': {'uri': 'file:///c:/Users/benro/Desktop/Blink/client/samples/modules/game.py'}}}
+
+stderr: 2020-02-20 15:30:50,911 UTC - DEBUG - pyls.config.config -   pyls_document_symbols [hook]
+      config: <pyls.config.config.Config object at 0x0000013797D3FB08>
+      workspace: <pyls.workspace.Workspace object at 0x0000013797D3FA88>
+      document: file:///c:/Users/benro/Desktop/Blink/client/samples/modules/game.py
+
+
+stderr: 2020-02-20 15:30:51,416 UTC - DEBUG - pyls.config.config -     pyls_lint [hook]
+        config: <pyls.config.config.Config object at 0x0000013797D3FB08>
+        workspace: <pyls.workspace.Workspace object at 0x0000013797D3FA88>
+        document: file:///c:/Users/benro/Desktop/Blink/client/samples/modules/game.py
+        is_saved: False
+
+
+stderr: 2020-02-20 15:30:51,438 UTC - DEBUG - pyls.config.config -     finish pyls_lint --> [[]] [hook]
+
+2020-02-20 15:30:51,438 UTC - DEBUG - pyls_jsonrpc.endpoint - Sending notification: textDocument/publishDiagnostics {'uri': 'file:///c:/Users/benro/Desktop/Blink/client/samples/modules/game.py', 'diagnostics': []}
+
+stderr: 2020-02-20 15:30:51,527 UTC - DEBUG - pyls.config.config -   finish pyls_document_symbols --> [[{'name': 'player', 'detail': 'player', 'range': {'start': {'line': 0, 'character': 0}, 'end': {'line': 0, 'character': 13}}, 'selectionRange': {'start': {'line': 0, 'character': 7}, 'end': {'line': 0, 'character': 13}}, 'kind': 2, 'children': None, 'rayBensModule': 'client.samples.modules.game'}, {'name': 'world', 'detail': 'world', 'range': {'start': {'line': 1, 'character': 0}, 'end': {'line': 1, 'character': 12}}, 'selectionRange': {'start': {'line': 1, 'character': 7}, 'end': {'line': 1, 'character': 12}}, 'kind': 2, 'children': None, 'rayBensModule': 'client.samples.modules.game'}, {'name': 'util', 'detail': 'util', 'range': {'start': {'line': 2, 'character': 0}, 'end': {'line': 2, 'character': 11}}, 'selectionRange': {'start': {'line': 2, 'character': 7}, 'end': {'line': 2, 'character': 11}}, 'kind': 2, 'children': None, 'rayBensModule': 'client.samples.modules.game'}, {'name': 'main', 'detail': 'client.samples.modules.game.main', 'range': {'start': {'line': 4, 'character': 0}, 'end': {'line': 10, 'character': 0}}, 'selectionRange': {'start': {'line': 4, 'character': 4}, 'end': {'line': 4, 'character': 8}}, 'kind': 12, 'children': [{'name': 'p', 'detail': 'client.samples.modules.game.main.p', 'range': {'start': {'line': 5, 'character': 4}, 'end': {'line': 5, 'character': 27}}, 'selectionRange': {'start': {'line': 5, 'character': 4}, 'end': {'line': 5, 'character': 5}}, 'kind': 13, 'children': None, 'rayBensModule': 'client.samples.modules.game'}, {'name': 'w', 'detail': 'client.samples.modules.game.main.w', 'range': {'start': {'line': 6, 'character': 4}, 'end': {'line': 6, 'character': 34}}, 'selectionRange': {'start': {'line': 6, 'character': 4}, 'end': {'line': 6, 'character': 5}}, 'kind': 13, 'children': None, 'rayBensModule': 'client.samples.modules.game'}], 'rayBensModule': 'client.samples.modules.game'}]] [hook]
+
+
+stderr: 2020-02-20 15:30:51,527 UTC - DEBUG - pyls_jsonrpc.endpoint - Got result from synchronous request handler: [{'name': 'player', 'detail': 'player', 'range': {'start': {'line': 0, 'character': 0}, 'end': {'line': 0, 'character': 13}}, 'selectionRange': {'start': {'line': 0, 'character': 7}, 'end': {'line': 0, 'character': 13}}, 'kind': 2, 'children': None, 'rayBensModule': 'client.samples.modules.game'}, {'name': 'world', 'detail': 'world', 'range': {'start': {'line': 1, 'character': 0}, 'end': {'line': 1, 'character': 12}}, 'selectionRange': {'start': {'line': 1, 'character': 7}, 'end': {'line': 1, 'character': 12}}, 'kind': 2, 'children': None, 'rayBensModule': 'client.samples.modules.game'}, {'name': 'util', 'detail': 'util', 'range': {'start': {'line': 2, 'character': 0}, 'end': {'line': 2, 'character': 11}}, 'selectionRange': {'start': {'line': 2, 'character': 7}, 'end': {'line': 2, 'character': 11}}, 'kind': 2, 'children': None, 'rayBensModule': 'client.samples.modules.game'}, {'name': 'main', 'detail': 'client.samples.modules.game.main', 'range': {'start': {'line': 4, 'character': 0}, 'end': {'line': 10, 'character': 0}}, 'selectionRange': {'start': {'line': 4, 'character': 4}, 'end': {'line': 4, 'character': 8}}, 'kind': 12, 'children': [{'name': 'p', 'detail': 'client.samples.modules.game.main.p', 'range': {'start': {'line': 5, 'character': 4}, 'end': {'line': 5, 'character': 27}}, 'selectionRange': {'start': {'line': 5, 'character': 4}, 'end': {'line': 5, 'character': 5}}, 'kind': 13, 'children': None, 'rayBensModule': 'client.samples.modules.game'}, {'name': 'w', 'detail': 'client.samples.modules.game.main.w', 'range': {'start': {'line': 6, 'character': 4}, 'end': {'line': 6, 'character': 34}}, 'selectionRange': {'start': {'line': 6, 'character': 4}, 'end': {'line': 6, 'character': 5}}, 'kind': 13, 'children': None, 'rayBensModule': 'client.samples.modules.game'}], 'rayBensModule': 'client.samples.modules.game'}]
+
+stderr: 2020-02-20 15:30:51,536 UTC - DEBUG - pyls_jsonrpc.endpoint - Handling request from client {'jsonrpc': '2.0', 'id': 2, 'method': 'textDocument/documentSymbol', 'params': {'textDocument': {'uri': 'file:///c:/Users/benro/Desktop/Blink/client/samples/modules/game.py'}}}
+
+stderr: 2020-02-20 15:30:51,536 UTC - DEBUG - pyls.config.config -   pyls_document_symbols [hook]
+      config: <pyls.config.config.Config object at 0x0000013797D3FB08>
+      workspace: <pyls.workspace.Workspace object at 0x0000013797D3FA88>
+      document: file:///c:/Users/benro/Desktop/Blink/client/samples/modules/game.py
+
+
+stderr: 2020-02-20 15:30:51,542 UTC - DEBUG - pyls.config.config -   finish pyls_document_symbols --> [[{'name': 'player', 'detail': 'player', 'range': {'start': {'line': 0, 'character': 0}, 'end': {'line': 0, 'character': 13}}, 'selectionRange': {'start': {'line': 0, 'character': 7}, 'end': {'line': 0, 'character': 13}}, 'kind': 2, 'children': None, 'rayBensModule': 'client.samples.modules.game'}, {'name': 'world', 'detail': 'world', 'range': {'start': {'line': 1, 'character': 0}, 'end': {'line': 1, 'character': 12}}, 'selectionRange': {'start': {'line': 1, 'character': 7}, 'end': {'line': 1, 'character': 12}}, 'kind': 2, 'children': None, 'rayBensModule': 'client.samples.modules.game'}, {'name': 'util', 'detail': 'util', 'range': {'start': {'line': 2, 'character': 0}, 'end': {'line': 2, 'character': 11}}, 'selectionRange': {'start': {'line': 2, 'character': 7}, 'end': {'line': 2, 'character': 11}}, 'kind': 2, 'children': None, 'rayBensModule': 'client.samples.modules.game'}, {'name': 'main', 'detail': 'client.samples.modules.game.main', 'range': {'start': {'line': 4, 'character': 0}, 'end': {'line': 10, 'character': 0}}, 'selectionRange': {'start': {'line': 4, 'character': 4}, 'end': {'line': 4, 'character': 8}}, 'kind': 12, 'children': [{'name': 'p', 'detail': 'client.samples.modules.game.main.p', 'range': {'start': {'line': 5, 'character': 4}, 'end': {'line': 5, 'character': 27}}, 'selectionRange': {'start': {'line': 5, 'character': 4}, 'end': {'line': 5, 'character': 5}}, 'kind': 13, 'children': None, 'rayBensModule': 'client.samples.modules.game'}, {'name': 'w', 'detail': 'client.samples.modules.game.main.w', 'range': {'start': {'line': 6, 'character': 4}, 'end': {'line': 6, 'character': 34}}, 'selectionRange': {'start': {'line': 6, 'character': 4}, 'end': {'line': 6, 'character': 5}}, 'kind': 13, 'children': None, 'rayBensModule': 'client.samples.modules.game'}], 'rayBensModule': 'client.samples.modules.game'}]] [hook]
+
+
+stderr: 2020-02-20 15:30:51,542 UTC - DEBUG - pyls_jsonrpc.endpoint - Got result from synchronous request handler: [{'name': 'player', 'detail': 'player', 'range': {'start': {'line': 0, 'character': 0}, 'end': {'line': 0, 'character': 13}}, 'selectionRange': {'start': {'line': 0, 'character': 7}, 'end': {'line': 0, 'character': 13}}, 'kind': 2, 'children': None, 'rayBensModule': 'client.samples.modules.game'}, {'name': 'world', 'detail': 'world', 'range': {'start': {'line': 1, 'character': 0}, 'end': {'line': 1, 'character': 12}}, 'selectionRange': {'start': {'line': 1, 'character': 7}, 'end': {'line': 1, 'character': 12}}, 'kind': 2, 'children': None, 'rayBensModule': 'client.samples.modules.game'}, {'name': 'util', 'detail': 'util', 'range': {'start': {'line': 2, 'character': 0}, 'end': {'line': 2, 'character': 11}}, 'selectionRange': {'start': {'line': 2, 'character': 7}, 'end': {'line': 2, 'character': 11}}, 'kind': 2, 'children': None, 'rayBensModule': 'client.samples.modules.game'}, {'name': 'main', 'detail': 'client.samples.modules.game.main', 'range': {'start': {'line': 4, 'character': 0}, 'end': {'line': 10, 'character': 0}}, 'selectionRange': {'start': {'line': 4, 'character': 4}, 'end': {'line': 4, 'character': 8}}, 'kind': 12, 'children': [{'name': 'p', 'detail': 'client.samples.modules.game.main.p', 'range': {'start': {'line': 5, 'character': 4}, 'end': {'line': 5, 'character': 27}}, 'selectionRange': {'start': {'line': 5, 'character': 4}, 'end': {'line': 5, 'character': 5}}, 'kind': 13, 'children': None, 'rayBensModule': 'client.samples.modules.game'}, {'name': 'w', 'detail': 'client.samples.modules.game.main.w', 'range': {'start': {'line': 6, 'character': 4}, 'end': {'line': 6, 'character': 34}}, 'selectionRange': {'start': {'line': 6, 'character': 4}, 'end': {'line': 6, 'character': 5}}, 'kind': 13, 'children': None, 'rayBensModule': 'client.samples.modules.game'}], 'rayBensModule': 'client.samples.modules.game'}]
+
+stderr: 2020-02-20 15:30:51,548 UTC - DEBUG - pyls_jsonrpc.endpoint - Handling request from client {'jsonrpc': '2.0', 'id': 3, 'method': 'textDocument/usedDocumentSymbol', 'params': {'textDocument': {'uri': 'file:///c:/Users/benro/Desktop/Blink/client/samples/modules/game.py'}}}
+
+stderr: 2020-02-20 15:30:51,548 UTC - DEBUG - pyls.config.config -   pyls_used_document_symbols [hook]
+      config: <pyls.config.config.Config object at 0x0000013797D3FB08>
+      workspace: <pyls.workspace.Workspace object at 0x0000013797D3FA88>
+      document: file:///c:/Users/benro/Desktop/Blink/client/samples/modules/game.py
+
+
+stderr: 2020-02-20 15:30:51,653 UTC - DEBUG - parso.cache - pickle loaded: c:\Users\benro\Desktop\Blink\client\samples\modules\player.py
+
+stderr: 2020-02-20 15:30:51,806 UTC - DEBUG - parso.cache - pickle loaded: c:\Users\benro\Desktop\Blink\client\samples\modules\world.py
+
+stderr: 2020-02-20 15:30:51,931 UTC - DEBUG - parso.cache - pickle loaded: c:\users\benro\.virtualenvs\server-ugadhott\lib\site-packages\jedi\third_party\typeshed\stdlib\2and3\builtins.pyi
+
+stderr: 2020-02-20 15:30:52,026 UTC - DEBUG - parso.cache - pickle loaded: c:\users\benro\.virtualenvs\server-ugadhott\lib\site-packages\jedi\third_party\typeshed\stdlib\3\sys.pyi
+
+stderr: 2020-02-20 15:30:52,084 UTC - DEBUG - parso.cache - pickle loaded: C:\Users\benro\AppData\Local\Programs\Python\Python37\Lib\typing.py
+
+stderr: 2020-02-20 15:30:52,141 UTC - DEBUG - parso.cache - pickle loaded: c:\users\benro\.virtualenvs\server-ugadhott\lib\site-packages\jedi\third_party\typeshed\stdlib\3\typing.pyi
+
+stderr: 2020-02-20 15:30:52,215 UTC - DEBUG - parso.cache - pickle loaded: c:\Users\benro\Desktop\Blink\client\samples\modules\util.py
+
+stderr: 2020-02-20 15:30:52,219 UTC - DEBUG - pyls.plugins.used_symbols - <TreeNameDefinition: string_name=__name__ start_pos=(12, 3)>, ['_API_TYPES',
+ '__class__',
+ '__delattr__',
+ '__dict__',
+ '__dir__',
+ '__doc__',
+ '__eq__',
+ '__format__',
+ '__ge__',
+ '__getattribute__',
+ '__gt__',
+ '__hash__',
+ '__init__',
+ '__init_subclass__',
+ '__le__',
+ '__lt__',
+ '__module__',
+ '__ne__',
+ '__new__',
+ '__reduce__',
+ '__reduce_ex__',
+ '__repr__',
+ '__setattr__',
+ '__sizeof__',
+ '__str__',
+ '__subclasshook__',
+ '__weakref__',
+ '_get_qualified_names',
+ 'api_type',
+ 'assignment_indexes',
+ 'get_public_name',
+ 'get_qualified_names',
+ 'get_root_context',
+ 'goto',
+ 'infer',
+ 'is_import',
+ 'is_value_name',
+ 'parent_context',
+ 'start_pos',
+ 'string_name',
+ 'tree_name'], {'parent_context': ModuleContext(<ModuleValue: game@1-14 is_stub=False>),
+ 'tree_name': <Name: __name__@12,3>}
+2020-02-20 15:30:52,219 UTC - DEBUG - pyls.plugins.used_symbols - <Name: __name__@12,3>
+
+stderr: 2020-02-20 15:30:52,221 UTC - DEBUG - pyls.plugins.used_symbols - (12, 3)
+2020-02-20 15:30:52,221 UTC - DEBUG - pyls.plugins.used_symbols - (12, 11)
+
+stderr: 2020-02-20 15:30:52,221 UTC - DEBUG - pyls.plugins.used_symbols - PythonNode(comparison, [<Name: __name__@12,3>, <Operator: ==>, <String: "__main__">])
+
+stderr: 2020-02-20 15:30:52,222 UTC - DEBUG - pyls.config.config -   finish pyls_used_document_symbols --> [[{'name': 'player', 'containerName': None, 'location': {'uri': 'file:///c:/Users/benro/Desktop/Blink/client/samples/modules/game.py', 'range': {'start': {'line': 0, 'character': 0}, 'end': {'line': 0, 'character': 13}}}, 'kind': 2, 'rayBensModule': 'client.samples.modules.game', 'rayBensUsageRange': {'start': {'line': 5, 'character': 8}, 'end': {'line': 5, 'character': 14}}}, {'name': 'get_player', 'containerName': None, 'location': {'uri': 'file:///c:/Users/benro/Desktop/Blink/client/samples/modules/player.py', 'range': {'start': {'line': 2, 'character': 0}, 'end': {'line': 7, 'character': 0}}}, 'kind': 12, 'rayBensModule': 'player', 'rayBensUsageRange': {'start': {'line': 5, 'character': 15}, 'end': {'line': 5, 'character': 25}}}, {'name': 'world', 'containerName': None, 'location': {'uri': 'file:///c:/Users/benro/Desktop/Blink/client/samples/modules/game.py', 'range': {'start': {'line': 1, 'character': 0}, 'end': {'line': 1, 'character': 12}}}, 'kind': 2, 'rayBensModule': 'client.samples.modules.game', 'rayBensUsageRange': {'start': {'line': 6, 'character': 8}, 'end': {'line': 6, 'character': 13}}}, {'name': 'get_starting_world', 'containerName': None, 'location': {'uri': 'file:///c:/Users/benro/Desktop/Blink/client/samples/modules/world.py', 'range': {'start': {'line': 3, 'character': 0}, 'end': {'line': 16, 'character': 0}}}, 'kind': 12, 'rayBensModule': 'world', 'rayBensUsageRange': {'start': {'line': 6, 'character': 14}, 'end': {'line': 6, 'character': 32}}}, {'name': 'print', 'containerName': None, 'location': {'uri': 'file:///c:/users/benro/.virtualenvs/server-ugadhott/lib/site-packages/jedi/third_party/typeshed/stdlib/2and3/builtins.pyi', 'range': {'start': {'line': 1345, 'character': 4}, 'end': {'line': 1348, 'character': 0}}}, 'kind': 12, 'rayBensModule': 'builtins', 'rayBensUsageRange': {'start': {'line': 7, 'character': 4}, 'end': {'line': 7, 'character': 9}}}, {'name': 'player', 'containerName': None, 'location': {'uri': 'file:///c:/Users/benro/Desktop/Blink/client/samples/modules/game.py', 'range': {'start': {'line': 0, 'character': 0}, 'end': {'line': 0, 'character': 13}}}, 'kind': 2, 'rayBensModule': 'client.samples.modules.game', 'rayBensUsageRange': {'start': {'line': 7, 'character': 29}, 'end': {'line': 7, 'character': 35}}}, {'name': 'get_ability', 'containerName': None, 'location': {'uri': 'file:///c:/Users/benro/Desktop/Blink/client/samples/modules/player.py', 'range': {'start': {'line': 8, 'character': 0}, 'end': {'line': 10, 'character': 0}}}, 'kind': 12, 'rayBensModule': 'player', 'rayBensUsageRange': {'start': {'line': 7, 'character': 36}, 'end': {'line': 7, 'character': 47}}}, {'name': 'p', 'containerName': 'main', 'location': {'uri': 'file:///c:/Users/benro/Desktop/Blink/client/samples/modules/game.py', 'range': {'start': {'line': 5, 'character': 4}, 'end': {'line': 5, 'character': 27}}}, 'kind': 13, 'rayBensModule': 'client.samples.modules.game', 'rayBensUsageRange': {'start': {'line': 7, 'character': 48}, 'end': {'line': 7, 'character': 49}}}, {'name': 'print', 'containerName': None, 'location': {'uri': 'file:///c:/users/benro/.virtualenvs/server-ugadhott/lib/site-packages/jedi/third_party/typeshed/stdlib/2and3/builtins.pyi', 'range': {'start': {'line': 1345, 'character': 4}, 'end': {'line': 1348, 'character': 0}}}, 'kind': 12, 'rayBensModule': 'builtins', 'rayBensUsageRange': {'start': {'line': 8, 'character': 4}, 'end': {'line': 8, 'character': 9}}}, {'name': 'join', 'containerName': 'str', 'location': {'uri': 'file:///c:/users/benro/.virtualenvs/server-ugadhott/lib/site-packages/jedi/third_party/typeshed/stdlib/2and3/builtins.pyi', 'range': {'start': {'line': 454, 'character': 8}, 'end': {'line': 455, 'character': 0}}}, 'kind': 12, 'rayBensModule': 'builtins', 'rayBensUsageRange': {'start': {'line': 8, 'character': 31}, 'end': {'line': 8, 'character': 35}}}, {'name': 'w', 'containerName': 'main', 'location': {'uri': 'file:///c:/Users/benro/Desktop/Blink/client/samples/modules/game.py', 'range': {'start': {'line': 6, 'character': 4}, 'end': {'line': 6, 'character': 34}}}, 'kind': 13, 'rayBensModule': 'client.samples.modules.game', 'rayBensUsageRange': {'start': {'line': 8, 'character': 36}, 'end': {'line': 8, 'character': 37}}}, {'name': 'print', 'containerName': None, 'location': {'uri': 'file:///c:/users/benro/.virtualenvs/server-ugadhott/lib/site-packages/jedi/third_party/typeshed/stdlib/2and3/builtins.pyi', 'range': {'start': {'line': 1345, 'character': 4}, 'end': {'line': 1348, 'character': 0}}}, 'kind': 12, 'rayBensModule': 'builtins', 'rayBensUsageRange': {'start': {'line': 9, 'character': 4}, 'end': {'line': 9, 'character': 9}}}, {'name': 'util', 'containerName': None, 'location': {'uri': 'file:///c:/Users/benro/Desktop/Blink/client/samples/modules/game.py', 'range': {'start': {'line': 2, 'character': 0}, 'end': {'line': 2, 'character': 11}}}, 'kind': 2, 'rayBensModule': 'client.samples.modules.game', 'rayBensUsageRange': {'start': {'line': 9, 'character': 36}, 'end': {'line': 9, 'character': 40}}}, {'name': 'square', 'containerName': None, 'location': {'uri': 'file:///c:/Users/benro/Desktop/Blink/client/samples/modules/util.py', 'range': {'start': {'line': 0, 'character': 0}, 'end': {'line': 6, 'character': 0}}}, 'kind': 12, 'rayBensModule': 'util', 'rayBensUsageRange': {'start': {'line': 9, 'character': 41}, 'end': {'line': 9, 'character': 47}}}, {'name': 'main', 'containerName': None, 'location': {'uri': 'file:///c:/Users/benro/Desktop/Blink/client/samples/modules/game.py', 'range': {'start': {'line': 4, 'character': 0}, 'end': {'line': 10, 'character': 0}}}, 'kind': 12, 'rayBensModule': 'client.samples.modules.game', 'rayBensUsageRange': {'start': {'line': 12, 'character': 4}, 'end': {'line': 12, 'character': 8}}}]] [hook]
+
+
+stderr: 2020-02-20 15:30:52,222 UTC - DEBUG - pyls_jsonrpc.endpoint - Got result from synchronous request handler: [{'name': 'player', 'containerName': None, 'location': {'uri': 'file:///c:/Users/benro/Desktop/Blink/client/samples/modules/game.py', 'range': {'start': {'line': 0, 'character': 0}, 'end': {'line': 0, 'character': 13}}}, 'kind': 2, 'rayBensModule': 'client.samples.modules.game', 'rayBensUsageRange': {'start': {'line': 5, 'character': 8}, 'end': {'line': 5, 'character': 14}}}, {'name': 'get_player', 'containerName': None, 'location': {'uri': 'file:///c:/Users/benro/Desktop/Blink/client/samples/modules/player.py', 'range': {'start': {'line': 2, 'character': 0}, 'end': {'line': 7, 'character': 0}}}, 'kind': 12, 'rayBensModule': 'player', 'rayBensUsageRange': {'start': {'line': 5, 'character': 15}, 'end': {'line': 5, 'character': 25}}}, {'name': 'world', 'containerName': None, 'location': {'uri': 'file:///c:/Users/benro/Desktop/Blink/client/samples/modules/game.py', 'range': {'start': {'line': 1, 'character': 0}, 'end': {'line': 1, 'character': 12}}}, 'kind': 2, 'rayBensModule': 'client.samples.modules.game', 'rayBensUsageRange': {'start': {'line': 6, 'character': 8}, 'end': {'line': 6, 'character': 13}}}, {'name': 'get_starting_world', 'containerName': None, 'location': {'uri': 'file:///c:/Users/benro/Desktop/Blink/client/samples/modules/world.py', 'range': {'start': {'line': 3, 'character': 0}, 'end': {'line': 16, 'character': 0}}}, 'kind': 12, 'rayBensModule': 'world', 'rayBensUsageRange': {'start': {'line': 6, 'character': 14}, 'end': {'line': 6, 'character': 32}}}, {'name': 'print', 'containerName': None, 'location': {'uri': 'file:///c:/users/benro/.virtualenvs/server-ugadhott/lib/site-packages/jedi/third_party/typeshed/stdlib/2and3/builtins.pyi', 'range': {'start': {'line': 1345, 'character': 4}, 'end': {'line': 1348, 'character': 0}}}, 'kind': 12, 'rayBensModule': 'builtins', 'rayBensUsageRange': {'start': {'line': 7, 'character': 4}, 'end': {'line': 7, 'character': 9}}}, {'name': 'player', 'containerName': None, 'location': {'uri': 'file:///c:/Users/benro/Desktop/Blink/client/samples/modules/game.py', 'range': {'start': {'line': 0, 'character': 0}, 'end': {'line': 0, 'character': 13}}}, 'kind': 2, 'rayBensModule': 'client.samples.modules.game', 'rayBensUsageRange': {'start': {'line': 7, 'character': 29}, 'end': {'line': 7, 'character': 35}}}, {'name': 'get_ability', 'containerName': None, 'location': {'uri': 'file:///c:/Users/benro/Desktop/Blink/client/samples/modules/player.py', 'range': {'start': {'line': 8, 'character': 0}, 'end': {'line': 10, 'character': 0}}}, 'kind': 12, 'rayBensModule': 'player', 'rayBensUsageRange': {'start': {'line': 7, 'character': 36}, 'end': {'line': 7, 'character': 47}}}, {'name': 'p', 'containerName': 'main', 'location': {'uri': 'file:///c:/Users/benro/Desktop/Blink/client/samples/modules/game.py', 'range': {'start': {'line': 5, 'character': 4}, 'end': {'line': 5, 'character': 27}}}, 'kind': 13, 'rayBensModule': 'client.samples.modules.game', 'rayBensUsageRange': {'start': {'line': 7, 'character': 48}, 'end': {'line': 7, 'character': 49}}}, {'name': 'print', 'containerName': None, 'location': {'uri': 'file:///c:/users/benro/.virtualenvs/server-ugadhott/lib/site-packages/jedi/third_party/typeshed/stdlib/2and3/builtins.pyi', 'range': {'start': {'line': 1345, 'character': 4}, 'end': {'line': 1348, 'character': 0}}}, 'kind': 12, 'rayBensModule': 'builtins', 'rayBensUsageRange': {'start': {'line': 8, 'character': 4}, 'end': {'line': 8, 'character': 9}}}, {'name': 'join', 'containerName': 'str', 'location': {'uri': 'file:///c:/users/benro/.virtualenvs/server-ugadhott/lib/site-packages/jedi/third_party/typeshed/stdlib/2and3/builtins.pyi', 'range': {'start': {'line': 454, 'character': 8}, 'end': {'line': 455, 'character': 0}}}, 'kind': 12, 'rayBensModule': 'builtins', 'rayBensUsageRange': {'start': {'line': 8, 'character': 31}, 'end': {'line': 8, 'character': 35}}}, {'name': 'w', 'containerName': 'main', 'location': {'uri': 'file:///c:/Users/benro/Desktop/Blink/client/samples/modules/game.py', 'range': {'start': {'line': 6, 'character': 4}, 'end': {'line': 6, 'character': 34}}}, 'kind': 13, 'rayBensModule': 'client.samples.modules.game', 'rayBensUsageRange': {'start': {'line': 8, 'character': 36}, 'end': {'line': 8, 'character': 37}}}, {'name': 'print', 'containerName': None, 'location': {'uri': 'file:///c:/users/benro/.virtualenvs/server-ugadhott/lib/site-packages/jedi/third_party/typeshed/stdlib/2and3/builtins.pyi', 'range': {'start': {'line': 1345, 'character': 4}, 'end': {'line': 1348, 'character': 0}}}, 'kind': 12, 'rayBensModule': 'builtins', 'rayBensUsageRange': {'start': {'line': 9, 'character': 4}, 'end': {'line': 9, 'character': 9}}}, {'name': 'util', 'containerName': None, 'location': {'uri': 'file:///c:/Users/benro/Desktop/Blink/client/samples/modules/game.py', 'range': {'start': {'line': 2, 'character': 0}, 'end': {'line': 2, 'character': 11}}}, 'kind': 2, 'rayBensModule': 'client.samples.modules.game', 'rayBensUsageRange': {'start': {'line': 9, 'character': 36}, 'end': {'line': 9, 'character': 40}}}, {'name': 'square', 'containerName': None, 'location': {'uri': 'file:///c:/Users/benro/Desktop/Blink/client/samples/modules/util.py', 'range': {'start': {'line': 0, 'character': 0}, 'end': {'line': 6, 'character': 0}}}, 'kind': 12, 'rayBensModule': 'util', 'rayBensUsageRange': {'start': {'line': 9, 'character': 41}, 'end': {'line': 9, 'character': 47}}}, {'name': 'main', 'containerName': None, 'location': {'uri': 'file:///c:/Users/benro/Desktop/Blink/client/samples/modules/game.py', 'range': {'start': {'line': 4, 'character': 0}, 'end': {'line': 10, 'character': 0}}}, 'kind': 12, 'rayBensModule': 'client.samples.modules.game', 'rayBensUsageRange': {'start': {'line': 12, 'character': 4}, 'end': {'line': 12, 'character': 8}}}]
+
+stderr: 2020-02-20 15:30:52,222 UTC - DEBUG - pyls_jsonrpc.endpoint - Handling request from client {'jsonrpc': '2.0', 'id': 4, 'method': 'textDocument/references', 'params': {'textDocument': {'uri': 'file:///c:/Users/benro/Desktop/Blink/client/samples/modules/game.py'}, 'position': {'line': 4, 'character': 4}, 'context': {'includeDeclaration': False}}}
+
+stderr: 2020-02-20 15:30:52,223 UTC - DEBUG - pyls.config.config -   pyls_references [hook]
+      config: <pyls.config.config.Config object at 0x0000013797D3FB08>
+      workspace: <pyls.workspace.Workspace object at 0x0000013797D3FA88>
+      document: file:///c:/Users/benro/Desktop/Blink/client/samples/modules/game.py
+      position: {'line': 4, 'character': 4}
+      exclude_declaration: True
+
+
+stderr: 2020-02-20 15:30:52,230 UTC - DEBUG - pyls.config.config -   finish pyls_references --> [[{'uri': 'file:///c:/Users/benro/Desktop/Blink/client/samples/modules/game.py', 'range': {'start': {'line': 4, 'character': 4}, 'end': {'line': 4, 'character': 8}}}, {'uri': 'file:///c:/Users/benro/Desktop/Blink/client/samples/modules/game.py', 'range': {'start': {'line': 12, 'character': 4}, 'end': {'line': 12, 'character': 8}}}]] [hook]
+
+2020-02-20 15:30:52,230 UTC - DEBUG - pyls_jsonrpc.endpoint - Got result from synchronous request handler: [{'uri': 'file:///c:/Users/benro/Desktop/Blink/client/samples/modules/game.py', 'range': {'start': {'line': 4, 'character': 4}, 'end': {'line': 4, 'character': 8}}}, {'uri': 'file:///c:/Users/benro/Desktop/Blink/client/samples/modules/game.py', 'range': {'start': {'line': 12, 'character': 4}, 'end': {'line': 12, 'character': 8}}}]
+
+stderr: 2020-02-20 15:30:52,314 UTC - DEBUG - pyls_jsonrpc.endpoint - Handling notification from client {'jsonrpc': '2.0', 'method': 'textDocument/didOpen', 'params': {'textDocument': {'uri': 'file:///c:/Users/benro/Desktop/Blink/client/samples/modules/game.py', 'languageId': 'python', 'text': 'import player\r\nimport world\r\nimport util\r\n\r\ndef main():\r\n    p = player.get_player()\r\n    w = world.get_starting_world()\r\n    print("Player ability:", player.get_ability(p))\r\n    print("Monsters:\\n" + "\\n".join(w))\r\n    print(f"Likelihood of failure: {util.square(10)}%")\r\n\r\nif __name__ == "__main__":\r\n    main()\r\n', 'version': 0}}}
+
+stderr: 2020-02-20 15:30:52,318 UTC - DEBUG - pyls.config.config -   pyls_document_did_open [hook]
+      config: <pyls.config.config.Config object at 0x0000013797D3FB08>
+      workspace: <pyls.workspace.Workspace object at 0x0000013797D3FA88>
+      document: file:///c:/Users/benro/Desktop/Blink/client/samples/modules/game.py
+
+
+stderr: 2020-02-20 15:30:52,318 UTC - DEBUG - pyls.config.config -   finish pyls_document_did_open --> [] [hook]
+
+
+stderr: 2020-02-20 15:30:52,320 UTC - DEBUG - pyls_jsonrpc.endpoint - Handling notification from client {'jsonrpc': '2.0', 'method': 'textDocument/didChange', 'params': {'textDocument': {'uri': 'file:///c:/Users/benro/Desktop/Blink/client/samples/modules/game.py', 'version': 0}, 'contentChanges': [{'text': 'import player\r\nimport world\r\nimport util\r\n\r\ndef main():\r\n    p = player.get_player()\r\n    w = world.get_starting_world()\r\n    print("Player ability:", player.get_ability(p))\r\n    print("Monsters:\\n" + "\\n".join(w))\r\n    print(f"Likelihood of failure: {util.square(10)}%")\r\n\r\nif __name__ == "__main__":\r\n    main()\r\n'}]}}
+
+stderr: 2020-02-20 15:30:52,326 UTC - DEBUG - pyls_jsonrpc.endpoint - Handling notification from client {'jsonrpc': '2.0', 'method': 'textDocument/didOpen', 'params': {'textDocument': {'uri': 'file:///c:/Users/benro/Desktop/Blink/client/samples/modules/player.py', 'languageId': 'python', 'text': 'import util\r\n\r\ndef get_player():\r\n    return {\r\n        "health": util.square(5),\r\n        "ability": 2,\r\n    }\r\n\r\ndef get_ability(p):\r\n    return p["ability"]\r\n', 'version': 0}}}
+
+stderr: 2020-02-20 15:30:52,327 UTC - DEBUG - pyls.config.config -   pyls_document_did_open [hook]
+      config: <pyls.config.config.Config object at 0x0000013797D3FB08>
+      workspace: <pyls.workspace.Workspace object at 0x0000013797D3FA88>
+      document: file:///c:/Users/benro/Desktop/Blink/client/samples/modules/player.py
+
+
+stderr: 2020-02-20 15:30:52,327 UTC - DEBUG - pyls.config.config -   finish pyls_document_did_open --> [] [hook]
+
+
+stderr: 2020-02-20 15:30:52,328 UTC - DEBUG - pyls_jsonrpc.endpoint - Handling request from client {'jsonrpc': '2.0', 'id': 5, 'method': 'textDocument/documentSymbol', 'params': {'textDocument': {'uri': 'file:///c:/Users/benro/Desktop/Blink/client/samples/modules/player.py'}}}
+
+stderr: 2020-02-20 15:30:52,329 UTC - DEBUG - pyls.config.config -   pyls_document_symbols [hook]
+      config: <pyls.config.config.Config object at 0x0000013797D3FB08>
+      workspace: <pyls.workspace.Workspace object at 0x0000013797D3FA88>
+      document: file:///c:/Users/benro/Desktop/Blink/client/samples/modules/player.py
+
+
+stderr: 2020-02-20 15:30:52,336 UTC - DEBUG - pyls.config.config -   finish pyls_document_symbols --> [[{'name': 'util', 'detail': 'util', 'range': {'start': {'line': 0, 'character': 0}, 'end': {'line': 0, 'character': 11}}, 'selectionRange': {'start': {'line': 0, 'character': 7}, 'end': {'line': 0, 'character': 11}}, 'kind': 2, 'children': None, 'rayBensModule': 'client.samples.modules.player'}, {'name': 'get_player', 'detail': 'client.samples.modules.player.get_player', 'range': {'start': {'line': 2, 'character': 0}, 'end': {'line': 7, 'character': 0}}, 'selectionRange': {'start': {'line': 2, 'character': 4}, 'end': {'line': 2, 'character': 14}}, 'kind': 12, 'children': [], 'rayBensModule': 'client.samples.modules.player'}, {'name': 'get_ability', 'detail': 'client.samples.modules.player.get_ability', 'range': {'start': {'line': 8, 'character': 0}, 'end': {'line': 10, 'character': 0}}, 'selectionRange': {'start': {'line': 8, 'character': 4}, 'end': {'line': 8, 'character': 15}}, 'kind': 12, 'children': [], 'rayBensModule': 'client.samples.modules.player'}]] [hook]
+
+
+stderr: 2020-02-20 15:30:52,337 UTC - DEBUG - pyls_jsonrpc.endpoint - Got result from synchronous request handler: [{'name': 'util', 'detail': 'util', 'range': {'start': {'line': 0, 'character': 0}, 'end': {'line': 0, 'character': 11}}, 'selectionRange': {'start': {'line': 0, 'character': 7}, 'end': {'line': 0, 'character': 11}}, 'kind': 2, 'children': None, 'rayBensModule': 'client.samples.modules.player'}, {'name': 'get_player', 'detail': 'client.samples.modules.player.get_player', 'range': {'start': {'line': 2, 'character': 0}, 'end': {'line': 7, 'character': 0}}, 'selectionRange': {'start': {'line': 2, 'character': 4}, 'end': {'line': 2, 'character': 14}}, 'kind': 12, 'children': [], 'rayBensModule': 'client.samples.modules.player'}, {'name': 'get_ability', 'detail': 'client.samples.modules.player.get_ability', 'range': {'start': {'line': 8, 'character': 0}, 'end': {'line': 10, 'character': 0}}, 'selectionRange': {'start': {'line': 8, 'character': 4}, 'end': {'line': 8, 'character': 15}}, 'kind': 12, 'children': [], 'rayBensModule': 'client.samples.modules.player'}]
+
+stderr: 2020-02-20 15:30:52,450 UTC - DEBUG - pyls_jsonrpc.endpoint - Handling notification from client {'jsonrpc': '2.0', 'method': 'textDocument/didChange', 'params': {'textDocument': {'uri': 'file:///c:/Users/benro/Desktop/Blink/client/samples/modules/game.py', 'version': 1}, 'contentChanges': [{'text': 'import player\n\nimport world\n\nimport util\n\ndef main():\n    p = player.get_player()\n    w = world.get_starting_world()\n    print("Player ability:", player.get_ability(p))\n    print("Monsters:\\n" + "\\n".join(w))\n    print(f"Likelihood of failure: {util.square(10)}%")\nif __name__ == "__main__":\r\n    main()\r'}]}}
+
+stderr: 2020-02-20 15:30:52,452 UTC - DEBUG - pyls_jsonrpc.endpoint - Handling request from client {'jsonrpc': '2.0', 'id': 6, 'method': 'textDocument/documentHighlight', 'params': {'textDocument': {'uri': 'file:///c:/Users/benro/Desktop/Blink/client/samples/modules/game.py'}, 'position': {'line': 6, 'character': 0}}}
+
+stderr: 2020-02-20 15:30:52,452 UTC - DEBUG - pyls.config.config -   pyls_document_highlight [hook]
+      config: <pyls.config.config.Config object at 0x0000013797D3FB08>
+      workspace: <pyls.workspace.Workspace object at 0x0000013797D3FA88>
+      document: file:///c:/Users/benro/Desktop/Blink/client/samples/modules/game.py
+      position: {'line': 6, 'character': 0}
+
+
+stderr: 2020-02-20 15:30:52,454 UTC - DEBUG - parso.python.diff - diff parser start
+
+stderr: 2020-02-20 15:30:52,456 UTC - DEBUG - parso.python.diff - line_lengths old: 14; new: 15
+2020-02-20 15:30:52,456 UTC - DEBUG - parso.python.diff - -> code[replace] old[1:11] new[1:12]
+
+stderr: 2020-02-20 15:30:52,457 UTC - DEBUG - parso.python.diff - parse_part from 1 to 12 (to 12 in part parser)
+
+stderr: 2020-02-20 15:30:52,457 UTC - DEBUG - parso.python.diff - -> code[equal] old[12:12] new[13:13]
+
+stderr: 2020-02-20 15:30:52,461 UTC - DEBUG - parso.python.diff - parse_part from 13 to 14 (to 14 in part parser)
+
+stderr: 2020-02-20 15:30:52,462 UTC - DEBUG - parso.python.diff - -> code[replace] old[13:13] new[14:14]
+
+stderr: 2020-02-20 15:30:52,462 UTC - DEBUG - parso.python.diff - -> code[equal] old[14:14] new[15:15]
+
+stderr: 2020-02-20 15:30:52,462 UTC - DEBUG - parso.python.diff - diff parser end
+
+stderr: 2020-02-20 15:30:52,463 UTC - DEBUG - pyls.config.config -   finish pyls_document_highlight --> [[]] [hook]
+
+
+stderr: 2020-02-20 15:30:52,463 UTC - DEBUG - pyls_jsonrpc.endpoint - Got result from synchronous request handler: None
+
+stderr: 2020-02-20 15:30:52,841 UTC - DEBUG - pyls.config.config -   pyls_lint [hook]
+      config: <pyls.config.config.Config object at 0x0000013797D3FB08>
+      workspace: <pyls.workspace.Workspace object at 0x0000013797D3FA88>
+      document: file:///c:/Users/benro/Desktop/Blink/client/samples/modules/player.py
+      is_saved: True
+
+
+stderr: 2020-02-20 15:30:52,843 UTC - DEBUG - pyls.config.config -   finish pyls_lint --> [[]] [hook]
+
+2020-02-20 15:30:52,843 UTC - DEBUG - pyls_jsonrpc.endpoint - Sending notification: textDocument/publishDiagnostics {'uri': 'file:///c:/Users/benro/Desktop/Blink/client/samples/modules/player.py', 'diagnostics': []}
+
+stderr: 2020-02-20 15:30:52,952 UTC - DEBUG - pyls.config.config -   pyls_lint [hook]
+      config: <pyls.config.config.Config object at 0x0000013797D3FB08>
+      workspace: <pyls.workspace.Workspace object at 0x0000013797D3FA88>
+      document: file:///c:/Users/benro/Desktop/Blink/client/samples/modules/game.py
+      is_saved: False
+
+
+stderr: 2020-02-20 15:30:52,956 UTC - DEBUG - pyls.config.config -   finish pyls_lint --> [[]] [hook]
+
+2020-02-20 15:30:52,957 UTC - DEBUG - pyls_jsonrpc.endpoint - Sending notification: textDocument/publishDiagnostics {'uri': 'file:///c:/Users/benro/Desktop/Blink/client/samples/modules/game.py', 'diagnostics': []}
+
+stderr: 2020-02-20 15:31:29,997 UTC - DEBUG - pyls_jsonrpc.endpoint - Handling request from client {'jsonrpc': '2.0', 'id': 7, 'method': 'workspace/symbol', 'params': {'query': 'm'}}
+2020-02-20 15:31:29,998 UTC - DEBUG - pyls.config.config -   pyls_workspace_symbols [hook]
+      config: <pyls.config.config.Config object at 0x0000013797D3FB08>
+      workspace: <pyls.workspace.Workspace object at 0x0000013797D3FA88>
+      document: None
+      query: m
+
+2020-02-20 15:31:29,998 UTC - DEBUG - pyls.plugins.ctags - [{'filePath': 'C:/Users/benro/Desktop/Blink/.blink/tags', 'directory': 'C:/Users/benro/Desktop/Blink/client/samples/'}]
+
+stderr: 2020-02-20 15:31:29,999 UTC - INFO - pyls.plugins.ctags - Got match None from line: !_TAG_FILE_FORMAT	2	/extended format; --format=1 will not append ;" to lines/
+
+2020-02-20 15:31:29,999 UTC - INFO - pyls.plugins.ctags - Line: !_TAG_FILE_FORMAT\t2\t/extended\sformat;\s--format=1\swill\snot\sappend\s;"\sto\slines/
+
+
+stderr: 2020-02-20 15:31:29,999 UTC - INFO - pyls.plugins.ctags - Got match None from line: !_TAG_FILE_SORTED	1	/0=unsorted, 1=sorted, 2=foldcase/
+
+2020-02-20 15:31:29,999 UTC - INFO - pyls.plugins.ctags - Line: !_TAG_FILE_SORTED\t1\t/0=unsorted,\s1=sorted,\s2=foldcase/
+
+
+stderr: 2020-02-20 15:31:30,000 UTC - INFO - pyls.plugins.ctags - Got match None from line: !_TAG_PROGRAM_AUTHOR	Darren Hiebert	/dhiebert@users.sourceforge.net/
+
+2020-02-20 15:31:30,000 UTC - INFO - pyls.plugins.ctags - Line: !_TAG_PROGRAM_AUTHOR\tDarren\sHiebert\t/dhiebert@users.sourceforge.net/
+
+
+stderr: 2020-02-20 15:31:30,000 UTC - INFO - pyls.plugins.ctags - Got match None from line: !_TAG_PROGRAM_NAME	Exuberant Ctags	//
+
+
+stderr: 2020-02-20 15:31:30,000 UTC - INFO - pyls.plugins.ctags - Line: !_TAG_PROGRAM_NAME\tExuberant\sCtags\t//
+
+2020-02-20 15:31:30,000 UTC - INFO - pyls.plugins.ctags - Got match None from line: !_TAG_PROGRAM_URL	http://ctags.sourceforge.net	/official site/
+
+2020-02-20 15:31:30,000 UTC - INFO - pyls.plugins.ctags - Line: !_TAG_PROGRAM_URL\thttp://ctags.sourceforge.net\t/official\ssite/
+
+
+stderr: 2020-02-20 15:31:30,000 UTC - INFO - pyls.plugins.ctags - Got match None from line: !_TAG_PROGRAM_VERSION	5.8	//
+
+2020-02-20 15:31:30,001 UTC - INFO - pyls.plugins.ctags - Line: !_TAG_PROGRAM_VERSION\t5.8\t//
+
+
+stderr: 2020-02-20 15:31:30,001 UTC - DEBUG - pyls.plugins.ctags - []
+2020-02-20 15:31:30,001 UTC - DEBUG - pyls.plugins.ctags - []
+
+stderr: 2020-02-20 15:31:30,001 UTC - DEBUG - pyls.config.config -   finish pyls_workspace_symbols --> [[]] [hook]
+
+2020-02-20 15:31:30,001 UTC - DEBUG - pyls_jsonrpc.endpoint - Got result from synchronous request handler: []
+
+stderr: 2020-02-20 15:31:30,002 UTC - DEBUG - pyls_jsonrpc.endpoint - Handling request from client {'jsonrpc': '2.0', 'id': 8, 'method': 'workspace/symbol', 'params': {'query': 'm'}}
+
+stderr: 2020-02-20 15:31:30,002 UTC - DEBUG - pyls.config.config -   pyls_workspace_symbols [hook]
+      config: <pyls.config.config.Config object at 0x0000013797D3FB08>
+      workspace: <pyls.workspace.Workspace object at 0x0000013797D3FA88>
+      document: None
+      query: m
+
+
+stderr: 2020-02-20 15:31:30,003 UTC - DEBUG - pyls.plugins.ctags - [{'filePath': 'C:/Users/benro/Desktop/Blink/.blink/tags', 'directory': 'C:/Users/benro/Desktop/Blink/client/samples/'}]
+
+stderr: 2020-02-20 15:31:30,003 UTC - INFO - pyls.plugins.ctags - Got match None from line: !_TAG_FILE_FORMAT	2	/extended format; --format=1 will not append ;" to lines/
+
+2020-02-20 15:31:30,003 UTC - INFO - pyls.plugins.ctags - Line: !_TAG_FILE_FORMAT\t2\t/extended\sformat;\s--format=1\swill\snot\sappend\s;"\sto\slines/
+
+
+stderr: 2020-02-20 15:31:30,004 UTC - INFO - pyls.plugins.ctags - Got match None from line: !_TAG_FILE_SORTED	1	/0=unsorted, 1=sorted, 2=foldcase/
+
+
+stderr: 2020-02-20 15:31:30,004 UTC - INFO - pyls.plugins.ctags - Line: !_TAG_FILE_SORTED\t1\t/0=unsorted,\s1=sorted,\s2=foldcase/
+
+2020-02-20 15:31:30,004 UTC - INFO - pyls.plugins.ctags - Got match None from line: !_TAG_PROGRAM_AUTHOR	Darren Hiebert	/dhiebert@users.sourceforge.net/
+
+
+stderr: 2020-02-20 15:31:30,004 UTC - INFO - pyls.plugins.ctags - Line: !_TAG_PROGRAM_AUTHOR\tDarren\sHiebert\t/dhiebert@users.sourceforge.net/
+
+
+stderr: 2020-02-20 15:31:30,004 UTC - INFO - pyls.plugins.ctags - Got match None from line: !_TAG_PROGRAM_NAME	Exuberant Ctags	//
+
+2020-02-20 15:31:30,005 UTC - INFO - pyls.plugins.ctags - Line: !_TAG_PROGRAM_NAME\tExuberant\sCtags\t//
+
+
+stderr: 2020-02-20 15:31:30,005 UTC - INFO - pyls.plugins.ctags - Got match None from line: !_TAG_PROGRAM_URL	http://ctags.sourceforge.net	/official site/
+
+
+stderr: 2020-02-20 15:31:30,005 UTC - INFO - pyls.plugins.ctags - Line: !_TAG_PROGRAM_URL\thttp://ctags.sourceforge.net\t/official\ssite/
+
+2020-02-20 15:31:30,005 UTC - INFO - pyls.plugins.ctags - Got match None from line: !_TAG_PROGRAM_VERSION	5.8	//
+
+
+stderr: 2020-02-20 15:31:30,005 UTC - INFO - pyls.plugins.ctags - Line: !_TAG_PROGRAM_VERSION\t5.8\t//
+
+
+stderr: 2020-02-20 15:31:30,006 UTC - DEBUG - pyls.plugins.ctags - []
+2020-02-20 15:31:30,006 UTC - DEBUG - pyls.plugins.ctags - []
+
+stderr: 2020-02-20 15:31:30,006 UTC - DEBUG - pyls.config.config -   finish pyls_workspace_symbols --> [[]] [hook]
+
+
+stderr: 2020-02-20 15:31:30,006 UTC - DEBUG - pyls_jsonrpc.endpoint - Got result from synchronous request handler: []
+
+stderr: 2020-02-20 15:31:30,007 UTC - DEBUG - pyls_jsonrpc.endpoint - Handling request from client {'jsonrpc': '2.0', 'id': 9, 'method': 'workspace/symbol', 'params': {'query': 'm'}}
+
+stderr: 2020-02-20 15:31:30,007 UTC - DEBUG - pyls.config.config -   pyls_workspace_symbols [hook]
+      config: <pyls.config.config.Config object at 0x0000013797D3FB08>
+      workspace: <pyls.workspace.Workspace object at 0x0000013797D3FA88>
+      document: None
+      query: m
+
+2020-02-20 15:31:30,007 UTC - DEBUG - pyls.plugins.ctags - [{'filePath': 'C:/Users/benro/Desktop/Blink/.blink/tags', 'directory': 'C:/Users/benro/Desktop/Blink/client/samples/'}]
+
+stderr: 2020-02-20 15:31:30,008 UTC - INFO - pyls.plugins.ctags - Got match None from line: !_TAG_FILE_FORMAT	2	/extended format; --format=1 will not append ;" to lines/
+
+2020-02-20 15:31:30,008 UTC - INFO - pyls.plugins.ctags - Line: !_TAG_FILE_FORMAT\t2\t/extended\sformat;\s--format=1\swill\snot\sappend\s;"\sto\slines/
+
+
+stderr: 2020-02-20 15:31:30,008 UTC - INFO - pyls.plugins.ctags - Got match None from line: !_TAG_FILE_SORTED	1	/0=unsorted, 1=sorted, 2=foldcase/
+
+2020-02-20 15:31:30,009 UTC - INFO - pyls.plugins.ctags - Line: !_TAG_FILE_SORTED\t1\t/0=unsorted,\s1=sorted,\s2=foldcase/
+
+
+stderr: 2020-02-20 15:31:30,009 UTC - INFO - pyls.plugins.ctags - Got match None from line: !_TAG_PROGRAM_AUTHOR	Darren Hiebert	/dhiebert@users.sourceforge.net/
+
+2020-02-20 15:31:30,009 UTC - INFO - pyls.plugins.ctags - Line: !_TAG_PROGRAM_AUTHOR\tDarren\sHiebert\t/dhiebert@users.sourceforge.net/
+
+
+stderr: 2020-02-20 15:31:30,009 UTC - INFO - pyls.plugins.ctags - Got match None from line: !_TAG_PROGRAM_NAME	Exuberant Ctags	//
+
+2020-02-20 15:31:30,010 UTC - INFO - pyls.plugins.ctags - Line: !_TAG_PROGRAM_NAME\tExuberant\sCtags\t//
+
+
+stderr: 2020-02-20 15:31:30,010 UTC - INFO - pyls.plugins.ctags - Got match None from line: !_TAG_PROGRAM_URL	http://ctags.sourceforge.net	/official site/
+
+
+stderr: 2020-02-20 15:31:30,010 UTC - INFO - pyls.plugins.ctags - Line: !_TAG_PROGRAM_URL\thttp://ctags.sourceforge.net\t/official\ssite/
+
+2020-02-20 15:31:30,010 UTC - INFO - pyls.plugins.ctags - Got match None from line: !_TAG_PROGRAM_VERSION	5.8	//
+
+
+stderr: 2020-02-20 15:31:30,010 UTC - INFO - pyls.plugins.ctags - Line: !_TAG_PROGRAM_VERSION\t5.8\t//
+
+
+stderr: 2020-02-20 15:31:30,011 UTC - DEBUG - pyls.plugins.ctags - []
+2020-02-20 15:31:30,011 UTC - DEBUG - pyls.plugins.ctags - []
+
+stderr: 2020-02-20 15:31:30,011 UTC - DEBUG - pyls.config.config -   finish pyls_workspace_symbols --> [[]] [hook]
+
+
+stderr: 2020-02-20 15:31:30,011 UTC - DEBUG - pyls_jsonrpc.endpoint - Got result from synchronous request handler: []
+
+stderr: 2020-02-20 15:31:30,012 UTC - DEBUG - pyls_jsonrpc.endpoint - Handling request from client {'jsonrpc': '2.0', 'id': 10, 'method': 'workspace/symbol', 'params': {'query': 'm'}}
+
+stderr: 2020-02-20 15:31:30,012 UTC - DEBUG - pyls.config.config -   pyls_workspace_symbols [hook]
+      config: <pyls.config.config.Config object at 0x0000013797D3FB08>
+      workspace: <pyls.workspace.Workspace object at 0x0000013797D3FA88>
+      document: None
+      query: m
+
+
+stderr: 2020-02-20 15:31:30,012 UTC - DEBUG - pyls.plugins.ctags - [{'filePath': 'C:/Users/benro/Desktop/Blink/.blink/tags', 'directory': 'C:/Users/benro/Desktop/Blink/client/samples/'}]
+
+stderr: 2020-02-20 15:31:30,013 UTC - INFO - pyls.plugins.ctags - Got match None from line: !_TAG_FILE_FORMAT	2	/extended format; --format=1 will not append ;" to lines/
+
+2020-02-20 15:31:30,013 UTC - INFO - pyls.plugins.ctags - Line: !_TAG_FILE_FORMAT\t2\t/extended\sformat;\s--format=1\swill\snot\sappend\s;"\sto\slines/
+
+
+stderr: 2020-02-20 15:31:30,014 UTC - INFO - pyls.plugins.ctags - Got match None from line: !_TAG_FILE_SORTED	1	/0=unsorted, 1=sorted, 2=foldcase/
+
+2020-02-20 15:31:30,014 UTC - INFO - pyls.plugins.ctags - Line: !_TAG_FILE_SORTED\t1\t/0=unsorted,\s1=sorted,\s2=foldcase/
+
+
+stderr: 2020-02-20 15:31:30,014 UTC - INFO - pyls.plugins.ctags - Got match None from line: !_TAG_PROGRAM_AUTHOR	Darren Hiebert	/dhiebert@users.sourceforge.net/
+
+2020-02-20 15:31:30,014 UTC - INFO - pyls.plugins.ctags - Line: !_TAG_PROGRAM_AUTHOR\tDarren\sHiebert\t/dhiebert@users.sourceforge.net/
+
+
+stderr: 2020-02-20 15:31:30,014 UTC - INFO - pyls.plugins.ctags - Got match None from line: !_TAG_PROGRAM_NAME	Exuberant Ctags	//
+
+2020-02-20 15:31:30,014 UTC - INFO - pyls.plugins.ctags - Line: !_TAG_PROGRAM_NAME\tExuberant\sCtags\t//
+
+
+stderr: 2020-02-20 15:31:30,015 UTC - INFO - pyls.plugins.ctags - Got match None from line: !_TAG_PROGRAM_URL	http://ctags.sourceforge.net	/official site/
+
+2020-02-20 15:31:30,015 UTC - INFO - pyls.plugins.ctags - Line: !_TAG_PROGRAM_URL\thttp://ctags.sourceforge.net\t/official\ssite/
+
+
+stderr: 2020-02-20 15:31:30,015 UTC - INFO - pyls.plugins.ctags - Got match None from line: !_TAG_PROGRAM_VERSION	5.8	//
+
+2020-02-20 15:31:30,015 UTC - INFO - pyls.plugins.ctags - Line: !_TAG_PROGRAM_VERSION\t5.8\t//
+
+
+stderr: 2020-02-20 15:31:30,015 UTC - DEBUG - pyls.plugins.ctags - []
+2020-02-20 15:31:30,016 UTC - DEBUG - pyls.plugins.ctags - []
+
+stderr: 2020-02-20 15:31:30,016 UTC - DEBUG - pyls.config.config -   finish pyls_workspace_symbols --> [[]] [hook]
+
+2020-02-20 15:31:30,016 UTC - DEBUG - pyls_jsonrpc.endpoint - Got result from synchronous request handler: []
+
+stderr: 2020-02-20 15:31:30,016 UTC - DEBUG - pyls_jsonrpc.endpoint - Handling request from client {'jsonrpc': '2.0', 'id': 11, 'method': 'workspace/symbol', 'params': {'query': 'm'}}
+
+stderr: 2020-02-20 15:31:30,017 UTC - DEBUG - pyls.config.config -   pyls_workspace_symbols [hook]
+      config: <pyls.config.config.Config object at 0x0000013797D3FB08>
+      workspace: <pyls.workspace.Workspace object at 0x0000013797D3FA88>
+      document: None
+      query: m
+
+2020-02-20 15:31:30,017 UTC - DEBUG - pyls.plugins.ctags - [{'filePath': 'C:/Users/benro/Desktop/Blink/.blink/tags', 'directory': 'C:/Users/benro/Desktop/Blink/client/samples/'}]
+
+stderr: 2020-02-20 15:31:30,018 UTC - INFO - pyls.plugins.ctags - Got match None from line: !_TAG_FILE_FORMAT	2	/extended format; --format=1 will not append ;" to lines/
+
+2020-02-20 15:31:30,018 UTC - INFO - pyls.plugins.ctags - Line: !_TAG_FILE_FORMAT\t2\t/extended\sformat;\s--format=1\swill\snot\sappend\s;"\sto\slines/
+
+2020-02-20 15:31:30,018 UTC - INFO - pyls.plugins.ctags - Got match None from line: !_TAG_FILE_SORTED	1	/0=unsorted, 1=sorted, 2=foldcase/
+
+
+stderr: 2020-02-20 15:31:30,018 UTC - INFO - pyls.plugins.ctags - Line: !_TAG_FILE_SORTED\t1\t/0=unsorted,\s1=sorted,\s2=foldcase/
+
+2020-02-20 15:31:30,018 UTC - INFO - pyls.plugins.ctags - Got match None from line: !_TAG_PROGRAM_AUTHOR	Darren Hiebert	/dhiebert@users.sourceforge.net/
+
+
+stderr: 2020-02-20 15:31:30,019 UTC - INFO - pyls.plugins.ctags - Line: !_TAG_PROGRAM_AUTHOR\tDarren\sHiebert\t/dhiebert@users.sourceforge.net/
+
+
+stderr: 2020-02-20 15:31:30,019 UTC - INFO - pyls.plugins.ctags - Got match None from line: !_TAG_PROGRAM_NAME	Exuberant Ctags	//
+
+2020-02-20 15:31:30,019 UTC - INFO - pyls.plugins.ctags - Line: !_TAG_PROGRAM_NAME\tExuberant\sCtags\t//
+
+
+stderr: 2020-02-20 15:31:30,019 UTC - INFO - pyls.plugins.ctags - Got match None from line: !_TAG_PROGRAM_URL	http://ctags.sourceforge.net	/official site/
+
+2020-02-20 15:31:30,019 UTC - INFO - pyls.plugins.ctags - Line: !_TAG_PROGRAM_URL\thttp://ctags.sourceforge.net\t/official\ssite/
+
+
+stderr: 2020-02-20 15:31:30,019 UTC - INFO - pyls.plugins.ctags - Got match None from line: !_TAG_PROGRAM_VERSION	5.8	//
+
+2020-02-20 15:31:30,019 UTC - INFO - pyls.plugins.ctags - Line: !_TAG_PROGRAM_VERSION\t5.8\t//
+
+
+stderr: 2020-02-20 15:31:30,020 UTC - DEBUG - pyls.plugins.ctags - []
+2020-02-20 15:31:30,020 UTC - DEBUG - pyls.plugins.ctags - []
+
+stderr: 2020-02-20 15:31:30,020 UTC - DEBUG - pyls.config.config -   finish pyls_workspace_symbols --> [[]] [hook]
+
+2020-02-20 15:31:30,020 UTC - DEBUG - pyls_jsonrpc.endpoint - Got result from synchronous request handler: []
+
+stderr: 2020-02-20 15:31:30,021 UTC - DEBUG - pyls_jsonrpc.endpoint - Handling request from client {'jsonrpc': '2.0', 'id': 12, 'method': 'workspace/symbol', 'params': {'query': 'm'}}
+
+stderr: 2020-02-20 15:31:30,021 UTC - DEBUG - pyls.config.config -   pyls_workspace_symbols [hook]
+      config: <pyls.config.config.Config object at 0x0000013797D3FB08>
+      workspace: <pyls.workspace.Workspace object at 0x0000013797D3FA88>
+      document: None
+      query: m
+
+2020-02-20 15:31:30,021 UTC - DEBUG - pyls.plugins.ctags - [{'filePath': 'C:/Users/benro/Desktop/Blink/.blink/tags', 'directory': 'C:/Users/benro/Desktop/Blink/client/samples/'}]
+
+stderr: 2020-02-20 15:31:30,022 UTC - INFO - pyls.plugins.ctags - Got match None from line: !_TAG_FILE_FORMAT	2	/extended format; --format=1 will not append ;" to lines/
+
+2020-02-20 15:31:30,022 UTC - INFO - pyls.plugins.ctags - Line: !_TAG_FILE_FORMAT\t2\t/extended\sformat;\s--format=1\swill\snot\sappend\s;"\sto\slines/
+
+
+stderr: 2020-02-20 15:31:30,022 UTC - INFO - pyls.plugins.ctags - Got match None from line: !_TAG_FILE_SORTED	1	/0=unsorted, 1=sorted, 2=foldcase/
+
+2020-02-20 15:31:30,022 UTC - INFO - pyls.plugins.ctags - Line: !_TAG_FILE_SORTED\t1\t/0=unsorted,\s1=sorted,\s2=foldcase/
+
+
+stderr: 2020-02-20 15:31:30,023 UTC - INFO - pyls.plugins.ctags - Got match None from line: !_TAG_PROGRAM_AUTHOR	Darren Hiebert	/dhiebert@users.sourceforge.net/
+
+2020-02-20 15:31:30,023 UTC - INFO - pyls.plugins.ctags - Line: !_TAG_PROGRAM_AUTHOR\tDarren\sHiebert\t/dhiebert@users.sourceforge.net/
+
+
+stderr: 2020-02-20 15:31:30,023 UTC - INFO - pyls.plugins.ctags - Got match None from line: !_TAG_PROGRAM_NAME	Exuberant Ctags	//
+
+2020-02-20 15:31:30,023 UTC - INFO - pyls.plugins.ctags - Line: !_TAG_PROGRAM_NAME\tExuberant\sCtags\t//
+
+
+stderr: 2020-02-20 15:31:30,023 UTC - INFO - pyls.plugins.ctags - Got match None from line: !_TAG_PROGRAM_URL	http://ctags.sourceforge.net	/official site/
+
+2020-02-20 15:31:30,023 UTC - INFO - pyls.plugins.ctags - Line: !_TAG_PROGRAM_URL\thttp://ctags.sourceforge.net\t/official\ssite/
+
+
+stderr: 2020-02-20 15:31:30,024 UTC - INFO - pyls.plugins.ctags - Got match None from line: !_TAG_PROGRAM_VERSION	5.8	//
+
+2020-02-20 15:31:30,024 UTC - INFO - pyls.plugins.ctags - Line: !_TAG_PROGRAM_VERSION\t5.8\t//
+
+
+stderr: 2020-02-20 15:31:30,025 UTC - DEBUG - pyls.plugins.ctags - []
+2020-02-20 15:31:30,025 UTC - DEBUG - pyls.plugins.ctags - []
+
+stderr: 2020-02-20 15:31:30,025 UTC - DEBUG - pyls.config.config -   finish pyls_workspace_symbols --> [[]] [hook]
+
+2020-02-20 15:31:30,025 UTC - DEBUG - pyls_jsonrpc.endpoint - Got result from synchronous request handler: []
+
+stderr: 2020-02-20 15:31:30,026 UTC - DEBUG - pyls_jsonrpc.endpoint - Handling request from client {'jsonrpc': '2.0', 'id': 13, 'method': 'workspace/symbol', 'params': {'query': 'm'}}
+
+stderr: 2020-02-20 15:31:30,026 UTC - DEBUG - pyls.config.config -   pyls_workspace_symbols [hook]
+      config: <pyls.config.config.Config object at 0x0000013797D3FB08>
+      workspace: <pyls.workspace.Workspace object at 0x0000013797D3FA88>
+      document: None
+      query: m
+
+2020-02-20 15:31:30,026 UTC - DEBUG - pyls.plugins.ctags - [{'filePath': 'C:/Users/benro/Desktop/Blink/.blink/tags', 'directory': 'C:/Users/benro/Desktop/Blink/client/samples/'}]
+
+stderr: 2020-02-20 15:31:30,027 UTC - INFO - pyls.plugins.ctags - Got match None from line: !_TAG_FILE_FORMAT	2	/extended format; --format=1 will not append ;" to lines/
+
+2020-02-20 15:31:30,027 UTC - INFO - pyls.plugins.ctags - Line: !_TAG_FILE_FORMAT\t2\t/extended\sformat;\s--format=1\swill\snot\sappend\s;"\sto\slines/
+
+
+stderr: 2020-02-20 15:31:30,027 UTC - INFO - pyls.plugins.ctags - Got match None from line: !_TAG_FILE_SORTED	1	/0=unsorted, 1=sorted, 2=foldcase/
+
+
+stderr: 2020-02-20 15:31:30,028 UTC - INFO - pyls.plugins.ctags - Line: !_TAG_FILE_SORTED\t1\t/0=unsorted,\s1=sorted,\s2=foldcase/
+
+2020-02-20 15:31:30,028 UTC - INFO - pyls.plugins.ctags - Got match None from line: !_TAG_PROGRAM_AUTHOR	Darren Hiebert	/dhiebert@users.sourceforge.net/
+
+
+stderr: 2020-02-20 15:31:30,028 UTC - INFO - pyls.plugins.ctags - Line: !_TAG_PROGRAM_AUTHOR\tDarren\sHiebert\t/dhiebert@users.sourceforge.net/
+
+2020-02-20 15:31:30,028 UTC - INFO - pyls.plugins.ctags - Got match None from line: !_TAG_PROGRAM_NAME	Exuberant Ctags	//
+
+
+stderr: 2020-02-20 15:31:30,028 UTC - INFO - pyls.plugins.ctags - Line: !_TAG_PROGRAM_NAME\tExuberant\sCtags\t//
+
+2020-02-20 15:31:30,028 UTC - INFO - pyls.plugins.ctags - Got match None from line: !_TAG_PROGRAM_URL	http://ctags.sourceforge.net	/official site/
+
+2020-02-20 15:31:30,028 UTC - INFO - pyls.plugins.ctags - Line: !_TAG_PROGRAM_URL\thttp://ctags.sourceforge.net\t/official\ssite/
+
+2020-02-20 15:31:30,028 UTC - INFO - pyls.plugins.ctags - Got match None from line: !_TAG_PROGRAM_VERSION	5.8	//
+
+
+stderr: 2020-02-20 15:31:30,029 UTC - INFO - pyls.plugins.ctags - Line: !_TAG_PROGRAM_VERSION\t5.8\t//
+
+2020-02-20 15:31:30,029 UTC - DEBUG - pyls.plugins.ctags - []
+
+stderr: 2020-02-20 15:31:30,029 UTC - DEBUG - pyls.plugins.ctags - []
+2020-02-20 15:31:30,029 UTC - DEBUG - pyls.config.config -   finish pyls_workspace_symbols --> [[]] [hook]
+
+2020-02-20 15:31:30,029 UTC - DEBUG - pyls_jsonrpc.endpoint - Got result from synchronous request handler: []
+
+stderr: 2020-02-20 15:31:30,115 UTC - DEBUG - pyls_jsonrpc.endpoint - Handling request from client {'jsonrpc': '2.0', 'id': 14, 'method': 'workspace/symbol', 'params': {'query': 'ma'}}
+2020-02-20 15:31:30,115 UTC - DEBUG - pyls.config.config -   pyls_workspace_symbols [hook]
+      config: <pyls.config.config.Config object at 0x0000013797D3FB08>
+      workspace: <pyls.workspace.Workspace object at 0x0000013797D3FA88>
+      document: None
+      query: ma
+
+2020-02-20 15:31:30,116 UTC - DEBUG - pyls.plugins.ctags - [{'filePath': 'C:/Users/benro/Desktop/Blink/.blink/tags', 'directory': 'C:/Users/benro/Desktop/Blink/client/samples/'}]
+
+stderr: 2020-02-20 15:31:30,117 UTC - INFO - pyls.plugins.ctags - Got match None from line: !_TAG_FILE_FORMAT	2	/extended format; --format=1 will not append ;" to lines/
+
+2020-02-20 15:31:30,118 UTC - INFO - pyls.plugins.ctags - Line: !_TAG_FILE_FORMAT\t2\t/extended\sformat;\s--format=1\swill\snot\sappend\s;"\sto\slines/
+
+2020-02-20 15:31:30,118 UTC - INFO - pyls.plugins.ctags - Got match None from line: !_TAG_FILE_SORTED	1	/0=unsorted, 1=sorted, 2=foldcase/
+
+2020-02-20 15:31:30,118 UTC - INFO - pyls.plugins.ctags - Line: !_TAG_FILE_SORTED\t1\t/0=unsorted,\s1=sorted,\s2=foldcase/
+
+2020-02-20 15:31:30,118 UTC - INFO - pyls.plugins.ctags - Got match None from line: !_TAG_PROGRAM_AUTHOR	Darren Hiebert	/dhiebert@users.sourceforge.net/
+
+
+stderr: 2020-02-20 15:31:30,119 UTC - INFO - pyls.plugins.ctags - Line: !_TAG_PROGRAM_AUTHOR\tDarren\sHiebert\t/dhiebert@users.sourceforge.net/
+
+2020-02-20 15:31:30,119 UTC - INFO - pyls.plugins.ctags - Got match None from line: !_TAG_PROGRAM_NAME	Exuberant Ctags	//
+
+
+stderr: 2020-02-20 15:31:30,119 UTC - INFO - pyls.plugins.ctags - Line: !_TAG_PROGRAM_NAME\tExuberant\sCtags\t//
+
+2020-02-20 15:31:30,120 UTC - INFO - pyls.plugins.ctags - Got match None from line: !_TAG_PROGRAM_URL	http://ctags.sourceforge.net	/official site/
+
+
+stderr: 2020-02-20 15:31:30,120 UTC - INFO - pyls.plugins.ctags - Line: !_TAG_PROGRAM_URL\thttp://ctags.sourceforge.net\t/official\ssite/
+
+2020-02-20 15:31:30,121 UTC - INFO - pyls.plugins.ctags - Got match None from line: !_TAG_PROGRAM_VERSION	5.8	//
+
+
+stderr: 2020-02-20 15:31:30,121 UTC - INFO - pyls.plugins.ctags - Line: !_TAG_PROGRAM_VERSION\t5.8\t//
+
+
+stderr: 2020-02-20 15:31:30,121 UTC - DEBUG - pyls.plugins.ctags - []
+2020-02-20 15:31:30,122 UTC - DEBUG - pyls.plugins.ctags - []
+2020-02-20 15:31:30,122 UTC - DEBUG - pyls.config.config -   finish pyls_workspace_symbols --> [[]] [hook]
+
+
+stderr: 2020-02-20 15:31:30,122 UTC - DEBUG - pyls_jsonrpc.endpoint - Got result from synchronous request handler: []
+
+stderr: 2020-02-20 15:31:30,123 UTC - DEBUG - pyls_jsonrpc.endpoint - Handling request from client {'jsonrpc': '2.0', 'id': 15, 'method': 'workspace/symbol', 'params': {'query': 'ma'}}
+
+stderr: 2020-02-20 15:31:30,123 UTC - DEBUG - pyls.config.config -   pyls_workspace_symbols [hook]
+      config: <pyls.config.config.Config object at 0x0000013797D3FB08>
+      workspace: <pyls.workspace.Workspace object at 0x0000013797D3FA88>
+      document: None
+      query: ma
+
+2020-02-20 15:31:30,124 UTC - DEBUG - pyls.plugins.ctags - [{'filePath': 'C:/Users/benro/Desktop/Blink/.blink/tags', 'directory': 'C:/Users/benro/Desktop/Blink/client/samples/'}]
+
+stderr: 2020-02-20 15:31:30,124 UTC - INFO - pyls.plugins.ctags - Got match None from line: !_TAG_FILE_FORMAT	2	/extended format; --format=1 will not append ;" to lines/
+
+2020-02-20 15:31:30,124 UTC - INFO - pyls.plugins.ctags - Line: !_TAG_FILE_FORMAT\t2\t/extended\sformat;\s--format=1\swill\snot\sappend\s;"\sto\slines/
+
+
+stderr: 2020-02-20 15:31:30,125 UTC - INFO - pyls.plugins.ctags - Got match None from line: !_TAG_FILE_SORTED	1	/0=unsorted, 1=sorted, 2=foldcase/
+
+2020-02-20 15:31:30,125 UTC - INFO - pyls.plugins.ctags - Line: !_TAG_FILE_SORTED\t1\t/0=unsorted,\s1=sorted,\s2=foldcase/
+
+2020-02-20 15:31:30,125 UTC - INFO - pyls.plugins.ctags - Got match None from line: !_TAG_PROGRAM_AUTHOR	Darren Hiebert	/dhiebert@users.sourceforge.net/
+
+
+stderr: 2020-02-20 15:31:30,125 UTC - INFO - pyls.plugins.ctags - Line: !_TAG_PROGRAM_AUTHOR\tDarren\sHiebert\t/dhiebert@users.sourceforge.net/
+
+2020-02-20 15:31:30,125 UTC - INFO - pyls.plugins.ctags - Got match None from line: !_TAG_PROGRAM_NAME	Exuberant Ctags	//
+
+2020-02-20 15:31:30,126 UTC - INFO - pyls.plugins.ctags - Line: !_TAG_PROGRAM_NAME\tExuberant\sCtags\t//
+
+2020-02-20 15:31:30,126 UTC - INFO - pyls.plugins.ctags - Got match None from line: !_TAG_PROGRAM_URL	http://ctags.sourceforge.net	/official site/
+
+
+stderr: 2020-02-20 15:31:30,126 UTC - INFO - pyls.plugins.ctags - Line: !_TAG_PROGRAM_URL\thttp://ctags.sourceforge.net\t/official\ssite/
+
+2020-02-20 15:31:30,126 UTC - INFO - pyls.plugins.ctags - Got match None from line: !_TAG_PROGRAM_VERSION	5.8	//
+
+2020-02-20 15:31:30,126 UTC - INFO - pyls.plugins.ctags - Line: !_TAG_PROGRAM_VERSION\t5.8\t//
+
+
+stderr: 2020-02-20 15:31:30,127 UTC - DEBUG - pyls.plugins.ctags - []
+2020-02-20 15:31:30,127 UTC - DEBUG - pyls.plugins.ctags - []
+
+stderr: 2020-02-20 15:31:30,127 UTC - DEBUG - pyls.config.config -   finish pyls_workspace_symbols --> [[]] [hook]
+
+2020-02-20 15:31:30,127 UTC - DEBUG - pyls_jsonrpc.endpoint - Got result from synchronous request handler: []
+
+stderr: 2020-02-20 15:31:30,127 UTC - DEBUG - pyls_jsonrpc.endpoint - Handling request from client {'jsonrpc': '2.0', 'id': 16, 'method': 'workspace/symbol', 'params': {'query': 'ma'}}
+
+stderr: 2020-02-20 15:31:30,128 UTC - DEBUG - pyls.config.config -   pyls_workspace_symbols [hook]
+      config: <pyls.config.config.Config object at 0x0000013797D3FB08>
+      workspace: <pyls.workspace.Workspace object at 0x0000013797D3FA88>
+      document: None
+      query: ma
+
+2020-02-20 15:31:30,128 UTC - DEBUG - pyls.plugins.ctags - [{'filePath': 'C:/Users/benro/Desktop/Blink/.blink/tags', 'directory': 'C:/Users/benro/Desktop/Blink/client/samples/'}]
+
+stderr: 2020-02-20 15:31:30,129 UTC - INFO - pyls.plugins.ctags - Got match None from line: !_TAG_FILE_FORMAT	2	/extended format; --format=1 will not append ;" to lines/
+
+2020-02-20 15:31:30,130 UTC - INFO - pyls.plugins.ctags - Line: !_TAG_FILE_FORMAT\t2\t/extended\sformat;\s--format=1\swill\snot\sappend\s;"\sto\slines/
+
+2020-02-20 15:31:30,130 UTC - INFO - pyls.plugins.ctags - Got match None from line: !_TAG_FILE_SORTED	1	/0=unsorted, 1=sorted, 2=foldcase/
+
+
+stderr: 2020-02-20 15:31:30,130 UTC - INFO - pyls.plugins.ctags - Line: !_TAG_FILE_SORTED\t1\t/0=unsorted,\s1=sorted,\s2=foldcase/
+
+2020-02-20 15:31:30,130 UTC - INFO - pyls.plugins.ctags - Got match None from line: !_TAG_PROGRAM_AUTHOR	Darren Hiebert	/dhiebert@users.sourceforge.net/
+
+2020-02-20 15:31:30,131 UTC - INFO - pyls.plugins.ctags - Line: !_TAG_PROGRAM_AUTHOR\tDarren\sHiebert\t/dhiebert@users.sourceforge.net/
+
+
+stderr: 2020-02-20 15:31:30,131 UTC - INFO - pyls.plugins.ctags - Got match None from line: !_TAG_PROGRAM_NAME	Exuberant Ctags	//
+
+2020-02-20 15:31:30,131 UTC - INFO - pyls.plugins.ctags - Line: !_TAG_PROGRAM_NAME\tExuberant\sCtags\t//
+
+
+stderr: 2020-02-20 15:31:30,131 UTC - INFO - pyls.plugins.ctags - Got match None from line: !_TAG_PROGRAM_URL	http://ctags.sourceforge.net	/official site/
+
+2020-02-20 15:31:30,131 UTC - INFO - pyls.plugins.ctags - Line: !_TAG_PROGRAM_URL\thttp://ctags.sourceforge.net\t/official\ssite/
+
+2020-02-20 15:31:30,132 UTC - INFO - pyls.plugins.ctags - Got match None from line: !_TAG_PROGRAM_VERSION	5.8	//
+
+
+stderr: 2020-02-20 15:31:30,132 UTC - INFO - pyls.plugins.ctags - Line: !_TAG_PROGRAM_VERSION\t5.8\t//
+
+2020-02-20 15:31:30,132 UTC - DEBUG - pyls.plugins.ctags - []
+2020-02-20 15:31:30,132 UTC - DEBUG - pyls.plugins.ctags - []
+
+stderr: 2020-02-20 15:31:30,132 UTC - DEBUG - pyls.config.config -   finish pyls_workspace_symbols --> [[]] [hook]
+
+2020-02-20 15:31:30,133 UTC - DEBUG - pyls_jsonrpc.endpoint - Got result from synchronous request handler: []
+
+stderr: 2020-02-20 15:31:30,133 UTC - DEBUG - pyls_jsonrpc.endpoint - Handling request from client {'jsonrpc': '2.0', 'id': 17, 'method': 'workspace/symbol', 'params': {'query': 'ma'}}
+2020-02-20 15:31:30,134 UTC - DEBUG - pyls.config.config -   pyls_workspace_symbols [hook]
+      config: <pyls.config.config.Config object at 0x0000013797D3FB08>
+      workspace: <pyls.workspace.Workspace object at 0x0000013797D3FA88>
+      document: None
+      query: ma
+
+
+stderr: 2020-02-20 15:31:30,134 UTC - DEBUG - pyls.plugins.ctags - [{'filePath': 'C:/Users/benro/Desktop/Blink/.blink/tags', 'directory': 'C:/Users/benro/Desktop/Blink/client/samples/'}]
+
+stderr: 2020-02-20 15:31:30,135 UTC - INFO - pyls.plugins.ctags - Got match None from line: !_TAG_FILE_FORMAT	2	/extended format; --format=1 will not append ;" to lines/
+
+2020-02-20 15:31:30,136 UTC - INFO - pyls.plugins.ctags - Line: !_TAG_FILE_FORMAT\t2\t/extended\sformat;\s--format=1\swill\snot\sappend\s;"\sto\slines/
+
+2020-02-20 15:31:30,136 UTC - INFO - pyls.plugins.ctags - Got match None from line: !_TAG_FILE_SORTED	1	/0=unsorted, 1=sorted, 2=foldcase/
+
+
+stderr: 2020-02-20 15:31:30,136 UTC - INFO - pyls.plugins.ctags - Line: !_TAG_FILE_SORTED\t1\t/0=unsorted,\s1=sorted,\s2=foldcase/
+
+2020-02-20 15:31:30,136 UTC - INFO - pyls.plugins.ctags - Got match None from line: !_TAG_PROGRAM_AUTHOR	Darren Hiebert	/dhiebert@users.sourceforge.net/
+
+2020-02-20 15:31:30,136 UTC - INFO - pyls.plugins.ctags - Line: !_TAG_PROGRAM_AUTHOR\tDarren\sHiebert\t/dhiebert@users.sourceforge.net/
+
+
+stderr: 2020-02-20 15:31:30,136 UTC - INFO - pyls.plugins.ctags - Got match None from line: !_TAG_PROGRAM_NAME	Exuberant Ctags	//
+
+2020-02-20 15:31:30,137 UTC - INFO - pyls.plugins.ctags - Line: !_TAG_PROGRAM_NAME\tExuberant\sCtags\t//
+
+2020-02-20 15:31:30,137 UTC - INFO - pyls.plugins.ctags - Got match None from line: !_TAG_PROGRAM_URL	http://ctags.sourceforge.net	/official site/
+
+
+stderr: 2020-02-20 15:31:30,137 UTC - INFO - pyls.plugins.ctags - Line: !_TAG_PROGRAM_URL\thttp://ctags.sourceforge.net\t/official\ssite/
+
+2020-02-20 15:31:30,137 UTC - INFO - pyls.plugins.ctags - Got match None from line: !_TAG_PROGRAM_VERSION	5.8	//
+
+2020-02-20 15:31:30,137 UTC - INFO - pyls.plugins.ctags - Line: !_TAG_PROGRAM_VERSION\t5.8\t//
+
+
+stderr: 2020-02-20 15:31:30,137 UTC - DEBUG - pyls.plugins.ctags - []
+2020-02-20 15:31:30,137 UTC - DEBUG - pyls.plugins.ctags - []
+
+stderr: 2020-02-20 15:31:30,138 UTC - DEBUG - pyls.config.config -   finish pyls_workspace_symbols --> [[]] [hook]
+
+2020-02-20 15:31:30,138 UTC - DEBUG - pyls_jsonrpc.endpoint - Got result from synchronous request handler: []
+
+stderr: 2020-02-20 15:31:30,138 UTC - DEBUG - pyls_jsonrpc.endpoint - Handling request from client {'jsonrpc': '2.0', 'id': 18, 'method': 'workspace/symbol', 'params': {'query': 'ma'}}
+2020-02-20 15:31:30,139 UTC - DEBUG - pyls.config.config -   pyls_workspace_symbols [hook]
+      config: <pyls.config.config.Config object at 0x0000013797D3FB08>
+      workspace: <pyls.workspace.Workspace object at 0x0000013797D3FA88>
+      document: None
+      query: ma
+
+
+stderr: 2020-02-20 15:31:30,139 UTC - DEBUG - pyls.plugins.ctags - [{'filePath': 'C:/Users/benro/Desktop/Blink/.blink/tags', 'directory': 'C:/Users/benro/Desktop/Blink/client/samples/'}]
+
+stderr: 2020-02-20 15:31:30,140 UTC - INFO - pyls.plugins.ctags - Got match None from line: !_TAG_FILE_FORMAT	2	/extended format; --format=1 will not append ;" to lines/
+
+2020-02-20 15:31:30,140 UTC - INFO - pyls.plugins.ctags - Line: !_TAG_FILE_FORMAT\t2\t/extended\sformat;\s--format=1\swill\snot\sappend\s;"\sto\slines/
+
+
+stderr: 2020-02-20 15:31:30,140 UTC - INFO - pyls.plugins.ctags - Got match None from line: !_TAG_FILE_SORTED	1	/0=unsorted, 1=sorted, 2=foldcase/
+
+2020-02-20 15:31:30,141 UTC - INFO - pyls.plugins.ctags - Line: !_TAG_FILE_SORTED\t1\t/0=unsorted,\s1=sorted,\s2=foldcase/
+
+2020-02-20 15:31:30,141 UTC - INFO - pyls.plugins.ctags - Got match None from line: !_TAG_PROGRAM_AUTHOR	Darren Hiebert	/dhiebert@users.sourceforge.net/
+
+
+stderr: 2020-02-20 15:31:30,141 UTC - INFO - pyls.plugins.ctags - Line: !_TAG_PROGRAM_AUTHOR\tDarren\sHiebert\t/dhiebert@users.sourceforge.net/
+
+2020-02-20 15:31:30,141 UTC - INFO - pyls.plugins.ctags - Got match None from line: !_TAG_PROGRAM_NAME	Exuberant Ctags	//
+
+2020-02-20 15:31:30,141 UTC - INFO - pyls.plugins.ctags - Line: !_TAG_PROGRAM_NAME\tExuberant\sCtags\t//
+
+
+stderr: 2020-02-20 15:31:30,141 UTC - INFO - pyls.plugins.ctags - Got match None from line: !_TAG_PROGRAM_URL	http://ctags.sourceforge.net	/official site/
+
+2020-02-20 15:31:30,141 UTC - INFO - pyls.plugins.ctags - Line: !_TAG_PROGRAM_URL\thttp://ctags.sourceforge.net\t/official\ssite/
+
+2020-02-20 15:31:30,142 UTC - INFO - pyls.plugins.ctags - Got match None from line: !_TAG_PROGRAM_VERSION	5.8	//
+
+
+stderr: 2020-02-20 15:31:30,142 UTC - INFO - pyls.plugins.ctags - Line: !_TAG_PROGRAM_VERSION\t5.8\t//
+
+2020-02-20 15:31:30,142 UTC - DEBUG - pyls.plugins.ctags - []
+2020-02-20 15:31:30,142 UTC - DEBUG - pyls.plugins.ctags - []
+
+stderr: 2020-02-20 15:31:30,142 UTC - DEBUG - pyls.config.config -   finish pyls_workspace_symbols --> [[]] [hook]
+
+2020-02-20 15:31:30,142 UTC - DEBUG - pyls_jsonrpc.endpoint - Got result from synchronous request handler: []
+
+stderr: 2020-02-20 15:31:30,143 UTC - DEBUG - pyls_jsonrpc.endpoint - Handling request from client {'jsonrpc': '2.0', 'id': 19, 'method': 'workspace/symbol', 'params': {'query': 'ma'}}
+2020-02-20 15:31:30,143 UTC - DEBUG - pyls.config.config -   pyls_workspace_symbols [hook]
+      config: <pyls.config.config.Config object at 0x0000013797D3FB08>
+      workspace: <pyls.workspace.Workspace object at 0x0000013797D3FA88>
+      document: None
+      query: ma
+
+
+stderr: 2020-02-20 15:31:30,144 UTC - DEBUG - pyls.plugins.ctags - [{'filePath': 'C:/Users/benro/Desktop/Blink/.blink/tags', 'directory': 'C:/Users/benro/Desktop/Blink/client/samples/'}]
+
+stderr: 2020-02-20 15:31:30,145 UTC - INFO - pyls.plugins.ctags - Got match None from line: !_TAG_FILE_FORMAT	2	/extended format; --format=1 will not append ;" to lines/
+
+2020-02-20 15:31:30,145 UTC - INFO - pyls.plugins.ctags - Line: !_TAG_FILE_FORMAT\t2\t/extended\sformat;\s--format=1\swill\snot\sappend\s;"\sto\slines/
+
+
+stderr: 2020-02-20 15:31:30,145 UTC - INFO - pyls.plugins.ctags - Got match None from line: !_TAG_FILE_SORTED	1	/0=unsorted, 1=sorted, 2=foldcase/
+
+2020-02-20 15:31:30,146 UTC - INFO - pyls.plugins.ctags - Line: !_TAG_FILE_SORTED\t1\t/0=unsorted,\s1=sorted,\s2=foldcase/
+
+2020-02-20 15:31:30,146 UTC - INFO - pyls.plugins.ctags - Got match None from line: !_TAG_PROGRAM_AUTHOR	Darren Hiebert	/dhiebert@users.sourceforge.net/
+
+
+stderr: 2020-02-20 15:31:30,146 UTC - INFO - pyls.plugins.ctags - Line: !_TAG_PROGRAM_AUTHOR\tDarren\sHiebert\t/dhiebert@users.sourceforge.net/
+
+2020-02-20 15:31:30,146 UTC - INFO - pyls.plugins.ctags - Got match None from line: !_TAG_PROGRAM_NAME	Exuberant Ctags	//
+
+2020-02-20 15:31:30,146 UTC - INFO - pyls.plugins.ctags - Line: !_TAG_PROGRAM_NAME\tExuberant\sCtags\t//
+
+
+stderr: 2020-02-20 15:31:30,147 UTC - INFO - pyls.plugins.ctags - Got match None from line: !_TAG_PROGRAM_URL	http://ctags.sourceforge.net	/official site/
+
+2020-02-20 15:31:30,147 UTC - INFO - pyls.plugins.ctags - Line: !_TAG_PROGRAM_URL\thttp://ctags.sourceforge.net\t/official\ssite/
+
+2020-02-20 15:31:30,147 UTC - INFO - pyls.plugins.ctags - Got match None from line: !_TAG_PROGRAM_VERSION	5.8	//
+
+
+stderr: 2020-02-20 15:31:30,147 UTC - INFO - pyls.plugins.ctags - Line: !_TAG_PROGRAM_VERSION\t5.8\t//
+
+2020-02-20 15:31:30,147 UTC - DEBUG - pyls.plugins.ctags - []
+
+stderr: 2020-02-20 15:31:30,148 UTC - DEBUG - pyls.plugins.ctags - []
+2020-02-20 15:31:30,148 UTC - DEBUG - pyls.config.config -   finish pyls_workspace_symbols --> [[]] [hook]
+
+2020-02-20 15:31:30,148 UTC - DEBUG - pyls_jsonrpc.endpoint - Got result from synchronous request handler: []
+
+stderr: 2020-02-20 15:31:30,148 UTC - DEBUG - pyls_jsonrpc.endpoint - Handling request from client {'jsonrpc': '2.0', 'id': 20, 'method': 'workspace/symbol', 'params': {'query': 'ma'}}
+
+stderr: 2020-02-20 15:31:30,149 UTC - DEBUG - pyls.config.config -   pyls_workspace_symbols [hook]
+      config: <pyls.config.config.Config object at 0x0000013797D3FB08>
+      workspace: <pyls.workspace.Workspace object at 0x0000013797D3FA88>
+      document: None
+      query: ma
+
+2020-02-20 15:31:30,149 UTC - DEBUG - pyls.plugins.ctags - [{'filePath': 'C:/Users/benro/Desktop/Blink/.blink/tags', 'directory': 'C:/Users/benro/Desktop/Blink/client/samples/'}]
+
+stderr: 2020-02-20 15:31:30,150 UTC - INFO - pyls.plugins.ctags - Got match None from line: !_TAG_FILE_FORMAT	2	/extended format; --format=1 will not append ;" to lines/
+
+2020-02-20 15:31:30,151 UTC - INFO - pyls.plugins.ctags - Line: !_TAG_FILE_FORMAT\t2\t/extended\sformat;\s--format=1\swill\snot\sappend\s;"\sto\slines/
+
+
+stderr: 2020-02-20 15:31:30,151 UTC - INFO - pyls.plugins.ctags - Got match None from line: !_TAG_FILE_SORTED	1	/0=unsorted, 1=sorted, 2=foldcase/
+
+2020-02-20 15:31:30,151 UTC - INFO - pyls.plugins.ctags - Line: !_TAG_FILE_SORTED\t1\t/0=unsorted,\s1=sorted,\s2=foldcase/
+
+2020-02-20 15:31:30,151 UTC - INFO - pyls.plugins.ctags - Got match None from line: !_TAG_PROGRAM_AUTHOR	Darren Hiebert	/dhiebert@users.sourceforge.net/
+
+
+stderr: 2020-02-20 15:31:30,151 UTC - INFO - pyls.plugins.ctags - Line: !_TAG_PROGRAM_AUTHOR\tDarren\sHiebert\t/dhiebert@users.sourceforge.net/
+
+2020-02-20 15:31:30,151 UTC - INFO - pyls.plugins.ctags - Got match None from line: !_TAG_PROGRAM_NAME	Exuberant Ctags	//
+
+2020-02-20 15:31:30,151 UTC - INFO - pyls.plugins.ctags - Line: !_TAG_PROGRAM_NAME\tExuberant\sCtags\t//
+
+
+stderr: 2020-02-20 15:31:30,151 UTC - INFO - pyls.plugins.ctags - Got match None from line: !_TAG_PROGRAM_URL	http://ctags.sourceforge.net	/official site/
+
+2020-02-20 15:31:30,151 UTC - INFO - pyls.plugins.ctags - Line: !_TAG_PROGRAM_URL\thttp://ctags.sourceforge.net\t/official\ssite/
+
+2020-02-20 15:31:30,151 UTC - INFO - pyls.plugins.ctags - Got match None from line: !_TAG_PROGRAM_VERSION	5.8	//
+
+2020-02-20 15:31:30,151 UTC - INFO - pyls.plugins.ctags - Line: !_TAG_PROGRAM_VERSION\t5.8\t//
+
+
+stderr: 2020-02-20 15:31:30,152 UTC - DEBUG - pyls.plugins.ctags - []
+2020-02-20 15:31:30,152 UTC - DEBUG - pyls.plugins.ctags - []
+2020-02-20 15:31:30,152 UTC - DEBUG - pyls.config.config -   finish pyls_workspace_symbols --> [[]] [hook]
+
+2020-02-20 15:31:30,152 UTC - DEBUG - pyls_jsonrpc.endpoint - Got result from synchronous request handler: []
+
+stderr: 2020-02-20 15:31:30,285 UTC - DEBUG - pyls_jsonrpc.endpoint - Handling request from client {'jsonrpc': '2.0', 'id': 21, 'method': 'workspace/symbol', 'params': {'query': 'mai'}}
+2020-02-20 15:31:30,286 UTC - DEBUG - pyls.config.config -   pyls_workspace_symbols [hook]
+      config: <pyls.config.config.Config object at 0x0000013797D3FB08>
+      workspace: <pyls.workspace.Workspace object at 0x0000013797D3FA88>
+      document: None
+      query: mai
+
+2020-02-20 15:31:30,286 UTC - DEBUG - pyls.plugins.ctags - [{'filePath': 'C:/Users/benro/Desktop/Blink/.blink/tags', 'directory': 'C:/Users/benro/Desktop/Blink/client/samples/'}]
+
+stderr: 2020-02-20 15:31:30,286 UTC - INFO - pyls.plugins.ctags - Got match None from line: !_TAG_FILE_FORMAT	2	/extended format; --format=1 will not append ;" to lines/
+
+2020-02-20 15:31:30,287 UTC - INFO - pyls.plugins.ctags - Line: !_TAG_FILE_FORMAT\t2\t/extended\sformat;\s--format=1\swill\snot\sappend\s;"\sto\slines/
+
+2020-02-20 15:31:30,287 UTC - INFO - pyls.plugins.ctags - Got match None from line: !_TAG_FILE_SORTED	1	/0=unsorted, 1=sorted, 2=foldcase/
+
+2020-02-20 15:31:30,287 UTC - INFO - pyls.plugins.ctags - Line: !_TAG_FILE_SORTED\t1\t/0=unsorted,\s1=sorted,\s2=foldcase/
+
+
+stderr: 2020-02-20 15:31:30,287 UTC - INFO - pyls.plugins.ctags - Got match None from line: !_TAG_PROGRAM_AUTHOR	Darren Hiebert	/dhiebert@users.sourceforge.net/
+
+2020-02-20 15:31:30,287 UTC - INFO - pyls.plugins.ctags - Line: !_TAG_PROGRAM_AUTHOR\tDarren\sHiebert\t/dhiebert@users.sourceforge.net/
+
+2020-02-20 15:31:30,287 UTC - INFO - pyls.plugins.ctags - Got match None from line: !_TAG_PROGRAM_NAME	Exuberant Ctags	//
+
+2020-02-20 15:31:30,287 UTC - INFO - pyls.plugins.ctags - Line: !_TAG_PROGRAM_NAME\tExuberant\sCtags\t//
+
+2020-02-20 15:31:30,288 UTC - INFO - pyls.plugins.ctags - Got match None from line: !_TAG_PROGRAM_URL	http://ctags.sourceforge.net	/official site/
+
+2020-02-20 15:31:30,288 UTC - INFO - pyls.plugins.ctags - Line: !_TAG_PROGRAM_URL\thttp://ctags.sourceforge.net\t/official\ssite/
+
+
+stderr: 2020-02-20 15:31:30,288 UTC - INFO - pyls.plugins.ctags - Got match None from line: !_TAG_PROGRAM_VERSION	5.8	//
+
+2020-02-20 15:31:30,288 UTC - INFO - pyls.plugins.ctags - Line: !_TAG_PROGRAM_VERSION\t5.8\t//
+
+
+stderr: 2020-02-20 15:31:30,288 UTC - DEBUG - pyls.plugins.ctags - []
+2020-02-20 15:31:30,288 UTC - DEBUG - pyls.plugins.ctags - []
+
+stderr: 2020-02-20 15:31:30,288 UTC - DEBUG - pyls.config.config -   finish pyls_workspace_symbols --> [[]] [hook]
+
+
+stderr: 2020-02-20 15:31:30,288 UTC - DEBUG - pyls_jsonrpc.endpoint - Got result from synchronous request handler: []
+
+stderr: 2020-02-20 15:31:30,289 UTC - DEBUG - pyls_jsonrpc.endpoint - Handling request from client {'jsonrpc': '2.0', 'id': 22, 'method': 'workspace/symbol', 'params': {'query': 'mai'}}
+
+stderr: 2020-02-20 15:31:30,289 UTC - DEBUG - pyls.config.config -   pyls_workspace_symbols [hook]
+      config: <pyls.config.config.Config object at 0x0000013797D3FB08>
+      workspace: <pyls.workspace.Workspace object at 0x0000013797D3FA88>
+      document: None
+      query: mai
+
+
+stderr: 2020-02-20 15:31:30,289 UTC - DEBUG - pyls.plugins.ctags - [{'filePath': 'C:/Users/benro/Desktop/Blink/.blink/tags', 'directory': 'C:/Users/benro/Desktop/Blink/client/samples/'}]
+
+stderr: 2020-02-20 15:31:30,290 UTC - INFO - pyls.plugins.ctags - Got match None from line: !_TAG_FILE_FORMAT	2	/extended format; --format=1 will not append ;" to lines/
+
+2020-02-20 15:31:30,290 UTC - INFO - pyls.plugins.ctags - Line: !_TAG_FILE_FORMAT\t2\t/extended\sformat;\s--format=1\swill\snot\sappend\s;"\sto\slines/
+
+2020-02-20 15:31:30,290 UTC - INFO - pyls.plugins.ctags - Got match None from line: !_TAG_FILE_SORTED	1	/0=unsorted, 1=sorted, 2=foldcase/
+
+
+stderr: 2020-02-20 15:31:30,291 UTC - INFO - pyls.plugins.ctags - Line: !_TAG_FILE_SORTED\t1\t/0=unsorted,\s1=sorted,\s2=foldcase/
+
+2020-02-20 15:31:30,291 UTC - INFO - pyls.plugins.ctags - Got match None from line: !_TAG_PROGRAM_AUTHOR	Darren Hiebert	/dhiebert@users.sourceforge.net/
+
+2020-02-20 15:31:30,291 UTC - INFO - pyls.plugins.ctags - Line: !_TAG_PROGRAM_AUTHOR\tDarren\sHiebert\t/dhiebert@users.sourceforge.net/
+
+2020-02-20 15:31:30,291 UTC - INFO - pyls.plugins.ctags - Got match None from line: !_TAG_PROGRAM_NAME	Exuberant Ctags	//
+
+
+stderr: 2020-02-20 15:31:30,291 UTC - INFO - pyls.plugins.ctags - Line: !_TAG_PROGRAM_NAME\tExuberant\sCtags\t//
+
+2020-02-20 15:31:30,291 UTC - INFO - pyls.plugins.ctags - Got match None from line: !_TAG_PROGRAM_URL	http://ctags.sourceforge.net	/official site/
+
+2020-02-20 15:31:30,291 UTC - INFO - pyls.plugins.ctags - Line: !_TAG_PROGRAM_URL\thttp://ctags.sourceforge.net\t/official\ssite/
+
+2020-02-20 15:31:30,291 UTC - INFO - pyls.plugins.ctags - Got match None from line: !_TAG_PROGRAM_VERSION	5.8	//
+
+
+stderr: 2020-02-20 15:31:30,291 UTC - INFO - pyls.plugins.ctags - Line: !_TAG_PROGRAM_VERSION\t5.8\t//
+
+2020-02-20 15:31:30,291 UTC - DEBUG - pyls.plugins.ctags - []
+2020-02-20 15:31:30,291 UTC - DEBUG - pyls.plugins.ctags - []
+
+stderr: 2020-02-20 15:31:30,291 UTC - DEBUG - pyls.config.config -   finish pyls_workspace_symbols --> [[]] [hook]
+
+2020-02-20 15:31:30,292 UTC - DEBUG - pyls_jsonrpc.endpoint - Got result from synchronous request handler: []
+
+stderr: 2020-02-20 15:31:30,292 UTC - DEBUG - pyls_jsonrpc.endpoint - Handling request from client {'jsonrpc': '2.0', 'id': 23, 'method': 'workspace/symbol', 'params': {'query': 'mai'}}
+
+stderr: 2020-02-20 15:31:30,292 UTC - DEBUG - pyls.config.config -   pyls_workspace_symbols [hook]
+      config: <pyls.config.config.Config object at 0x0000013797D3FB08>
+      workspace: <pyls.workspace.Workspace object at 0x0000013797D3FA88>
+      document: None
+      query: mai
+
+2020-02-20 15:31:30,292 UTC - DEBUG - pyls.plugins.ctags - [{'filePath': 'C:/Users/benro/Desktop/Blink/.blink/tags', 'directory': 'C:/Users/benro/Desktop/Blink/client/samples/'}]
+
+stderr: 2020-02-20 15:31:30,293 UTC - INFO - pyls.plugins.ctags - Got match None from line: !_TAG_FILE_FORMAT	2	/extended format; --format=1 will not append ;" to lines/
+
+2020-02-20 15:31:30,293 UTC - INFO - pyls.plugins.ctags - Line: !_TAG_FILE_FORMAT\t2\t/extended\sformat;\s--format=1\swill\snot\sappend\s;"\sto\slines/
+
+
+stderr: 2020-02-20 15:31:30,293 UTC - INFO - pyls.plugins.ctags - Got match None from line: !_TAG_FILE_SORTED	1	/0=unsorted, 1=sorted, 2=foldcase/
+
+2020-02-20 15:31:30,293 UTC - INFO - pyls.plugins.ctags - Line: !_TAG_FILE_SORTED\t1\t/0=unsorted,\s1=sorted,\s2=foldcase/
+
+
+stderr: 2020-02-20 15:31:30,293 UTC - INFO - pyls.plugins.ctags - Got match None from line: !_TAG_PROGRAM_AUTHOR	Darren Hiebert	/dhiebert@users.sourceforge.net/
+
+2020-02-20 15:31:30,293 UTC - INFO - pyls.plugins.ctags - Line: !_TAG_PROGRAM_AUTHOR\tDarren\sHiebert\t/dhiebert@users.sourceforge.net/
+
+
+stderr: 2020-02-20 15:31:30,294 UTC - INFO - pyls.plugins.ctags - Got match None from line: !_TAG_PROGRAM_NAME	Exuberant Ctags	//
+
+2020-02-20 15:31:30,294 UTC - INFO - pyls.plugins.ctags - Line: !_TAG_PROGRAM_NAME\tExuberant\sCtags\t//
+
+
+stderr: 2020-02-20 15:31:30,294 UTC - INFO - pyls.plugins.ctags - Got match None from line: !_TAG_PROGRAM_URL	http://ctags.sourceforge.net	/official site/
+
+2020-02-20 15:31:30,294 UTC - INFO - pyls.plugins.ctags - Line: !_TAG_PROGRAM_URL\thttp://ctags.sourceforge.net\t/official\ssite/
+
+2020-02-20 15:31:30,294 UTC - INFO - pyls.plugins.ctags - Got match None from line: !_TAG_PROGRAM_VERSION	5.8	//
+
+2020-02-20 15:31:30,294 UTC - INFO - pyls.plugins.ctags - Line: !_TAG_PROGRAM_VERSION\t5.8\t//
+
+
+stderr: 2020-02-20 15:31:30,294 UTC - DEBUG - pyls.plugins.ctags - []
+2020-02-20 15:31:30,294 UTC - DEBUG - pyls.plugins.ctags - []
+2020-02-20 15:31:30,294 UTC - DEBUG - pyls.config.config -   finish pyls_workspace_symbols --> [[]] [hook]
+
+
+stderr: 2020-02-20 15:31:30,295 UTC - DEBUG - pyls_jsonrpc.endpoint - Got result from synchronous request handler: []
+
+stderr: 2020-02-20 15:31:30,295 UTC - DEBUG - pyls_jsonrpc.endpoint - Handling request from client {'jsonrpc': '2.0', 'id': 24, 'method': 'workspace/symbol', 'params': {'query': 'mai'}}
+2020-02-20 15:31:30,295 UTC - DEBUG - pyls.config.config -   pyls_workspace_symbols [hook]
+      config: <pyls.config.config.Config object at 0x0000013797D3FB08>
+      workspace: <pyls.workspace.Workspace object at 0x0000013797D3FA88>
+      document: None
+      query: mai
+
+
+stderr: 2020-02-20 15:31:30,295 UTC - DEBUG - pyls.plugins.ctags - [{'filePath': 'C:/Users/benro/Desktop/Blink/.blink/tags', 'directory': 'C:/Users/benro/Desktop/Blink/client/samples/'}]
+
+stderr: 2020-02-20 15:31:30,296 UTC - INFO - pyls.plugins.ctags - Got match None from line: !_TAG_FILE_FORMAT	2	/extended format; --format=1 will not append ;" to lines/
+
+2020-02-20 15:31:30,296 UTC - INFO - pyls.plugins.ctags - Line: !_TAG_FILE_FORMAT\t2\t/extended\sformat;\s--format=1\swill\snot\sappend\s;"\sto\slines/
+
+2020-02-20 15:31:30,296 UTC - INFO - pyls.plugins.ctags - Got match None from line: !_TAG_FILE_SORTED	1	/0=unsorted, 1=sorted, 2=foldcase/
+
+
+stderr: 2020-02-20 15:31:30,296 UTC - INFO - pyls.plugins.ctags - Line: !_TAG_FILE_SORTED\t1\t/0=unsorted,\s1=sorted,\s2=foldcase/
+
+2020-02-20 15:31:30,297 UTC - INFO - pyls.plugins.ctags - Got match None from line: !_TAG_PROGRAM_AUTHOR	Darren Hiebert	/dhiebert@users.sourceforge.net/
+
+2020-02-20 15:31:30,297 UTC - INFO - pyls.plugins.ctags - Line: !_TAG_PROGRAM_AUTHOR\tDarren\sHiebert\t/dhiebert@users.sourceforge.net/
+
+
+stderr: 2020-02-20 15:31:30,297 UTC - INFO - pyls.plugins.ctags - Got match None from line: !_TAG_PROGRAM_NAME	Exuberant Ctags	//
+
+2020-02-20 15:31:30,297 UTC - INFO - pyls.plugins.ctags - Line: !_TAG_PROGRAM_NAME\tExuberant\sCtags\t//
+
+2020-02-20 15:31:30,297 UTC - INFO - pyls.plugins.ctags - Got match None from line: !_TAG_PROGRAM_URL	http://ctags.sourceforge.net	/official site/
+
+
+stderr: 2020-02-20 15:31:30,297 UTC - INFO - pyls.plugins.ctags - Line: !_TAG_PROGRAM_URL\thttp://ctags.sourceforge.net\t/official\ssite/
+
+2020-02-20 15:31:30,297 UTC - INFO - pyls.plugins.ctags - Got match None from line: !_TAG_PROGRAM_VERSION	5.8	//
+
+2020-02-20 15:31:30,297 UTC - INFO - pyls.plugins.ctags - Line: !_TAG_PROGRAM_VERSION\t5.8\t//
+
+
+stderr: 2020-02-20 15:31:30,298 UTC - DEBUG - pyls.plugins.ctags - []
+2020-02-20 15:31:30,298 UTC - DEBUG - pyls.plugins.ctags - []
+2020-02-20 15:31:30,298 UTC - DEBUG - pyls.config.config -   finish pyls_workspace_symbols --> [[]] [hook]
+
+
+stderr: 2020-02-20 15:31:30,298 UTC - DEBUG - pyls_jsonrpc.endpoint - Got result from synchronous request handler: []
+
+stderr: 2020-02-20 15:31:30,298 UTC - DEBUG - pyls_jsonrpc.endpoint - Handling request from client {'jsonrpc': '2.0', 'id': 25, 'method': 'workspace/symbol', 'params': {'query': 'mai'}}
+2020-02-20 15:31:30,298 UTC - DEBUG - pyls.config.config -   pyls_workspace_symbols [hook]
+      config: <pyls.config.config.Config object at 0x0000013797D3FB08>
+      workspace: <pyls.workspace.Workspace object at 0x0000013797D3FA88>
+      document: None
+      query: mai
+
+
+stderr: 2020-02-20 15:31:30,299 UTC - DEBUG - pyls.plugins.ctags - [{'filePath': 'C:/Users/benro/Desktop/Blink/.blink/tags', 'directory': 'C:/Users/benro/Desktop/Blink/client/samples/'}]
+
+stderr: 2020-02-20 15:31:30,299 UTC - INFO - pyls.plugins.ctags - Got match None from line: !_TAG_FILE_FORMAT	2	/extended format; --format=1 will not append ;" to lines/
+
+2020-02-20 15:31:30,299 UTC - INFO - pyls.plugins.ctags - Line: !_TAG_FILE_FORMAT\t2\t/extended\sformat;\s--format=1\swill\snot\sappend\s;"\sto\slines/
+
+
+stderr: 2020-02-20 15:31:30,299 UTC - INFO - pyls.plugins.ctags - Got match None from line: !_TAG_FILE_SORTED	1	/0=unsorted, 1=sorted, 2=foldcase/
+
+2020-02-20 15:31:30,299 UTC - INFO - pyls.plugins.ctags - Line: !_TAG_FILE_SORTED\t1\t/0=unsorted,\s1=sorted,\s2=foldcase/
+
+2020-02-20 15:31:30,300 UTC - INFO - pyls.plugins.ctags - Got match None from line: !_TAG_PROGRAM_AUTHOR	Darren Hiebert	/dhiebert@users.sourceforge.net/
+
+
+stderr: 2020-02-20 15:31:30,300 UTC - INFO - pyls.plugins.ctags - Line: !_TAG_PROGRAM_AUTHOR\tDarren\sHiebert\t/dhiebert@users.sourceforge.net/
+
+2020-02-20 15:31:30,300 UTC - INFO - pyls.plugins.ctags - Got match None from line: !_TAG_PROGRAM_NAME	Exuberant Ctags	//
+
+2020-02-20 15:31:30,300 UTC - INFO - pyls.plugins.ctags - Line: !_TAG_PROGRAM_NAME\tExuberant\sCtags\t//
+
+
+stderr: 2020-02-20 15:31:30,300 UTC - INFO - pyls.plugins.ctags - Got match None from line: !_TAG_PROGRAM_URL	http://ctags.sourceforge.net	/official site/
+
+2020-02-20 15:31:30,300 UTC - INFO - pyls.plugins.ctags - Line: !_TAG_PROGRAM_URL\thttp://ctags.sourceforge.net\t/official\ssite/
+
+2020-02-20 15:31:30,300 UTC - INFO - pyls.plugins.ctags - Got match None from line: !_TAG_PROGRAM_VERSION	5.8	//
+
+
+stderr: 2020-02-20 15:31:30,300 UTC - INFO - pyls.plugins.ctags - Line: !_TAG_PROGRAM_VERSION\t5.8\t//
+
+2020-02-20 15:31:30,300 UTC - DEBUG - pyls.plugins.ctags - []
+
+stderr: 2020-02-20 15:31:30,300 UTC - DEBUG - pyls.plugins.ctags - []
+2020-02-20 15:31:30,301 UTC - DEBUG - pyls.config.config -   finish pyls_workspace_symbols --> [[]] [hook]
+
+2020-02-20 15:31:30,302 UTC - DEBUG - pyls_jsonrpc.endpoint - Got result from synchronous request handler: []
+
+stderr: 2020-02-20 15:31:30,302 UTC - DEBUG - pyls_jsonrpc.endpoint - Handling request from client {'jsonrpc': '2.0', 'id': 26, 'method': 'workspace/symbol', 'params': {'query': 'mai'}}
+
+stderr: 2020-02-20 15:31:30,302 UTC - DEBUG - pyls.config.config -   pyls_workspace_symbols [hook]
+      config: <pyls.config.config.Config object at 0x0000013797D3FB08>
+      workspace: <pyls.workspace.Workspace object at 0x0000013797D3FA88>
+      document: None
+      query: mai
+
+2020-02-20 15:31:30,302 UTC - DEBUG - pyls.plugins.ctags - [{'filePath': 'C:/Users/benro/Desktop/Blink/.blink/tags', 'directory': 'C:/Users/benro/Desktop/Blink/client/samples/'}]
+
+stderr: 2020-02-20 15:31:30,303 UTC - INFO - pyls.plugins.ctags - Got match None from line: !_TAG_FILE_FORMAT	2	/extended format; --format=1 will not append ;" to lines/
+
+2020-02-20 15:31:30,303 UTC - INFO - pyls.plugins.ctags - Line: !_TAG_FILE_FORMAT\t2\t/extended\sformat;\s--format=1\swill\snot\sappend\s;"\sto\slines/
+
+2020-02-20 15:31:30,303 UTC - INFO - pyls.plugins.ctags - Got match None from line: !_TAG_FILE_SORTED	1	/0=unsorted, 1=sorted, 2=foldcase/
+
+
+stderr: 2020-02-20 15:31:30,303 UTC - INFO - pyls.plugins.ctags - Line: !_TAG_FILE_SORTED\t1\t/0=unsorted,\s1=sorted,\s2=foldcase/
+
+2020-02-20 15:31:30,303 UTC - INFO - pyls.plugins.ctags - Got match None from line: !_TAG_PROGRAM_AUTHOR	Darren Hiebert	/dhiebert@users.sourceforge.net/
+
+2020-02-20 15:31:30,303 UTC - INFO - pyls.plugins.ctags - Line: !_TAG_PROGRAM_AUTHOR\tDarren\sHiebert\t/dhiebert@users.sourceforge.net/
+
+
+stderr: 2020-02-20 15:31:30,303 UTC - INFO - pyls.plugins.ctags - Got match None from line: !_TAG_PROGRAM_NAME	Exuberant Ctags	//
+
+2020-02-20 15:31:30,303 UTC - INFO - pyls.plugins.ctags - Line: !_TAG_PROGRAM_NAME\tExuberant\sCtags\t//
+
+2020-02-20 15:31:30,304 UTC - INFO - pyls.plugins.ctags - Got match None from line: !_TAG_PROGRAM_URL	http://ctags.sourceforge.net	/official site/
+
+
+stderr: 2020-02-20 15:31:30,304 UTC - INFO - pyls.plugins.ctags - Line: !_TAG_PROGRAM_URL\thttp://ctags.sourceforge.net\t/official\ssite/
+
+2020-02-20 15:31:30,304 UTC - INFO - pyls.plugins.ctags - Got match None from line: !_TAG_PROGRAM_VERSION	5.8	//
+
+2020-02-20 15:31:30,304 UTC - INFO - pyls.plugins.ctags - Line: !_TAG_PROGRAM_VERSION\t5.8\t//
+
+
+stderr: 2020-02-20 15:31:30,304 UTC - DEBUG - pyls.plugins.ctags - []
+2020-02-20 15:31:30,304 UTC - DEBUG - pyls.plugins.ctags - []
+2020-02-20 15:31:30,304 UTC - DEBUG - pyls.config.config -   finish pyls_workspace_symbols --> [[]] [hook]
+
+
+stderr: 2020-02-20 15:31:30,304 UTC - DEBUG - pyls_jsonrpc.endpoint - Got result from synchronous request handler: []
+
+stderr: 2020-02-20 15:31:30,304 UTC - DEBUG - pyls_jsonrpc.endpoint - Handling request from client {'jsonrpc': '2.0', 'id': 27, 'method': 'workspace/symbol', 'params': {'query': 'mai'}}
+
+stderr: 2020-02-20 15:31:30,304 UTC - DEBUG - pyls.config.config -   pyls_workspace_symbols [hook]
+      config: <pyls.config.config.Config object at 0x0000013797D3FB08>
+      workspace: <pyls.workspace.Workspace object at 0x0000013797D3FA88>
+      document: None
+      query: mai
+
+
+stderr: 2020-02-20 15:31:30,305 UTC - DEBUG - pyls.plugins.ctags - [{'filePath': 'C:/Users/benro/Desktop/Blink/.blink/tags', 'directory': 'C:/Users/benro/Desktop/Blink/client/samples/'}]
+
+stderr: 2020-02-20 15:31:30,305 UTC - INFO - pyls.plugins.ctags - Got match None from line: !_TAG_FILE_FORMAT	2	/extended format; --format=1 will not append ;" to lines/
+
+2020-02-20 15:31:30,305 UTC - INFO - pyls.plugins.ctags - Line: !_TAG_FILE_FORMAT\t2\t/extended\sformat;\s--format=1\swill\snot\sappend\s;"\sto\slines/
+
+2020-02-20 15:31:30,305 UTC - INFO - pyls.plugins.ctags - Got match None from line: !_TAG_FILE_SORTED	1	/0=unsorted, 1=sorted, 2=foldcase/
+
+
+stderr: 2020-02-20 15:31:30,305 UTC - INFO - pyls.plugins.ctags - Line: !_TAG_FILE_SORTED\t1\t/0=unsorted,\s1=sorted,\s2=foldcase/
+
+2020-02-20 15:31:30,306 UTC - INFO - pyls.plugins.ctags - Got match None from line: !_TAG_PROGRAM_AUTHOR	Darren Hiebert	/dhiebert@users.sourceforge.net/
+
+2020-02-20 15:31:30,306 UTC - INFO - pyls.plugins.ctags - Line: !_TAG_PROGRAM_AUTHOR\tDarren\sHiebert\t/dhiebert@users.sourceforge.net/
+
+
+stderr: 2020-02-20 15:31:30,306 UTC - INFO - pyls.plugins.ctags - Got match None from line: !_TAG_PROGRAM_NAME	Exuberant Ctags	//
+
+2020-02-20 15:31:30,306 UTC - INFO - pyls.plugins.ctags - Line: !_TAG_PROGRAM_NAME\tExuberant\sCtags\t//
+
+2020-02-20 15:31:30,306 UTC - INFO - pyls.plugins.ctags - Got match None from line: !_TAG_PROGRAM_URL	http://ctags.sourceforge.net	/official site/
+
+2020-02-20 15:31:30,306 UTC - INFO - pyls.plugins.ctags - Line: !_TAG_PROGRAM_URL\thttp://ctags.sourceforge.net\t/official\ssite/
+
+
+stderr: 2020-02-20 15:31:30,306 UTC - INFO - pyls.plugins.ctags - Got match None from line: !_TAG_PROGRAM_VERSION	5.8	//
+
+2020-02-20 15:31:30,306 UTC - INFO - pyls.plugins.ctags - Line: !_TAG_PROGRAM_VERSION\t5.8\t//
+
+2020-02-20 15:31:30,306 UTC - DEBUG - pyls.plugins.ctags - []
+
+stderr: 2020-02-20 15:31:30,306 UTC - DEBUG - pyls.plugins.ctags - []
+2020-02-20 15:31:30,307 UTC - DEBUG - pyls.config.config -   finish pyls_workspace_symbols --> [[]] [hook]
+
+2020-02-20 15:31:30,307 UTC - DEBUG - pyls_jsonrpc.endpoint - Got result from synchronous request handler: []
+
+stderr: 2020-02-20 15:31:30,495 UTC - DEBUG - pyls_jsonrpc.endpoint - Handling request from client {'jsonrpc': '2.0', 'id': 28, 'method': 'workspace/symbol', 'params': {'query': 'main'}}
+2020-02-20 15:31:30,496 UTC - DEBUG - pyls.config.config -   pyls_workspace_symbols [hook]
+      config: <pyls.config.config.Config object at 0x0000013797D3FB08>
+      workspace: <pyls.workspace.Workspace object at 0x0000013797D3FA88>
+      document: None
+      query: main
+
+2020-02-20 15:31:30,496 UTC - DEBUG - pyls.plugins.ctags - [{'filePath': 'C:/Users/benro/Desktop/Blink/.blink/tags', 'directory': 'C:/Users/benro/Desktop/Blink/client/samples/'}]
+
+stderr: 2020-02-20 15:31:30,497 UTC - INFO - pyls.plugins.ctags - Got match None from line: !_TAG_FILE_FORMAT	2	/extended format; --format=1 will not append ;" to lines/
+
+2020-02-20 15:31:30,498 UTC - INFO - pyls.plugins.ctags - Line: !_TAG_FILE_FORMAT\t2\t/extended\sformat;\s--format=1\swill\snot\sappend\s;"\sto\slines/
+
+
+stderr: 2020-02-20 15:31:30,498 UTC - INFO - pyls.plugins.ctags - Got match None from line: !_TAG_FILE_SORTED	1	/0=unsorted, 1=sorted, 2=foldcase/
+
+2020-02-20 15:31:30,499 UTC - INFO - pyls.plugins.ctags - Line: !_TAG_FILE_SORTED\t1\t/0=unsorted,\s1=sorted,\s2=foldcase/
+
+2020-02-20 15:31:30,499 UTC - INFO - pyls.plugins.ctags - Got match None from line: !_TAG_PROGRAM_AUTHOR	Darren Hiebert	/dhiebert@users.sourceforge.net/
+
+2020-02-20 15:31:30,499 UTC - INFO - pyls.plugins.ctags - Line: !_TAG_PROGRAM_AUTHOR\tDarren\sHiebert\t/dhiebert@users.sourceforge.net/
+
+
+stderr: 2020-02-20 15:31:30,499 UTC - INFO - pyls.plugins.ctags - Got match None from line: !_TAG_PROGRAM_NAME	Exuberant Ctags	//
+
+2020-02-20 15:31:30,499 UTC - INFO - pyls.plugins.ctags - Line: !_TAG_PROGRAM_NAME\tExuberant\sCtags\t//
+
+2020-02-20 15:31:30,500 UTC - INFO - pyls.plugins.ctags - Got match None from line: !_TAG_PROGRAM_URL	http://ctags.sourceforge.net	/official site/
+
+
+stderr: 2020-02-20 15:31:30,500 UTC - INFO - pyls.plugins.ctags - Line: !_TAG_PROGRAM_URL\thttp://ctags.sourceforge.net\t/official\ssite/
+
+2020-02-20 15:31:30,500 UTC - INFO - pyls.plugins.ctags - Got match None from line: !_TAG_PROGRAM_VERSION	5.8	//
+
+
+stderr: 2020-02-20 15:31:30,500 UTC - INFO - pyls.plugins.ctags - Line: !_TAG_PROGRAM_VERSION\t5.8\t//
+
+
+stderr: 2020-02-20 15:31:30,501 UTC - DEBUG - pyls.plugins.ctags - []
+2020-02-20 15:31:30,501 UTC - DEBUG - pyls.plugins.ctags - []
+
+stderr: 2020-02-20 15:31:30,502 UTC - DEBUG - pyls.config.config -   finish pyls_workspace_symbols --> [[]] [hook]
+
+
+stderr: 2020-02-20 15:31:30,502 UTC - DEBUG - pyls_jsonrpc.endpoint - Got result from synchronous request handler: []
+
+stderr: 2020-02-20 15:31:30,503 UTC - DEBUG - pyls_jsonrpc.endpoint - Handling request from client {'jsonrpc': '2.0', 'id': 29, 'method': 'workspace/symbol', 'params': {'query': 'main'}}
+
+stderr: 2020-02-20 15:31:30,503 UTC - DEBUG - pyls.config.config -   pyls_workspace_symbols [hook]
+      config: <pyls.config.config.Config object at 0x0000013797D3FB08>
+      workspace: <pyls.workspace.Workspace object at 0x0000013797D3FA88>
+      document: None
+      query: main
+
+
+stderr: 2020-02-20 15:31:30,504 UTC - DEBUG - pyls.plugins.ctags - [{'filePath': 'C:/Users/benro/Desktop/Blink/.blink/tags', 'directory': 'C:/Users/benro/Desktop/Blink/client/samples/'}]
+
+stderr: 2020-02-20 15:31:30,505 UTC - INFO - pyls.plugins.ctags - Got match None from line: !_TAG_FILE_FORMAT	2	/extended format; --format=1 will not append ;" to lines/
+
+2020-02-20 15:31:30,505 UTC - INFO - pyls.plugins.ctags - Line: !_TAG_FILE_FORMAT\t2\t/extended\sformat;\s--format=1\swill\snot\sappend\s;"\sto\slines/
+
+
+stderr: 2020-02-20 15:31:30,505 UTC - INFO - pyls.plugins.ctags - Got match None from line: !_TAG_FILE_SORTED	1	/0=unsorted, 1=sorted, 2=foldcase/
+
+2020-02-20 15:31:30,506 UTC - INFO - pyls.plugins.ctags - Line: !_TAG_FILE_SORTED\t1\t/0=unsorted,\s1=sorted,\s2=foldcase/
+
+
+stderr: 2020-02-20 15:31:30,506 UTC - INFO - pyls.plugins.ctags - Got match None from line: !_TAG_PROGRAM_AUTHOR	Darren Hiebert	/dhiebert@users.sourceforge.net/
+
+2020-02-20 15:31:30,506 UTC - INFO - pyls.plugins.ctags - Line: !_TAG_PROGRAM_AUTHOR\tDarren\sHiebert\t/dhiebert@users.sourceforge.net/
+
+2020-02-20 15:31:30,506 UTC - INFO - pyls.plugins.ctags - Got match None from line: !_TAG_PROGRAM_NAME	Exuberant Ctags	//
+
+
+stderr: 2020-02-20 15:31:30,507 UTC - INFO - pyls.plugins.ctags - Line: !_TAG_PROGRAM_NAME\tExuberant\sCtags\t//
+
+2020-02-20 15:31:30,507 UTC - INFO - pyls.plugins.ctags - Got match None from line: !_TAG_PROGRAM_URL	http://ctags.sourceforge.net	/official site/
+
+
+stderr: 2020-02-20 15:31:30,508 UTC - INFO - pyls.plugins.ctags - Line: !_TAG_PROGRAM_URL\thttp://ctags.sourceforge.net\t/official\ssite/
+
+2020-02-20 15:31:30,508 UTC - INFO - pyls.plugins.ctags - Got match None from line: !_TAG_PROGRAM_VERSION	5.8	//
+
+2020-02-20 15:31:30,508 UTC - INFO - pyls.plugins.ctags - Line: !_TAG_PROGRAM_VERSION\t5.8\t//
+
+
+stderr: 2020-02-20 15:31:30,508 UTC - DEBUG - pyls.plugins.ctags - []
+2020-02-20 15:31:30,508 UTC - DEBUG - pyls.plugins.ctags - []
+2020-02-20 15:31:30,508 UTC - DEBUG - pyls.config.config -   finish pyls_workspace_symbols --> [[]] [hook]
+
+
+stderr: 2020-02-20 15:31:30,508 UTC - DEBUG - pyls_jsonrpc.endpoint - Got result from synchronous request handler: []
+
+stderr: 2020-02-20 15:31:30,509 UTC - DEBUG - pyls_jsonrpc.endpoint - Handling request from client {'jsonrpc': '2.0', 'id': 30, 'method': 'workspace/symbol', 'params': {'query': 'main'}}
+
+stderr: 2020-02-20 15:31:30,509 UTC - DEBUG - pyls.config.config -   pyls_workspace_symbols [hook]
+      config: <pyls.config.config.Config object at 0x0000013797D3FB08>
+      workspace: <pyls.workspace.Workspace object at 0x0000013797D3FA88>
+      document: None
+      query: main
+
+2020-02-20 15:31:30,510 UTC - DEBUG - pyls.plugins.ctags - [{'filePath': 'C:/Users/benro/Desktop/Blink/.blink/tags', 'directory': 'C:/Users/benro/Desktop/Blink/client/samples/'}]
+
+stderr: 2020-02-20 15:31:30,511 UTC - INFO - pyls.plugins.ctags - Got match None from line: !_TAG_FILE_FORMAT	2	/extended format; --format=1 will not append ;" to lines/
+
+2020-02-20 15:31:30,511 UTC - INFO - pyls.plugins.ctags - Line: !_TAG_FILE_FORMAT\t2\t/extended\sformat;\s--format=1\swill\snot\sappend\s;"\sto\slines/
+
+
+stderr: 2020-02-20 15:31:30,511 UTC - INFO - pyls.plugins.ctags - Got match None from line: !_TAG_FILE_SORTED	1	/0=unsorted, 1=sorted, 2=foldcase/
+
+2020-02-20 15:31:30,512 UTC - INFO - pyls.plugins.ctags - Line: !_TAG_FILE_SORTED\t1\t/0=unsorted,\s1=sorted,\s2=foldcase/
+
+
+stderr: 2020-02-20 15:31:30,512 UTC - INFO - pyls.plugins.ctags - Got match None from line: !_TAG_PROGRAM_AUTHOR	Darren Hiebert	/dhiebert@users.sourceforge.net/
+
+2020-02-20 15:31:30,512 UTC - INFO - pyls.plugins.ctags - Line: !_TAG_PROGRAM_AUTHOR\tDarren\sHiebert\t/dhiebert@users.sourceforge.net/
+
+
+stderr: 2020-02-20 15:31:30,513 UTC - INFO - pyls.plugins.ctags - Got match None from line: !_TAG_PROGRAM_NAME	Exuberant Ctags	//
+
+
+stderr: 2020-02-20 15:31:30,513 UTC - INFO - pyls.plugins.ctags - Line: !_TAG_PROGRAM_NAME\tExuberant\sCtags\t//
+
+2020-02-20 15:31:30,513 UTC - INFO - pyls.plugins.ctags - Got match None from line: !_TAG_PROGRAM_URL	http://ctags.sourceforge.net	/official site/
+
+
+stderr: 2020-02-20 15:31:30,514 UTC - INFO - pyls.plugins.ctags - Line: !_TAG_PROGRAM_URL\thttp://ctags.sourceforge.net\t/official\ssite/
+
+2020-02-20 15:31:30,515 UTC - INFO - pyls.plugins.ctags - Got match None from line: !_TAG_PROGRAM_VERSION	5.8	//
+
+2020-02-20 15:31:30,515 UTC - INFO - pyls.plugins.ctags - Line: !_TAG_PROGRAM_VERSION\t5.8\t//
+
+
+stderr: 2020-02-20 15:31:30,515 UTC - DEBUG - pyls.plugins.ctags - []
+2020-02-20 15:31:30,515 UTC - DEBUG - pyls.plugins.ctags - []
+
+stderr: 2020-02-20 15:31:30,516 UTC - DEBUG - pyls.config.config -   finish pyls_workspace_symbols --> [[]] [hook]
+
+2020-02-20 15:31:30,516 UTC - DEBUG - pyls_jsonrpc.endpoint - Got result from synchronous request handler: []
+
+stderr: 2020-02-20 15:31:30,516 UTC - DEBUG - pyls_jsonrpc.endpoint - Handling request from client {'jsonrpc': '2.0', 'id': 31, 'method': 'workspace/symbol', 'params': {'query': 'main'}}
+2020-02-20 15:31:30,517 UTC - DEBUG - pyls.config.config -   pyls_workspace_symbols [hook]
+      config: <pyls.config.config.Config object at 0x0000013797D3FB08>
+      workspace: <pyls.workspace.Workspace object at 0x0000013797D3FA88>
+      document: None
+      query: main
+
+
+stderr: 2020-02-20 15:31:30,517 UTC - DEBUG - pyls.plugins.ctags - [{'filePath': 'C:/Users/benro/Desktop/Blink/.blink/tags', 'directory': 'C:/Users/benro/Desktop/Blink/client/samples/'}]
+
+stderr: 2020-02-20 15:31:30,518 UTC - INFO - pyls.plugins.ctags - Got match None from line: !_TAG_FILE_FORMAT	2	/extended format; --format=1 will not append ;" to lines/
+
+2020-02-20 15:31:30,518 UTC - INFO - pyls.plugins.ctags - Line: !_TAG_FILE_FORMAT\t2\t/extended\sformat;\s--format=1\swill\snot\sappend\s;"\sto\slines/
+
+2020-02-20 15:31:30,518 UTC - INFO - pyls.plugins.ctags - Got match None from line: !_TAG_FILE_SORTED	1	/0=unsorted, 1=sorted, 2=foldcase/
+
+
+stderr: 2020-02-20 15:31:30,518 UTC - INFO - pyls.plugins.ctags - Line: !_TAG_FILE_SORTED\t1\t/0=unsorted,\s1=sorted,\s2=foldcase/
+
+2020-02-20 15:31:30,519 UTC - INFO - pyls.plugins.ctags - Got match None from line: !_TAG_PROGRAM_AUTHOR	Darren Hiebert	/dhiebert@users.sourceforge.net/
+
+2020-02-20 15:31:30,519 UTC - INFO - pyls.plugins.ctags - Line: !_TAG_PROGRAM_AUTHOR\tDarren\sHiebert\t/dhiebert@users.sourceforge.net/
+
+
+stderr: 2020-02-20 15:31:30,519 UTC - INFO - pyls.plugins.ctags - Got match None from line: !_TAG_PROGRAM_NAME	Exuberant Ctags	//
+
+2020-02-20 15:31:30,519 UTC - INFO - pyls.plugins.ctags - Line: !_TAG_PROGRAM_NAME\tExuberant\sCtags\t//
+
+2020-02-20 15:31:30,519 UTC - INFO - pyls.plugins.ctags - Got match None from line: !_TAG_PROGRAM_URL	http://ctags.sourceforge.net	/official site/
+
+
+stderr: 2020-02-20 15:31:30,519 UTC - INFO - pyls.plugins.ctags - Line: !_TAG_PROGRAM_URL\thttp://ctags.sourceforge.net\t/official\ssite/
+
+2020-02-20 15:31:30,520 UTC - INFO - pyls.plugins.ctags - Got match None from line: !_TAG_PROGRAM_VERSION	5.8	//
+
+2020-02-20 15:31:30,520 UTC - INFO - pyls.plugins.ctags - Line: !_TAG_PROGRAM_VERSION\t5.8\t//
+
+
+stderr: 2020-02-20 15:31:30,521 UTC - DEBUG - pyls.plugins.ctags - []
+2020-02-20 15:31:30,521 UTC - DEBUG - pyls.plugins.ctags - []
+2020-02-20 15:31:30,521 UTC - DEBUG - pyls.config.config -   finish pyls_workspace_symbols --> [[]] [hook]
+
+
+stderr: 2020-02-20 15:31:30,521 UTC - DEBUG - pyls_jsonrpc.endpoint - Got result from synchronous request handler: []
+
+stderr: 2020-02-20 15:31:30,522 UTC - DEBUG - pyls_jsonrpc.endpoint - Handling request from client {'jsonrpc': '2.0', 'id': 32, 'method': 'workspace/symbol', 'params': {'query': 'main'}}
+
+stderr: 2020-02-20 15:31:30,522 UTC - DEBUG - pyls.config.config -   pyls_workspace_symbols [hook]
+      config: <pyls.config.config.Config object at 0x0000013797D3FB08>
+      workspace: <pyls.workspace.Workspace object at 0x0000013797D3FA88>
+      document: None
+      query: main
+
+2020-02-20 15:31:30,522 UTC - DEBUG - pyls.plugins.ctags - [{'filePath': 'C:/Users/benro/Desktop/Blink/.blink/tags', 'directory': 'C:/Users/benro/Desktop/Blink/client/samples/'}]
+
+stderr: 2020-02-20 15:31:30,523 UTC - INFO - pyls.plugins.ctags - Got match None from line: !_TAG_FILE_FORMAT	2	/extended format; --format=1 will not append ;" to lines/
+
+2020-02-20 15:31:30,523 UTC - INFO - pyls.plugins.ctags - Line: !_TAG_FILE_FORMAT\t2\t/extended\sformat;\s--format=1\swill\snot\sappend\s;"\sto\slines/
+
+2020-02-20 15:31:30,523 UTC - INFO - pyls.plugins.ctags - Got match None from line: !_TAG_FILE_SORTED	1	/0=unsorted, 1=sorted, 2=foldcase/
+
+
+stderr: 2020-02-20 15:31:30,524 UTC - INFO - pyls.plugins.ctags - Line: !_TAG_FILE_SORTED\t1\t/0=unsorted,\s1=sorted,\s2=foldcase/
+
+2020-02-20 15:31:30,524 UTC - INFO - pyls.plugins.ctags - Got match None from line: !_TAG_PROGRAM_AUTHOR	Darren Hiebert	/dhiebert@users.sourceforge.net/
+
+2020-02-20 15:31:30,524 UTC - INFO - pyls.plugins.ctags - Line: !_TAG_PROGRAM_AUTHOR\tDarren\sHiebert\t/dhiebert@users.sourceforge.net/
+
+
+stderr: 2020-02-20 15:31:30,524 UTC - INFO - pyls.plugins.ctags - Got match None from line: !_TAG_PROGRAM_NAME	Exuberant Ctags	//
+
+2020-02-20 15:31:30,524 UTC - INFO - pyls.plugins.ctags - Line: !_TAG_PROGRAM_NAME\tExuberant\sCtags\t//
+
+2020-02-20 15:31:30,524 UTC - INFO - pyls.plugins.ctags - Got match None from line: !_TAG_PROGRAM_URL	http://ctags.sourceforge.net	/official site/
+
+
+stderr: 2020-02-20 15:31:30,525 UTC - INFO - pyls.plugins.ctags - Line: !_TAG_PROGRAM_URL\thttp://ctags.sourceforge.net\t/official\ssite/
+
+2020-02-20 15:31:30,525 UTC - INFO - pyls.plugins.ctags - Got match None from line: !_TAG_PROGRAM_VERSION	5.8	//
+
+2020-02-20 15:31:30,525 UTC - INFO - pyls.plugins.ctags - Line: !_TAG_PROGRAM_VERSION\t5.8\t//
+
+
+stderr: 2020-02-20 15:31:30,525 UTC - DEBUG - pyls.plugins.ctags - []
+2020-02-20 15:31:30,525 UTC - DEBUG - pyls.plugins.ctags - []
+2020-02-20 15:31:30,526 UTC - DEBUG - pyls.config.config -   finish pyls_workspace_symbols --> [[]] [hook]
+
+
+stderr: 2020-02-20 15:31:30,526 UTC - DEBUG - pyls_jsonrpc.endpoint - Got result from synchronous request handler: []
+
+stderr: 2020-02-20 15:31:30,526 UTC - DEBUG - pyls_jsonrpc.endpoint - Handling request from client {'jsonrpc': '2.0', 'id': 33, 'method': 'workspace/symbol', 'params': {'query': 'main'}}
+
+stderr: 2020-02-20 15:31:30,526 UTC - DEBUG - pyls.config.config -   pyls_workspace_symbols [hook]
+      config: <pyls.config.config.Config object at 0x0000013797D3FB08>
+      workspace: <pyls.workspace.Workspace object at 0x0000013797D3FA88>
+      document: None
+      query: main
+
+2020-02-20 15:31:30,527 UTC - DEBUG - pyls.plugins.ctags - [{'filePath': 'C:/Users/benro/Desktop/Blink/.blink/tags', 'directory': 'C:/Users/benro/Desktop/Blink/client/samples/'}]
+
+stderr: 2020-02-20 15:31:30,528 UTC - INFO - pyls.plugins.ctags - Got match None from line: !_TAG_FILE_FORMAT	2	/extended format; --format=1 will not append ;" to lines/
+
+
+stderr: 2020-02-20 15:31:30,528 UTC - INFO - pyls.plugins.ctags - Line: !_TAG_FILE_FORMAT\t2\t/extended\sformat;\s--format=1\swill\snot\sappend\s;"\sto\slines/
+
+
+stderr: 2020-02-20 15:31:30,528 UTC - INFO - pyls.plugins.ctags - Got match None from line: !_TAG_FILE_SORTED	1	/0=unsorted, 1=sorted, 2=foldcase/
+
+2020-02-20 15:31:30,529 UTC - INFO - pyls.plugins.ctags - Line: !_TAG_FILE_SORTED\t1\t/0=unsorted,\s1=sorted,\s2=foldcase/
+
+
+stderr: 2020-02-20 15:31:30,530 UTC - INFO - pyls.plugins.ctags - Got match None from line: !_TAG_PROGRAM_AUTHOR	Darren Hiebert	/dhiebert@users.sourceforge.net/
+
+2020-02-20 15:31:30,530 UTC - INFO - pyls.plugins.ctags - Line: !_TAG_PROGRAM_AUTHOR\tDarren\sHiebert\t/dhiebert@users.sourceforge.net/
+
+
+stderr: 2020-02-20 15:31:30,530 UTC - INFO - pyls.plugins.ctags - Got match None from line: !_TAG_PROGRAM_NAME	Exuberant Ctags	//
+
+2020-02-20 15:31:30,530 UTC - INFO - pyls.plugins.ctags - Line: !_TAG_PROGRAM_NAME\tExuberant\sCtags\t//
+
+
+stderr: 2020-02-20 15:31:30,531 UTC - INFO - pyls.plugins.ctags - Got match None from line: !_TAG_PROGRAM_URL	http://ctags.sourceforge.net	/official site/
+
+
+stderr: 2020-02-20 15:31:30,531 UTC - INFO - pyls.plugins.ctags - Line: !_TAG_PROGRAM_URL\thttp://ctags.sourceforge.net\t/official\ssite/
+
+2020-02-20 15:31:30,531 UTC - INFO - pyls.plugins.ctags - Got match None from line: !_TAG_PROGRAM_VERSION	5.8	//
+
+
+stderr: 2020-02-20 15:31:30,532 UTC - INFO - pyls.plugins.ctags - Line: !_TAG_PROGRAM_VERSION\t5.8\t//
+
+
+stderr: 2020-02-20 15:31:30,532 UTC - DEBUG - pyls.plugins.ctags - []
+2020-02-20 15:31:30,532 UTC - DEBUG - pyls.plugins.ctags - []
+
+stderr: 2020-02-20 15:31:30,533 UTC - DEBUG - pyls.config.config -   finish pyls_workspace_symbols --> [[]] [hook]
+
+2020-02-20 15:31:30,533 UTC - DEBUG - pyls_jsonrpc.endpoint - Got result from synchronous request handler: []
+
+stderr: 2020-02-20 15:31:30,533 UTC - DEBUG - pyls_jsonrpc.endpoint - Handling request from client {'jsonrpc': '2.0', 'id': 34, 'method': 'workspace/symbol', 'params': {'query': 'main'}}
+
+stderr: 2020-02-20 15:31:30,534 UTC - DEBUG - pyls.config.config -   pyls_workspace_symbols [hook]
+      config: <pyls.config.config.Config object at 0x0000013797D3FB08>
+      workspace: <pyls.workspace.Workspace object at 0x0000013797D3FA88>
+      document: None
+      query: main
+
+
+stderr: 2020-02-20 15:31:30,534 UTC - DEBUG - pyls.plugins.ctags - [{'filePath': 'C:/Users/benro/Desktop/Blink/.blink/tags', 'directory': 'C:/Users/benro/Desktop/Blink/client/samples/'}]
+
+stderr: 2020-02-20 15:31:30,535 UTC - INFO - pyls.plugins.ctags - Got match None from line: !_TAG_FILE_FORMAT	2	/extended format; --format=1 will not append ;" to lines/
+
+2020-02-20 15:31:30,536 UTC - INFO - pyls.plugins.ctags - Line: !_TAG_FILE_FORMAT\t2\t/extended\sformat;\s--format=1\swill\snot\sappend\s;"\sto\slines/
+
+
+stderr: 2020-02-20 15:31:30,536 UTC - INFO - pyls.plugins.ctags - Got match None from line: !_TAG_FILE_SORTED	1	/0=unsorted, 1=sorted, 2=foldcase/
+
+
+stderr: 2020-02-20 15:31:30,536 UTC - INFO - pyls.plugins.ctags - Line: !_TAG_FILE_SORTED\t1\t/0=unsorted,\s1=sorted,\s2=foldcase/
+
+2020-02-20 15:31:30,537 UTC - INFO - pyls.plugins.ctags - Got match None from line: !_TAG_PROGRAM_AUTHOR	Darren Hiebert	/dhiebert@users.sourceforge.net/
+
+
+stderr: 2020-02-20 15:31:30,538 UTC - INFO - pyls.plugins.ctags - Line: !_TAG_PROGRAM_AUTHOR\tDarren\sHiebert\t/dhiebert@users.sourceforge.net/
+
+2020-02-20 15:31:30,538 UTC - INFO - pyls.plugins.ctags - Got match None from line: !_TAG_PROGRAM_NAME	Exuberant Ctags	//
+
+
+stderr: 2020-02-20 15:31:30,538 UTC - INFO - pyls.plugins.ctags - Line: !_TAG_PROGRAM_NAME\tExuberant\sCtags\t//
+
+2020-02-20 15:31:30,538 UTC - INFO - pyls.plugins.ctags - Got match None from line: !_TAG_PROGRAM_URL	http://ctags.sourceforge.net	/official site/
+
+
+stderr: 2020-02-20 15:31:30,539 UTC - INFO - pyls.plugins.ctags - Line: !_TAG_PROGRAM_URL\thttp://ctags.sourceforge.net\t/official\ssite/
+
+2020-02-20 15:31:30,539 UTC - INFO - pyls.plugins.ctags - Got match None from line: !_TAG_PROGRAM_VERSION	5.8	//
+
+
+stderr: 2020-02-20 15:31:30,539 UTC - INFO - pyls.plugins.ctags - Line: !_TAG_PROGRAM_VERSION\t5.8\t//
+
+
+stderr: 2020-02-20 15:31:30,540 UTC - DEBUG - pyls.plugins.ctags - []
+2020-02-20 15:31:30,540 UTC - DEBUG - pyls.plugins.ctags - []
+
+stderr: 2020-02-20 15:31:30,540 UTC - DEBUG - pyls.config.config -   finish pyls_workspace_symbols --> [[]] [hook]
+
+2020-02-20 15:31:30,541 UTC - DEBUG - pyls_jsonrpc.endpoint - Got result from synchronous request handler: []
+
