@@ -143,6 +143,7 @@ class Editor {
 			extraKeys: Object.assign({
 				Tab: (cm) => {
 					if (cm.somethingSelected()) cm.execCommand("indentMore")
+					else cm.execCommand("insertSoftTab")
 				}
 			}, (process.platform === "darwin") ? MacKeyBindings : WindowsKeyBindings),
 
