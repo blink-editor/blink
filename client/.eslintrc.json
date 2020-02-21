@@ -10,6 +10,8 @@
 		"quotes": ["warn", "double"],
 		"no-var": "warn",
 		"prefer-const": "warn",
+		"keyword-spacing": ["warn", { "before": true, "after": true }],
+		"space-before-blocks": ["warn", "always"],
 		"@typescript-eslint/semi": ["warn", "never"],
 		"@typescript-eslint/member-delimiter-style": [
 			"warn", {

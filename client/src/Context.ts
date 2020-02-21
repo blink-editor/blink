@@ -22,8 +22,7 @@ const extractRangeOfFile = function(file, range): string {
 	return lines.join("\n")
 }
 
-export class Context{
-	// TODO: add linerize function
+export class Context {
 	public readonly name: string
 	public readonly uri: string
 	private _hasChanges: boolean = false
