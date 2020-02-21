@@ -126,7 +126,7 @@ export class NavObject {
 						|| ((symbol.range.start.line === range.start.line && symbol.range.start.character <= range.start.character)
 							&& (symbol.range.end.line === range.end.line && symbol.range.end.character >= range.end.character)))
 						&& (bestScore === null || symbol.range.end.line - symbol.range.start.line < bestScore) // tightest line bound so far
-						&& (symbol.kind !== lsp.SymbolKind.Variable) // is not a variable declaration
+
 					) {
 						bestScore = symbol.range.end.line - symbol.range.start.line
 						bestSymbol = symbol
