@@ -494,8 +494,16 @@ class Editor {
 							paneContentToSet = paneContextSymbol.definitionString
 							paneContextStringToSet = `${paneContext.name},${paneContextSymbol.symbol.detail}`
 						} else {
-							paneContextStringToSet = `(${symbols[i].name}: not top level)`
-							console.warn("did not find top-level symbol for", symbols[i], "in", paneContext)
+							// Check if the wanted symbol is within a top-level symbol.
+							const topLevelInfoContainingSymbole = paneContext.getTopLevelSymbolContaining(symbols[i])
+							if(topLevelInfoContainingSymbole){
+								paneSymbolToSet = topLevelInfoContainingSymbole[0] as SymbolInfo
+								paneContentToSet = topLevelInfoContainingSymbole[1] as string
+								paneContextStringToSet = `${paneContext.name},${paneSymbolToSet.detail}`
+							}else{
+								paneContextStringToSet = `(${symbols[i].name}: not top level)`
+								console.warn("did not find top-level symbol for", symbols[i], "in", paneContext)
+							}
 						}
 					} else {
 						paneContextStringToSet = `(${symbols[i].name}: no matching context)`
