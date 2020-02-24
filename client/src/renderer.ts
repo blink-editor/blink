@@ -7,15 +7,15 @@ import * as path from "path"
 import { promisify } from "util"
 import { URL as NodeURL, pathToFileURL, fileURLToPath } from "url"
 import { spawn } from "child_process"
+import debounce from "lodash.debounce"
 
 import * as electron from "electron"
 import CodeMirror from "codemirror"
 import * as lsp from "vscode-languageserver-protocol"
 
-import { Context, DisplaySymbolTree } from "./Context"
-import { Project } from "./Project"
+import { Context, DisplaySymbolTree, Document as ContextDocument } from "./Context"
+import { Project, ContextSymbolReference } from "./Project"
 import { CodeMirrorAdapter } from "./codemirror-adapter"
-import { NavObject, SymbolInfo } from "./nav-object"
 import * as client from "./langserver-client"
 
 // css imported in html for now
@@ -29,38 +29,41 @@ import "codemirror/addon/hint/show-hint"
 interface PaneObject {
 	editor: CodeMirror.Editor
 	context: Element
-	symbol: SymbolInfo | null
+	symbol: ContextSymbolReference | null
 	isPinned: boolean
 	pinImg: Element | null
 }
 
 interface NewSymbolInContext {
 	context: Context
+	initialDocument: ContextDocument
 }
 
 interface ActiveEditorPane {
 	editor: CodeMirror.Editor
 	context: Element
-	symbol: SymbolInfo | NewSymbolInContext | null
+	symbol: ContextSymbolReference | NewSymbolInContext | null
 }
+
+const isNewSymbol = (s: ContextSymbolReference | NewSymbolInContext): s is NewSymbolInContext =>
+	(s as NewSymbolInContext).initialDocument !== undefined
 
 class Editor {
 	// program state
 	lspClient: client.LspClient
 	adapter: CodeMirrorAdapter
-	navObject: NavObject
 
 	// editor/project state
 	calleePanes: [PaneObject, PaneObject, PaneObject]
 	callerPanes: [PaneObject, PaneObject, PaneObject]
 
-	navStack: SymbolInfo[] = []
+	navStack: ContextSymbolReference[] = []
 	curNavStackIndex = 0
 
 	activeEditorPane: ActiveEditorPane
 
-	calleesOfActive: lsp.SymbolInformation[] = []
-	callersOfActive: SymbolInfo[] = []
+	calleesOfActive: ContextSymbolReference[] = []
+	callersOfActive: ContextSymbolReference[] = []
 	calleeIndex = 0
 	callerIndex = 0
 
@@ -146,7 +149,6 @@ class Editor {
 			"Ctrl-]": () => this.navForward(),
 		}
 
-
 		// create active editor pane
 		const activeEditor = CodeMirror(replacePaneElement("main-pane"), {
 			mode: "python",
@@ -161,7 +163,6 @@ class Editor {
 					else cm.execCommand("insertSoftTab")
 				}
 			}, (process.platform === "darwin") ? MacKeyBindings : WindowsKeyBindings),
-
 		})
 
 		this.activeEditorPane = {
@@ -212,17 +213,15 @@ class Editor {
 			this.lspClient = new client.LspClientImpl(connection, undefined, logger)
 			this.lspClient.initialize()
 
-			this.navObject = new NavObject(this.lspClient)
-
 			// The adapter is what allows the editor to provide UI elements
-			this.adapter = new CodeMirrorAdapter(this.lspClient, this.navObject, {
+			this.adapter = new CodeMirrorAdapter(this.lspClient, {
 				// UI-related options go here, allowing you to control the automatic features of the LSP, i.e.
 				suggestOnTriggerCharacters: false
 			}, this.activeEditorPane.editor)
 
 			this.adapter.onChange = this.onActiveEditorChanged.bind(this)
 			this.adapter.onGoToLocation = this.goToLocation.bind(this)
-			this.adapter.getLineOffset = this.getFirstLineOfActiveSymbolWithinFile.bind(this)
+			this.adapter.getLineOffset = this.getActiveEditorLineOffset.bind(this)
 			this.adapter.openRenameSymbol = this.openRenameSymbol.bind(this)
 
 			this.lspClient.once("initialized", () => {
@@ -245,32 +244,70 @@ class Editor {
 		const activeSymbol = this.activeEditorPane.symbol
 		if (!activeSymbol) { return }
 
-		const isNewSymbol = (s: SymbolInfo | NewSymbolInContext): s is NewSymbolInContext =>
-			(s as NewSymbolInContext).context !== undefined
+		const context = activeSymbol.context
 
 		if (isNewSymbol(activeSymbol)) {
-			const context = activeSymbol.context
+			// uses file instance from time when "new symbol" mode was entered.
+			// relies on the fact that once entering new symbol mode, you can't alter other symbols.
+			const startingFile = activeSymbol.initialDocument.file
+			const lspCode = startingFile === "" ? text : (startingFile + "\n\n" + text)
 
-			const lspCode = context.getLinearizedCode() + "\n\n" + text
-			this.lspClient.sendChange(context.uri, { text: lspCode })
-		} else {
-			const context = this.currentProject.contextForSymbol(activeSymbol)!
-
-			// update our knowledge of the active symbol
-			context.updateSymbolDefinition(activeSymbol, text)
+			// Context doesn't have a concept of a "new symbol" mode
+			// so just replace the file and let it work itself out
+			context.replaceEntireFile(null, lspCode)
 
 			// send the change to the server so it's up to date
-			const lspCode = context.getLinearizedCode()
 			this.lspClient.sendChange(context.uri, { text: lspCode })
+		} else {
+			// update our knowledge of the active symbol
+			context.updateChunkDefinition(activeSymbol, text)
+
+			// send the change to the server so it's up to date
+			const lspCode = context.currentDocument.file
+			this.lspClient.sendChange(activeSymbol.context.uri, { text: lspCode })
 		}
 
 		// show save indicator
 		;(document.querySelector("#save-button-indicator-group")! as HTMLDivElement)
 			.classList.add("save-button-with-indicator")
 
-		// we aren't performing reanalysis here because their code
-		// may not be complete. wait until they save or swap panes
+		// debounce performing reanalysis because they might still be typing
+		this.debouncedReanalyzeAfterTyping(context)
 	}
+
+	async _reanalyze(context: Context) {
+		// if a context exists, its document must've been opened
+		console.assert(this.lspClient.isDocumentOpen(context.uri))
+
+		// update the language server with the latest change before analyzing
+		const document = context.currentDocument
+		this.lspClient.sendChange(context.uri, { text: document.file })
+
+		const symbols = await this._getDocumentSymbol(context.uri)
+
+		if (document.version !== context.currentDocument.version) {
+			console.warn("skipping update because document is out of date")
+			return
+		}
+
+		context.updateWithDocumentSymbols(document, symbols)
+
+		// if the active symbol's document changes, attempt to find it in the new version
+		// if the user is in "new symbol" mode, let them keep editing without upgrading
+		// TODO: do we want to upgrade them when a symbol is detected in what they're editing?
+		if (this.activeEditorPane.symbol
+				&& !isNewSymbol(this.activeEditorPane.symbol)
+				&& this.activeEditorPane.symbol.context.uri === context.uri) {
+			const upgradedSymbol = context.upgradeSymbolReference(this.activeEditorPane.symbol)
+			const newActiveSymbol = upgradedSymbol ?? context.findStartingSymbol(context.currentDocument)
+			if (newActiveSymbol) {
+				this.swapToSymbol({ ...newActiveSymbol, context }, false)
+			}
+		}
+	}
+
+	debouncedReanalyzeAfterTyping =
+		debounce(this._reanalyze, 300)
 
 	/**
 	 * Returns the line number of the beginning of the currently active symbol
@@ -279,33 +316,30 @@ class Editor {
 	 * Called by the codemirror adapter to translate visual line numbers
 	 * to actual language server protocol line numbers.
 	 */
-	getFirstLineOfActiveSymbolWithinFile(): number {
+	getActiveEditorLineOffset(): number {
 		if (!this.activeEditorPane.symbol) {
 			return 0
 		}
 
-		const isNewSymbol = (s: SymbolInfo | NewSymbolInContext): s is NewSymbolInContext =>
-			(s as NewSymbolInContext).context !== undefined
-
 		if (isNewSymbol(this.activeEditorPane.symbol)) {
-			return 0
+			// TODO: more efficient way of doing this?
+			// TODO: worry about other line endings
+			return this.activeEditorPane.symbol.initialDocument.file.split("\n").length - 1
 		}
 
-		const context = this.currentProject.contextForSymbol(this.activeEditorPane.symbol)!
-
-		return context.getFirstLineOfSymbol(this.activeEditorPane.symbol)
+		return this.activeEditorPane.symbol.context.chunkForSymbol(this.activeEditorPane.symbol)!.lineOffset
 	}
 
 	async goToLocation(location: lsp.Location) {
-		const context = await this.retrieveContextForUri(location.uri, null)
+		const context = await this.retrieveContextForUri(location.uri)
 		if (!context) {
 			console.warn("could not retrieve context for location", location)
 			return
 		}
-		// TODO: ask context for symbol instead
-		const locatedSymbol = this.navObject.bestSymbolForLocation(location)
+		// TODO: may not be right document?
+		const locatedSymbol = context.bestSymbolForLocation(context.currentDocument, location.range)
 		if (locatedSymbol) {
-			this.swapToPossiblyNestedSymbol(locatedSymbol)
+			this.swapToSymbol({ ...locatedSymbol, context })
 		}
 	}
 
@@ -396,10 +430,10 @@ class Editor {
 					el.innerText = result.name
 
 					// use closure to specify which symbol to swap to when clicked
-					el.addEventListener("click", () => {
+					el.addEventListener("click", async () => {
 						// swap to clicked symbol and close window
-						this.swapToPossiblyNestedSymbol(result)
 						this.closeJumpToSymByNameUnconditional()
+						await this.goToLocation(result.location)
 					})
 
 					list.appendChild(el)
@@ -448,6 +482,12 @@ class Editor {
 		// require the user to save before renaming - rope reads from disk
 		await this.saveFile()
 
+		const contextDocumentsBeforeRename: Map<string, ContextDocument> =
+			this.currentProject.contexts.reduce((acc: Map<string, ContextDocument>, cur: Context) => {
+				acc.set(cur.uri, cur.currentDocument)
+				return acc
+			}, new Map())
+
 		// make lsp call
 		const result = await this.lspClient.renameSymbol(params)
 		if (result === null) { return }
@@ -457,29 +497,18 @@ class Editor {
 			for (const change of result.documentChanges) {
 				const docEdit = (change as lsp.TextDocumentEdit)
 				const contents = docEdit.edits[0].newText // TODO: check range
-				let context = this.currentProject.contextForUri(docEdit.textDocument.uri)
+
+				const context = this.currentProject.contextForUri(docEdit.textDocument.uri)
 				if (!context) {
-					context = await this.AnalyzeForNewContext(docEdit.textDocument.uri, contents, null)
+					// TODO: handle this better (create context?)
+					console.warn("rename is trying to modify a file that isn't open yet; skipping", docEdit.textDocument)
+					return
 				}
 
-				this.lspClient.sendChange(context.uri, { text: contents })
-				;(context as any)._hasLineNumberChanges = true
-				;(context as any)._hasChanges = true
-				const symbols = await this.lspClient.getDocumentSymbol(context.uri)
-				this.navObject.rebuildMaps(symbols ?? [], context.uri)
-				context.updateWithNavObject(contents, this.navObject)
+				const previousDocument = contextDocumentsBeforeRename.get(context.uri)!
+				context.replaceEntireFile(previousDocument, contents)
 
-				// show save indicator
-				;(document.querySelector("#save-button-indicator-group")! as HTMLDivElement)
-					.classList.add("save-button-with-indicator")
-
-				const isNewSymbol = (s: SymbolInfo | NewSymbolInContext): s is NewSymbolInContext =>
-					(s as NewSymbolInContext).context !== undefined
-				this.updatePreviewPanes()
-				const activeSymbol = this.activeEditorPane.symbol
-				if (activeSymbol && !isNewSymbol(activeSymbol)) {
-					this.swapToSymbol(activeSymbol, false)
-				}
+				this._reanalyze(context)
 			}
 		}
 		// use changes
@@ -489,29 +518,10 @@ class Editor {
 		}
 	}
 
-	async retrieveContextForUri(uri: string, moduleName: string | null): Promise<Context | undefined> {
+	async retrieveContextForUri(uri: string): Promise<Context | undefined> {
 		// obtain the definition string of the new symbol
 		const project = this.currentProject
 		let context = project.contextForUri(uri)
-
-		// if we are not "fresh" - meaning the user has inserted newlines
-		// then the line numbers for our caller and callee panes may be wrong
-		// so we need to call Reanalyze() to get updated symbols, then swap.
-		//
-		// also applies if this context is the context for an uninserted symbol
-		const isNewSymbol = (s: SymbolInfo | NewSymbolInContext): s is NewSymbolInContext =>
-			(s as NewSymbolInContext).context !== undefined
-		const isContextForNewSymbol = this.activeEditorPane.symbol
-			&& isNewSymbol(this.activeEditorPane.symbol)
-			&& this.activeEditorPane.symbol.context.uri === context?.uri
-		if (context && (context.hasLineNumberChanges || isContextForNewSymbol)) {
-			try {
-				await this.ReanalyzeContext(context)
-			} catch {
-				console.warn("could not build update for context", context)
-				return undefined
-			}
-		}
 
 		// if the context wasn't found - meaning we haven't loaded this file
 		// then go ahead and load up the file
@@ -522,98 +532,93 @@ class Editor {
 			try {
 				const contents = await promisify(fs.readFile)(url, { encoding: "utf8" })
 
-				const newContext = await this.AnalyzeForNewContext(uri, contents, moduleName)
+				const newContext = await this.AnalyzeForNewContext(uri, contents)
 				project.contexts.push(newContext)
 				context = newContext
 			} catch {
 				console.warn("could not build context for uri", uri)
 				return undefined
 			}
+		} else {
+			// if this assertion fails we might be calling this too early
+			console.assert(!context.hasChangedSinceUpdate)
 		}
 
 		return context
 	}
 
-	async retrieveContextForSymbol(symbol: SymbolInfo | lsp.SymbolInformation): Promise<Context | undefined> {
-		function isLspSymbolInformation(x: SymbolInfo | lsp.SymbolInformation): x is lsp.SymbolInformation {
-			return (x as lsp.SymbolInformation).location !== undefined
+	async swapToSymbol(rawSymbolRef: ContextSymbolReference, updateStack: boolean = true) {
+		let symbolRef: ContextSymbolReference = rawSymbolRef
+
+		const context = symbolRef.context
+		if (symbolRef.documentHandle.version !== context.currentDocument.version) {
+			const v1 = symbolRef.documentHandle.version
+			const v2 = context.currentDocument.version
+			console.warn(`document version mismatch (swapToSymbol): ${v1} vs ${v2}`, symbolRef)
+
+			const upgraded = context.upgradeSymbolReference(symbolRef)
+			if (upgraded) {
+				symbolRef = { ...upgraded, context }
+
+				// replace old symbols with the upgraded one in nav stack
+				// TODO: what about pinned panes? (slightly less important: project structure)
+				// callers and callees that are not pinned will be refreshed below
+				this.navStack = this.navStack
+					.map((item) => {
+						if (item.context.uri === symbolRef.context.uri
+								&& item.path.toString() === symbolRef.path.toString()) { // TODO: better array eq
+							return symbolRef
+						}
+						return item
+					})
+			} else {
+				console.error("could not upgrade symbol in swapToSymbol", symbolRef, context)
+				return
+			}
 		}
 
-		const uri = isLspSymbolInformation(symbol) ? symbol.location.uri : symbol.uri
-		const symmodule = isLspSymbolInformation(symbol) ? (symbol as any)["rayBensModule"] : symbol.module
-
-		return this.retrieveContextForUri(uri, symmodule)
-	}
-
-	async swapToSymbol(rawSymbol: SymbolInfo, updateStack: boolean = true) {
-		// Compares two symbols by decreasing length in terms of number of lines the definition takes.
-		const compareByLength = (a: lsp.SymbolInformation | SymbolInfo, b: lsp.SymbolInformation | SymbolInfo) => {
-			function isSymbolInformation(sym: lsp.SymbolInformation | SymbolInfo): sym is lsp.SymbolInformation {
-				return (sym as lsp.SymbolInformation).location !== undefined
-			}
-
-			let aLength: number = 0
-			let bLength: number = 0
-
-			if (isSymbolInformation(a)) {
-				aLength = a.location.range.end.line - a.location.range.start.line + 1
-			}
-			else {
-				aLength = a.range.end.line - a.range.start.line + 1
-			}
-			if (isSymbolInformation(b)) {
-				bLength = b.location.range.end.line - b.location.range.start.line + 1
-			}
-			else {
-				bLength = b.range.end.line - b.range.start.line + 1
-			}
-
-			// if builtin, goes at the end
-			if ((a as any).rayBensModule === "builtins") {
-				aLength = 0
-			}
-			if ((b as any).rayBensModule === "builtins") {
-				bLength = 0
-			}
-
-			return bLength - aLength
-		}
-
-		const context = (await this.retrieveContextForSymbol(rawSymbol))!
-		const contextSymbol = context.getTopLevelSymbol(rawSymbol.name)!
-		const symbol = contextSymbol.symbol
-		const contents = contextSymbol.definitionString
+		const contents = context.chunkForSymbol(symbolRef)!.contents
 
 		if (updateStack) {
 			// update the navStack
-			if (this.curNavStackIndex != this.navStack.length -1 && this.navStack.length != 0) {
-				this.navStack.length = this.curNavStackIndex + 1
-			}
-			this.navStack.push(rawSymbol)
+			this.navStack.push(symbolRef)
 			this.curNavStackIndex = this.navStack.length - 1
 		}
 
 		// fetch new callees and callers
-		const calleesAsync = this.FindCallees(symbol)
-		const callersAsync = this.FindCallers(symbol)
+		const calleesAsync = this.FindCallees(symbolRef)
+		const callersAsync = this.FindCallers(symbolRef)
 
 		// don't update any panes / props until done
 		const [callees, callers] = await Promise.all([calleesAsync, callersAsync])
 
-		// change which file we're tracking as "currently editing"
-		// TODO: close old one?
-		this.adapter.changeOwnedFile(context.uri)
+		// populate active editor pane
+		this.activeEditorPane.symbol = symbolRef
+		const selections = this.activeEditorPane.editor.listSelections()
+		this.activeEditorPane.editor.setValue(contents)
 
-		// populate panes
-		this.activeEditorPane.symbol = symbol
-		this.activeEditorPane.editor.setValue(contents ?? "")
-		this.activeEditorPane.context.textContent = context.name
+		// restore the cursor position since setValue moves it to beginning
+		// especially necessary for when the active symbol gets refreshed
+		// TODO: keep cursor position per-symbol?
+		this.activeEditorPane.editor.setSelections(selections, undefined, { scroll: false })
+
+		// clear history so that you can't undo into the previous symbol
+		// TODO:
+		// - fix losing history when just upgrading the same symbol
+		// - maybe don't even setValue if it's the same symbol
+		// - investigate using CodeMirror documents per-symbol (ray)
 		// TODO: keep history per-symbol?
 		this.activeEditorPane.editor.clearHistory()
+		this.activeEditorPane.context.textContent = context.moduleName ?? null
 
+		// change which file we're tracking as "currently editing"
+		// TODO: close the old one?
+		this.adapter.changeOwnedFile(context.uri)
+
+		// update preview panes
 		// new callers/callees are fetched ones
-		this.calleesOfActive = callees.sort(compareByLength)
-		this.callersOfActive = callers.sort(compareByLength)
+		this.calleesOfActive = callees
+		this.callersOfActive = callers
 		this.calleeIndex = 0
 		this.callerIndex = 0
 		this.updatePreviewPanes()
@@ -622,102 +627,35 @@ class Editor {
 	setActiveSymbolToNewSymbol(symbol: NewSymbolInContext) {
 		this.activeEditorPane.symbol = symbol
 		this.activeEditorPane.editor.setValue("")
-		this.activeEditorPane.context.textContent = symbol.context.name
+		this.activeEditorPane.context.textContent = symbol.context.moduleName ?? null
 		// TODO: keep history per-symbol?
 		this.activeEditorPane.editor.clearHistory()
+
+		// change which file we're tracking as "currently editing"
+		this.adapter.changeOwnedFile(symbol.context.uri)
 
 		this.calleesOfActive = []
 		this.callersOfActive = []
 		this.calleeIndex = 0
 		this.callerIndex = 0
 		this.updatePreviewPanes()
-
-		this.adapter.changeOwnedFile(symbol.context.uri)
-	}
-
-	/**
-	 * Swaps to a symbol, finding its container if the given symbol
-	 * should not be directly placed into the active editor pane.
-	 */
-	async swapToPossiblyNestedSymbol(rawSymbol: lsp.SymbolInformation | SymbolInfo, updateStack: boolean = true) {
-		const symbolToNavigateTo = await this.getSymbolToNavigateTo(rawSymbol)
-		if (symbolToNavigateTo) {
-			this.swapToSymbol(symbolToNavigateTo, updateStack)
-		}
-	}
-
-	/**
-	 * Takes a symbol which may not be top level and returns
-	 * the symbol that should be placed in the active editor
-	 * pane when navigating to the given symbol.
-	 *
-	 * For example, given a class method, will return the class.
-	 * Given a top-level function/class, will just return it.
-	 */
-	async getSymbolToNavigateTo(rawSymbol: lsp.SymbolInformation | SymbolInfo): Promise<SymbolInfo | undefined> {
-		return (await this._getSymbolPreviewDetails(rawSymbol))?.symbol
-	}
-
-	/**
-	 * Returns symbol to navigate to, preview string, and context
-	 * of the given symbol.
-	 */
-	async _getSymbolPreviewDetails(rawSymbol: lsp.SymbolInformation | SymbolInfo):
-		Promise<{ symbol: SymbolInfo; definitionString: string; context: Context } | undefined>
-	{
-		// we need the context to find the most updated copy of this symbol
-		const context = await this.retrieveContextForSymbol(rawSymbol)
-
-		// if we can't find the context, warn and return undefined
-		if (!context) {
-			console.warn("did not find context for symbol", rawSymbol)
-			return undefined
-		}
-
-		// attempt to find the most updated copy of this symbol
-		const topLevelSymbol = context.getTopLevelSymbol(rawSymbol.name)
-		if (topLevelSymbol) {
-			return { ...topLevelSymbol, context: context }
-		}
-
-		// If we didn't find the symbol at the top level, then
-		// check if the wanted symbol is a child of a top-level symbol.
-		const topLevelContainerSymbol = context.getTopLevelSymbolContaining(rawSymbol)
-		if (topLevelContainerSymbol) {
-			return {
-				symbol: topLevelContainerSymbol[0],
-				definitionString: topLevelContainerSymbol[1],
-				context
-			}
-		} else {
-			console.warn("did not find symbol to navigate to for symbol", rawSymbol)
-			return undefined
-		}
-	}
-
-	private symbolsEqual = (symbolA: SymbolInfo, symbolB: SymbolInfo): boolean => {
-		// TODO: will this always hold?
-		return symbolA.name === symbolB.name && symbolA.uri === symbolB.uri
-			&& symbolA.range.start.line === symbolB.range.start.line
-			&& symbolA.range.start.character === symbolB.range.start.character
-			&& symbolA.range.end.line === symbolB.range.end.line
-			&& symbolA.range.end.character === symbolB.range.end.character
 	}
 
 	updatePreviewPanes() {
-		const assignSymbols = async (symbols, index, panes) => {
+		const assignSymbols = (symbols: ContextSymbolReference[], index: number, panes: PaneObject[]) => {
 			const freePanes = panes.filter((pane) => !pane.isPinned)
 
 			const pinnedSymbols = panes
 				.filter((pane) => pane.isPinned)
 				.map((pane) => pane.symbol)
+				.filter((pinnedSymbol): pinnedSymbol is ContextSymbolReference => pinnedSymbol !== null)
 
 			// the index to "start taking symbols from" is the paged offset
 			// but can be bumped forward if any items before it are pinned
 			let symbolIndexStartTakingFrom = index
 			let symbolIndex = -1
 
-			const getNextSymbol = async (): Promise<[SymbolInfo | undefined, string | undefined, string]> => {
+			const getNextSymbol = (): [ContextSymbolReference | undefined, string | undefined, string] => {
 				symbolIndex += 1
 
 				// if we don't have enough symbols to populate panes, return undefined
@@ -725,49 +663,45 @@ class Editor {
 					return [undefined, undefined, "(no symbol)"]
 				}
 
-				const symbolToPreview = await this._getSymbolPreviewDetails(symbols[symbolIndex])
+				const rawSymbol = symbols[symbolIndex]
 
-				if (symbolToPreview) {
-					// check if this candidate symbol is already in a pinned pane
-					const symbolAlreadyPinned = pinnedSymbols
-						.find((pinnedSymbol) => this.symbolsEqual(pinnedSymbol, symbolToPreview.symbol))
+				// check if this candidate symbol is already in a pinned pane
+				// TODO: may be a document version mismatch if pinned
+				const symbolAlreadyPinned = pinnedSymbols
+					.find((pinnedSymbol) => this._symbolsEqual(pinnedSymbol, rawSymbol))
 
-					// if the symbol is already pinned, call this function again
-					// to get the next viable symbol after this one.
-					if (symbolAlreadyPinned) {
-						// if an already-pinned symbol occurs before the paged-to offset
-						// then we need to bump the offset forward
-						if (symbolIndex < symbolIndexStartTakingFrom) {
-							symbolIndexStartTakingFrom += 1
-						}
-
-						return await getNextSymbol()
+				// if the symbol is already pinned, call this function again
+				// to get the next viable symbol after this one.
+				if (symbolAlreadyPinned) {
+					// if an already-pinned symbol occurs before the paged-to offset
+					// then we need to bump the offset forward
+					if (symbolIndex < symbolIndexStartTakingFrom) {
+						symbolIndexStartTakingFrom += 1
 					}
+
+					return getNextSymbol()
 				}
 
 				// if we haven't yet reached the index that we've paged to,
 				// then return the one after this (which could recur)
 				if (symbolIndex < symbolIndexStartTakingFrom) {
-					return await getNextSymbol()
+					return getNextSymbol()
 				}
 
-				if (!symbolToPreview) {
-					// we should be previewing this symbol, but couldn't generate a preview
-					console.warn("could not generate preview for symbol", symbols[symbolIndex])
-					return [undefined, undefined, `(${symbols[symbolIndex].name}: no preview)`]
-				}
+				// attempt to extract the preview for this symbol
+				const preview = rawSymbol.context.previewForSymbol(rawSymbol)
 
 				// we got a symbol that isn't already pinned, is past the offset, and is up-to-date
 				return [
-					symbolToPreview.symbol,
-					symbolToPreview.definitionString,
-					`${symbolToPreview.context.name}`,
+					{ ...preview[0], context: rawSymbol.context },
+					preview[1],
+					`${rawSymbol.context.moduleName ?? "Loading"}`,
 				]
 			}
 
 			for (let i = 0; i < freePanes.length; i++) {
-				const [newPaneSymbol, newPaneContent, newPaneContext] = await getNextSymbol()
-				freePanes[i].symbol = newPaneSymbol
+				const [newPaneSymbol, newPaneContent, newPaneContext] = getNextSymbol()
+				freePanes[i].symbol = newPaneSymbol ?? null
 				freePanes[i].context.textContent = newPaneContext
 				freePanes[i].editor.setValue(newPaneContent ?? "")
 				// reformat indentation to remove leading whitespace from lines
@@ -805,7 +739,6 @@ class Editor {
 		this.callerPanes.forEach((p) => p.symbol = null)
 
 		this.adapter.changeOwnedFile(null)
-		this.navObject.reset()
 
 		const url = pathToFileURL(path.resolve(filePath))
 		// language server normalizes drive letter to lowercase, so follow
@@ -825,10 +758,7 @@ class Editor {
 		this.lspClient.changeConfiguration({ settings: baseSettings })
 
 		// analyze context once to obtain top level symbols
-		const context = await this.AnalyzeForNewContext(uri, text, null)
-
-		// analyze the context again after linearizing code - line numbers could change
-		await this.ReanalyzeContext(context)
+		const context = await this.AnalyzeForNewContext(uri, text)
 
 		// this is now the first context in our new project
 		this.currentProject.contexts.push(context)
@@ -840,8 +770,10 @@ class Editor {
 		const context = await this._initializeProject("", initialFilePath)
 
 		// set panes to empty
-		this.setActiveSymbolToNewSymbol({ context })
-		this.activeEditorPane.context.textContent = context.name
+		this.setActiveSymbolToNewSymbol({
+			context,
+			initialDocument: context.currentDocument,
+		})
 	}
 
 	async activateProjectFromFile(filePath: string) {
@@ -849,10 +781,12 @@ class Editor {
 
 		const context = await this._initializeProject(contents, filePath)
 
-		const mainSymbol = context.findStartingSymbol()
+		const document = context.currentDocument
+		const mainSymbol = context.findStartingSymbol(document)
+
 		if (mainSymbol) {
 			// swap to the main symbol in this context
-			this.swapToSymbol(mainSymbol, true)
+			this.swapToSymbol({ ...mainSymbol, context }, true)
 		} else {
 			console.warn("no starting symbol detected")
 		}
@@ -860,65 +794,210 @@ class Editor {
 
 	// MARK: LSP/NavObject Interface
 
-	FindCallees(symbol: SymbolInfo): Thenable<lsp.SymbolInformation[]> {
-		return this.adapter.navObject.findCallees(symbol)
+	_symbolsEqual(symbolA: ContextSymbolReference, symbolB: ContextSymbolReference): boolean {
+		if (symbolA.context.uri === symbolB.context.uri) {
+			// for the comparison to be well-defined, these symbols must come from the same document
+			console.assert(symbolA.documentHandle.version === symbolB.documentHandle.version)
+		}
+
+		return symbolA.context.uri === symbolB.context.uri
+			&& symbolA.path.toString() === symbolB.path.toString() // TODO: better array eq
 	}
 
-	async FindCallers(targetSymbol: SymbolInfo): Promise<SymbolInfo[]> {
+	/*
+   * Returns a string that uniquely identifies this symbol
+   */
+	_symbolHash(symbol: ContextSymbolReference): string {
+		return JSON.stringify([symbol.context.uri, symbol.documentHandle.version, symbol.path.toString()])
+	}
+
+	/*
+	 * Finds all the symbols referenced within the given symbol scope.
+	 * @param symbol  The symbol to find calls in.
+	 * @returns    An array of SymbolInfo objects with ranges that enclose the definitions of functions being called in the given function.
+	 */
+	async FindCallees(symbolRef: ContextSymbolReference): Promise<ContextSymbolReference[]> {
+		const context = symbolRef.context
+		console.assert(!context.hasChangedSinceUpdate)
+
+		const parentSymbol = context.resolveSymbolReference(symbolRef)
+		const usedSymbols = symbolRef.documentHandle.data!.usedSymbols
+
+		const usedSymbolInfos = usedSymbols
+			.filter((symbol) => {
+				// since we're using the whole-document usedDocumentSymbols
+				// we need to filter out usages not within the function we care about
+				const usageRange: lsp.Range = symbol.rayBensUsageRange
+				if (!(usageRange.start.line >= parentSymbol.range.start.line
+						&& usageRange.end.line <= parentSymbol.range.end.line)) {
+					return false
+				}
+
+				// we also want to filter out things defined within the parent symbol scope
+				if (symbol.location.uri == context.uri
+						&& symbol.location.range.start.line >= parentSymbol.range.start.line
+						&& symbol.location.range.end.line < parentSymbol.range.end.line) {
+					return false
+				}
+
+				return true
+			})
+
+		// TODO: fix performance - lazy vs eager, loading builtins.pyc file
+		// https://jedi.readthedocs.io/en/latest/_modules/jedi/api/classes.html#BaseDefinition.in_builtin_module
+		const uris: Set<string> = new Set(usedSymbolInfos.map((s) => s.location.uri))
+
+		const loadContexts: Promise<[string, Context | undefined][]>
+			= Promise.all(Array.from(uris)
+				.map((uri) => Promise.all([
+					Promise.resolve(uri),
+					this.retrieveContextForUri(uri)
+				]) as Promise<[string, Context | undefined]>))
+
+		const contextForUri: Map<string, Context> =
+			(await loadContexts)
+			.reduce((acc, [uri, context]) => {
+				if (context) { acc.set(uri, context) }
+				return acc
+			}, new Map<string, Context>())
+
+		const callees = usedSymbolInfos
+			.map((usedSymbol: client.RayBensSymbolInformation): ContextSymbolReference | undefined => {
+				const candidateContext = contextForUri.get(usedSymbol.location.uri)
+				if (!candidateContext) { return undefined }
+
+				if (candidateContext.uri === context.uri) {
+					console.assert(candidateContext.currentDocument.version === symbolRef.documentHandle.version)
+				}
+
+				const candidate = candidateContext.bestSymbolForLocation(candidateContext.currentDocument, usedSymbol.location.range)
+
+				// if no symbol was found, the reference is in the global scope, so ignore it
+				if (candidate === undefined) {
+					return undefined
+				}
+
+				return { ...candidate, context: candidateContext }
+			})
+			.filter((e): e is ContextSymbolReference => e !== undefined)
+
+		return callees.sort(this._sortPaneSymbols.bind(this))
+	}
+
+	/*
+	 * Finds the callers of a function whose name is at the position given. Should be called on navigate, return, save.
+	 *
+	 * @param symPos  A position object representing the position of the name of the function to find callers of.
+	 * @returns       An array of DocumentSymbol objects with ranges that enclose the definitions of calling functions.
+	 */
+	async FindCallers(symbolRef: ContextSymbolReference): Promise<ContextSymbolReference[]> {
+		const context = symbolRef.context
+		console.assert(!context.hasChangedSinceUpdate)
+
+		const symbol = context.resolveSymbolReference(symbolRef)
+
 		// TODO: make this language-agnostic
 		// determine where the cursor should be before the name of the symbol
 		const nameStartPos =
-			(targetSymbol.kind === 5 /* SymbolKind.Class */) ? 6 // class Foo
-			: (targetSymbol.kind === 13 /* SymbolKind.Variable */) ? 0 // foo = 5
-			: (targetSymbol.kind === 14 /* SymbolKind.Constant */) ? 0 // foo = 5
+			(symbol.kind === lsp.SymbolKind.Class) ? 6 // class Foo
+			: (symbol.kind === lsp.SymbolKind.Variable) ? 0 // foo = 5
+			: (symbol.kind === lsp.SymbolKind.Constant) ? 0 // foo = 5
+			: (symbol.kind === lsp.SymbolKind.Module) ? 7 // import foo
 			: 4 // def foo
 
-		const locations = await this.adapter.navObject.findCallers({
-			textDocument: { uri: targetSymbol.uri },
-			position: { line: targetSymbol.range.start.line, character: nameStartPos },
-		})
+		const locations = await this.lspClient.getReferencesWithRequest({
+			textDocument: { uri: context.uri },
+			position: { line: symbol.range.start.line, character: nameStartPos },
+			context: {
+				includeDeclaration: false,
+			},
+		}) ?? []
 
-		// ensure we have loaded the context for each location
-		const uris = new Set(locations.map((loc) => loc.uri))
-		const retrieveContexts = Array.from(uris).map((uri) =>
-			this.retrieveContextForUri(uri, null))
-
-		await Promise.all(retrieveContexts)
-
-		const callers: SymbolInfo[] = []
+		let foundCallerDetails = new Set<string>()
 		let skippedSelf = false
 
-		// for each reference recieved, find parent scope
-		for (const loc of locations) {
-			const symbol = this.navObject.bestSymbolForLocation(loc)
+		const symbolForLocation = async (location: lsp.Location): Promise<ContextSymbolReference | null> => {
+			const candidateContext = (await this.retrieveContextForUri(location.uri))!
+			if (candidateContext.uri === context.uri) {
+				console.assert(candidateContext.currentDocument.version === symbolRef.documentHandle.version)
+			}
+
+			const candidate = candidateContext.bestSymbolForLocation(candidateContext.currentDocument, location.range)
 
 			// if no symbol was found, the reference is in the global scope, so ignore it
-			if (symbol === null) {
-				continue
+			if (candidate === undefined) {
+				return null
 			}
 
-			// if the symbol's own definition is found, skip it the first time
-			if (this.symbolsEqual(symbol, targetSymbol) && !skippedSelf) {
+			const candidateRef = { ...candidate, context: candidateContext }
+
+			// if the symbol's own definition is found, skip it
+			// only skip one time (to support recursion)
+			if (this._symbolsEqual(candidateRef, symbolRef) && !skippedSelf) {
 				skippedSelf = true
-				continue
+				return null
 			}
 
-			// if a symbol is already in callers, skip it every time
-			let passed = true
-			for (const sym2 of callers) {
-				if (this.symbolsEqual(symbol, sym2)) {
-					passed = false
-					break
-				}
-			}
-			if (!passed) {
-				continue
+			// if this symbol is already in callers, skip it
+			const callerDetails = this._symbolHash(candidateRef)
+			if (foundCallerDetails.has(callerDetails)) {
+				return null
+			} else {
+				foundCallerDetails.add(callerDetails)
 			}
 
-			callers.push(symbol)
+			return candidateRef
 		}
 
-		return callers
+		// TODO:
+		// - not do this in parallel to match callees?
+		// - seems like there would be problems if callers/callees in parallel too?
+		// TODO: fix performance - lazy vs eager, loading builtins.pyc file
+		const callers = (await Promise.all(locations.map(symbolForLocation)))
+			.filter((e): e is ContextSymbolReference => e !== null)
+
+		return callers.sort(this._sortPaneSymbols.bind(this))
+	}
+
+	/**
+	 * Compares two symbols by decreasing length in terms of number of lines the definition takes.
+	 */
+	_sortPaneSymbols(a: ContextSymbolReference, b: ContextSymbolReference): number {
+		const aPreviewSymbol = a.context.resolveSymbolReference(a.context.previewForSymbol(a)[0])
+		const bPreviewSymbol = b.context.resolveSymbolReference(b.context.previewForSymbol(b)[0])
+
+		const aLength = aPreviewSymbol.range.end.line - aPreviewSymbol.range.start.line + 1
+		const bLength = bPreviewSymbol.range.end.line - bPreviewSymbol.range.start.line + 1
+
+		return aLength > bLength ? -1
+			: bLength > aLength ? 1
+			: 0
+	}
+
+	async _getDocumentSymbol(uri: string): Promise<[lsp.DocumentSymbol[], client.RayBensSymbolInformation[]]> {
+		// Used to check that the given parameter is of type documentSymbol[]
+		const isDocumentSymbolArray = (symbols: lsp.DocumentSymbol[] | lsp.SymbolInformation[]):
+			symbols is lsp.DocumentSymbol[] =>
+		{
+			return (symbols as lsp.DocumentSymbol[]).length === 0
+				|| (symbols as lsp.DocumentSymbol[])[0].children !== undefined
+		}
+
+		// TODO: we may also want to use an existing "call graph" API
+		// https://github.com/microsoft/language-server-protocol/issues/468
+		let values = await Promise.all([
+			this.lspClient.getDocumentSymbol(uri),
+			this.lspClient.getRayBensUsedDocumentSymbols(uri),
+		])
+		const docSymbols = (values[0] ?? []) as lsp.DocumentSymbol[] | lsp.SymbolInformation[]
+		const usedSymbols = values[1] as client.RayBensSymbolInformation[]
+
+		if (!isDocumentSymbolArray(docSymbols)) {
+			console.error("did not receive hierarchical document symbols from server")
+			return [[], usedSymbols]
+		}
+
+		return [docSymbols, usedSymbols]
 	}
 
 	/**
@@ -928,9 +1007,8 @@ class Editor {
 	 * @param contents The contents of the file. Only used when it has not been opened before.
 	 * @returns The newly created context object for the given uri.
 	 */
-	async AnalyzeForNewContext(uri: string, contents: string, name: string | null): Promise<Context> {
+	async AnalyzeForNewContext(uri: string, contents: string): Promise<Context> {
 		// if this document is already open, there is a context for it
-		// so ReanalyzeContext should be used instead
 		console.assert(!this.lspClient.isDocumentOpen(uri))
 
 		this.lspClient.openDocument({
@@ -939,48 +1017,13 @@ class Editor {
 			initialText: contents,
 		})
 
-		const symbols = await this.lspClient.getDocumentSymbol(uri)
+		const symbols = await this._getDocumentSymbol(uri)
 
-		this.navObject.rebuildMaps(symbols ?? [], uri)
-
-		const context = new Context(name ?? "Loading", uri)
-		context.updateWithNavObject(contents, this.navObject)
-
-		if (name === null) {
-			context.name = context.findStartingSymbol()?.module ?? context.name
-		}
+		const context = new Context(uri, contents)
+		const document = context.currentDocument
+		context.updateWithDocumentSymbols(document, symbols)
 
 		return context
-	}
-
-	/**
-	 * Analyzes the document symbols in the given existing context and updates the nav object.
-	 *
-	 * @param context The context to analyze.
-	 */
-	async ReanalyzeContext(context: Context): Promise<void> {
-		// if a context exists, its document must've been opened
-		console.assert(this.lspClient.isDocumentOpen(context.uri))
-
-		// update the language server with the latest change before analyzing
-		let contents = context.getLinearizedCode()
-
-		const isNewSymbol = (s: SymbolInfo | NewSymbolInContext): s is NewSymbolInContext =>
-			(s as NewSymbolInContext).context !== undefined
-		const isContextForNewSymbol = this.activeEditorPane.symbol
-			&& isNewSymbol(this.activeEditorPane.symbol)
-			&& this.activeEditorPane.symbol.context.uri === context.uri
-		if (isContextForNewSymbol) {
-			contents += "\n\n" + this.activeEditorPane.editor.getValue()
-		}
-
-		this.lspClient.sendChange(context.uri, { text: contents })
-
-		const symbols = await this.lspClient.getDocumentSymbol(context.uri)
-
-		this.navObject.rebuildMaps(symbols ?? [], context.uri)
-
-		context.updateWithNavObject(contents, this.navObject)
 	}
 
 	// MARK: index.html Interface
@@ -1020,39 +1063,33 @@ class Editor {
 	async saveFile() {
 		(document.querySelector("#save-button-indicator-group")! as HTMLDivElement).classList.remove("save-button-with-indicator");
 
-		// fetch most up-to-date contexts
-		const contexts = (await Promise.all(this.currentProject.contexts
-			.map((context) => this.retrieveContextForUri(context.uri, null))))
-			.filter((context): context is Context => context !== undefined)
+		await Promise.all(this.currentProject.contexts.map(async (context) => {
+			const document = context.currentDocument
+			if (document.saved) { return }
 
-		contexts.forEach((context) => {
-			const isNewSymbol = (s: SymbolInfo | NewSymbolInContext): s is NewSymbolInContext =>
-				(s as NewSymbolInContext).context !== undefined
-			const isContextForNewSymbol = this.activeEditorPane.symbol
-				&& isNewSymbol(this.activeEditorPane.symbol)
-				&& this.activeEditorPane.symbol.context.uri === context.uri
-
-			if (!(context.hasChanges || isContextForNewSymbol)) { return }
 			const hasPath = context.uri !== null && (new NodeURL(context.uri).protocol !== "untitled")
-			const contents = context.getLinearizedCode()
+			const contents = document.file
 
 			if (hasPath) {
-				return promisify(fs.writeFile)(new NodeURL(context.uri), contents, { encoding: "utf8" })
-					.then(() => this.lspClient.saveDocument({ uri: context.uri }, contents))
+				await promisify(fs.writeFile)(new NodeURL(context.uri), contents, { encoding: "utf8" })
 			} else {
 				const dialog = electron.remote.dialog
+				const result = await dialog.showSaveDialog({})
 
-				return dialog.showSaveDialog({})
-					.then((result) => {
-						if (!result.filePath) {
-							return Promise.reject()
-						}
-						return promisify(fs.writeFile)(result.filePath, contents, { encoding: "utf8" })
-							.then(() => this.lspClient.saveDocument({ uri: context.uri }, contents))
-					})
+				if (!result.filePath) {
+					return
+				}
+
+				await promisify(fs.writeFile)(result.filePath, contents, { encoding: "utf8" })
+				// TODO: update context uri to known path
+				// context.uri = result.filePath
 			}
 
-		})
+			// TODO: can this conflict if an edit is made concurrently?
+			await this.lspClient.saveDocument({ uri: context.uri }, contents)
+
+			document.saved = true
+		}))
 
 		;(document.querySelector("#save-button-indicator-group")! as HTMLDivElement)
 			.classList.remove("save-button-with-indicator")
@@ -1062,11 +1099,9 @@ class Editor {
 		const symbol = this.activeEditorPane.symbol
 		if (!symbol) { return }
 
-		const isNewSymbol = (s: SymbolInfo | NewSymbolInContext): s is NewSymbolInContext =>
-			(s as NewSymbolInContext).context !== undefined
-		if (isNewSymbol(symbol)) { return }
+		const scriptUri = symbol.context.uri
+		const scriptPath = fileURLToPath(new NodeURL(scriptUri))
 
-		const scriptPath = fileURLToPath(new NodeURL(symbol.uri))
 		const ls = spawn(
 			"python3",
 			[scriptPath]
@@ -1105,15 +1140,10 @@ class Editor {
 			dragAndDrop: false
 		})
 
-		// fetch most up-to-date contexts
-		const contexts = (await Promise.all(this.currentProject.contexts
-			.map((context) => this.retrieveContextForUri(context.uri, null))))
-			.filter((context): context is Context => context !== undefined)
-
-		const contextTrees: DisplaySymbolTree[] = contexts
+		const contextTrees: DisplaySymbolTree[] = this.currentProject.contexts
 			.map((context) => {
 				return {
-					name: context.name,
+					name: context.moduleName ?? "Loading",
 					id: context.uri,
 					children: context.getDisplaySymbolTree()
 				}
@@ -1125,9 +1155,9 @@ class Editor {
 			"tree.click",
 			(e) => {
 				e.preventDefault()
-				const symbol = (e.node as DisplaySymbolTree).rayBensSymbol
-				if (symbol) {
-					this.swapToPossiblyNestedSymbol(symbol)
+				const symbolData = (e.node as DisplaySymbolTree).rayBensSymbol
+				if (symbolData) {
+					this.swapToSymbol(symbolData)
 				}
 			}
 		)

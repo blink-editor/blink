@@ -5,7 +5,6 @@ import debounce from "lodash.debounce"
 import * as lsp from "vscode-languageserver-protocol"
 import { Location, LocationLink, MarkupContent } from "vscode-languageserver-protocol"
 import { LspClient } from "./langserver-client"
-import { NavObject, SymbolInfo } from "./nav-object"
 
 interface IScreenCoord {
 	x: number
@@ -169,7 +168,6 @@ export class CodeMirrorAdapter extends IEditorAdapter<CodeMirror.Editor> {
 	public options: ITextEditorOptions
 	public editor: CodeMirror.Editor
 	public connection: LspClient
-	public navObject: NavObject
 
 	private hoverMarker?: CodeMirror.TextMarker
 	private signatureWidget?: CodeMirror.LineWidget
@@ -178,6 +176,7 @@ export class CodeMirrorAdapter extends IEditorAdapter<CodeMirror.Editor> {
 	private highlightMarkers: CodeMirror.TextMarker[] = []
 	private hoverCharacter: CodeMirror.Position
 	private debouncedGetHover: (position: CodeMirror.Position) => void
+	private debouncedGetCompletionsAfterChange: () => void
 	private connectionListeners: { [key: string]: () => void } = {}
 	private editorListeners: { [key: string]: () => void } = {}
 	private documentListeners: { [key: string]: () => void } = {}
@@ -191,17 +190,20 @@ export class CodeMirrorAdapter extends IEditorAdapter<CodeMirror.Editor> {
 	public onGoToLocation: (loc: lsp.Location) => void
 	public openRenameSymbol: (at: lsp.TextDocumentPositionParams) => void
 
-	constructor(connection: LspClient, navObject: NavObject, options: ITextEditorOptions, editor: CodeMirror.Editor) {
+	constructor(connection: LspClient, options: ITextEditorOptions, editor: CodeMirror.Editor) {
 		super(connection, options, editor)
 		this.connection = connection
 		this.options = getFilledDefaults(options)
 		this.editor = editor
-		this.navObject = navObject
 
 		this.debouncedGetHover = debounce((position: CodeMirror.Position) => {
 			if (!this.document) { return }
 			this.connection.getHoverTooltip(this.document.uri, this._docPositionToLsp(position))
 		}, this.options.quickSuggestionsDelay)
+
+		this.debouncedGetCompletionsAfterChange = debounce(
+			this.getCompletionsAfterChange.bind(this),
+			this.options.debounceSuggestionsWhileTyping)
 
 		this._addListeners()
 	}
@@ -241,11 +243,33 @@ export class CodeMirrorAdapter extends IEditorAdapter<CodeMirror.Editor> {
 	}
 
 	public handleChange(cm: CodeMirror.Editor, change: CodeMirror.EditorChange) {
-		// call the onChange method to get the whole file
 		const editorCode = this.editor.getValue()
+
+		// notify caller to send change to the language server
 		if (change.origin !== "setValue") {
 			this.onChange(editorCode)
 		}
+
+		this.debouncedGetCompletionsAfterChange()
+	}
+
+	public changeOwnedFile(uri: string | null) {
+		this.document = (uri) ? { uri: uri } : null
+		this._removeSignatureWidget()
+	}
+
+	/**
+	 * Handles all Document Symbol responses from server.
+	 * textDocument/documentSymbol
+	 * @param  response DocumentSymbol: Information of all symbols in the given file.
+	 * @return          void
+	 */
+	public handleDocumentSymbol(response: lsp.DocumentSymbol) {
+		// Note: This is where the depencency graph will gets its data...
+	}
+
+	getCompletionsAfterChange(): void {
+		const editorCode = this.editor.getValue()
 
 		const editorLocation = this.editor.getDoc().getCursor("end")
 		const lspLocation: lsp.Position = this._docPositionToLsp(editorLocation)
@@ -282,21 +306,6 @@ export class CodeMirrorAdapter extends IEditorAdapter<CodeMirror.Editor> {
 		} else {
 			this._removeSignatureWidget()
 		}
-	}
-
-	public changeOwnedFile(uri: string | null) {
-		this.document = (uri) ? { uri: uri } : null
-		this._removeSignatureWidget()
-	}
-
-	/**
-	 * Handles all Document Symbol responses from server.
-	 * textDocument/documentSymbol
-	 * @param  response DocumentSymbol: Information of all symbols in the given file.
-	 * @return          void
-	 */
-	public handleDocumentSymbol(response: lsp.DocumentSymbol) {
-		// Note: This is where the depencency graph will gets its data...
 	}
 
 	public handleHover(response: lsp.Hover) {
@@ -489,7 +498,7 @@ export class CodeMirrorAdapter extends IEditorAdapter<CodeMirror.Editor> {
 	}
 
 	private _addListeners() {
-		const changeListener = debounce(this.handleChange.bind(this), this.options.debounceSuggestionsWhileTyping)
+		const changeListener = this.handleChange.bind(this)
 		this.editor.on("change", changeListener)
 		this.editorListeners.change = changeListener
 

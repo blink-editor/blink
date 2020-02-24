@@ -152,10 +152,19 @@ export interface LspClient {
 
 	changeConfiguration(settings: lsp.DidChangeConfigurationParams)
 
+	/**
+	 * Request used document symbols from the server
+	 */
+	getRayBensUsedDocumentSymbols(uri: string): Thenable<RayBensSymbolInformation[] | null>
+
 	// TODO: refactor
-	getUsedDocumentSymbols(uri: string): Thenable<lsp.DocumentSymbol[] | lsp.SymbolInformation[] | null>
 	getReferencesWithRequest(request: lsp.ReferenceParams): Thenable<lsp.Location[] | null>
 	getWorkspaceSymbols(query: string): Thenable<lsp.SymbolInformation[] | null>
+}
+
+export interface RayBensSymbolInformation extends lsp.SymbolInformation {
+	rayBensModule: string | undefined
+	rayBensUsageRange: lsp.Range
 }
 
 export function createTcpRpcConnection(
@@ -662,7 +671,7 @@ export class LspClientImpl extends events.EventEmitter implements LspClient {
 		return this.connection.sendRequest("textDocument/rename", params)
 	}
 
-	public getUsedDocumentSymbols(uri: string): Thenable<lsp.DocumentSymbol[] | lsp.SymbolInformation[] | null> {
+	public getRayBensUsedDocumentSymbols(uri: string): Thenable<RayBensSymbolInformation[] | null> {
 		if (!this.isInitialized || !this.documents[uri]) {
 			return Promise.reject()
 		}
@@ -671,9 +680,7 @@ export class LspClientImpl extends events.EventEmitter implements LspClient {
 			textDocument: {
 				uri: uri,
 			}
-		} as lsp.DocumentSymbolParams).then((params: lsp.DocumentSymbol[] | lsp.SymbolInformation[] | null) => {
-			return params
-		})
+		} as lsp.DocumentSymbolParams)
 	}
 
 	public getReferencesWithRequest(request: lsp.ReferenceParams): Thenable<lsp.Location[] | null> {
