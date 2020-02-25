@@ -72,7 +72,6 @@ class Editor {
 			textarea.classList.forEach((cls) => codemirror.classList.add(cls))
 			codemirror.id = textarea.id
 			textarea.parentNode!.replaceChild(codemirror, textarea)
-			this.addJumpToSymByNameListener()
 		}
 
 		// creates a CodeMirror editor configured to look like a preview pane
@@ -91,6 +90,9 @@ class Editor {
 				symbol: null,
 			}
 		}
+
+		// add listener for "Jump to Symbol by Name" feature
+		this.addJumpToSymByNameListener()
 
 		// create callee preview panes (top)
 		this.calleePanes = [
@@ -705,11 +707,11 @@ class Editor {
 	saveFile() {
 		this.currentProject.contexts.forEach((context) => {
 			if (!context.hasChanges) { return }
-
 			const hasPath = context.uri !== null
 
 			if (hasPath) {
 				promisify(fs.writeFile)(new NodeURL(context.uri), context.fileString, { encoding: "utf8" })
+				this.lspClient.saveDocument({ uri: context.uri }, context.fileString)
 			} else {
 				const dialog = electron.remote.dialog
 
@@ -718,10 +720,11 @@ class Editor {
 						if (!result.filePath) {
 							return Promise.reject()
 						}
-
-						return promisify(fs.writeFile)(result.filePath, context.fileString, { encoding: "utf8" })
+						promisify(fs.writeFile)(result.filePath, context.fileString, { encoding: "utf8" })
+						return this.lspClient.saveDocument({ uri: context.uri }, context.fileString)
 					})
 			}
+
 		})
 	}
 

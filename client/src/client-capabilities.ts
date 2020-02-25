@@ -38,7 +38,7 @@ export const clientCapabilities: lsp.ClientCapabilities = {
 		synchronization: {
 			dynamicRegistration: true,
 			willSave: false,
-			didSave: false,
+			didSave: true,
 			willSaveWaitUntil: false,
 		},
 		completion: {

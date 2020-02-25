@@ -6,5 +6,6 @@ def get_player():
         "ability": 2,
     }
 
+
 def get_ability(p):
     return p["ability"]

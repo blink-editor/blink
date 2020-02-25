@@ -149,7 +149,6 @@ class CtagsPlugin(object):
 
             tag_file_path = self._format_path(tag_file['filePath'])
             tags_dir = self._format_path(tag_file['directory'])
-            log.debug(tags_dir)
 
             execute(ctags_exe, tag_file_path, tags_dir, mode == CtagMode.APPEND)
 
@@ -168,8 +167,8 @@ class CtagsPlugin(object):
             tag_file_path = self._format_path(tag_file['filePath'])
             tags_dir = self._format_path(tag_file['directory'])
 
-            if not os.path.normpath(document.path).startswith(os.path.normpath(tags_dir)):
-                log.debug("Skipping onSave tag generation since %s is not in %s", tag_file_path, tags_dir)
+            if not os.path.abspath(document.path).startswith(os.path.abspath(tags_dir)):
+                log.debug("Skipping onSave tag generation since %s is not in %s", os.path.abspath(document.path), os.path.abspath(tags_dir))
                 continue
 
             execute(ctags_exe, tag_file_path, tags_dir, mode == CtagMode.APPEND)
@@ -177,13 +176,9 @@ class CtagsPlugin(object):
     @hookimpl
     def pyls_workspace_symbols(self, config, query):
         settings = config.plugin_settings('ctags')
-
         symbols = []
-        log.debug(settings.get('tagFiles', []))
         for tag_file in settings.get('tagFiles', []):
             tags = list(parse_tags(self._format_path(tag_file['filePath']), query))
-            log.debug(tags)
-            log.debug(symbols)
             symbols.extend(sorted(tags, key=lambda x: x['score'], reverse=True))
 
         return symbols
@@ -204,10 +199,10 @@ def execute(ctags_exe, tag_file, directory, append=False):
     if not os.path.exists(tag_file_dir):
         os.makedirs(tag_file_dir)
 
-    cmd = [ctags_exe, '-f', tag_file, '--languages=Python', '-R'] + CTAG_OPTIONS
+    cmd = [uris.to_fs_path(uris.from_fs_path((ctags_exe)), '-f', uris.to_fs_path(uris.from_fs_path((tag_file)), '--languages=Python', '-R'] + CTAG_OPTIONS
     if append:
         cmd.append('--append')
-    cmd.append(directory)
+    cmd.append(uris.to_fs_path(uris.from_fs_path(directory))) # TODO: Fix
 
     log.info("Executing exuberant ctags: %s", cmd)
     log.info("ctags: %s", subprocess.check_output(cmd))
@@ -225,24 +220,17 @@ def parse_tags(tag_file, query):
 
 
 def parse_tag(line, query):
-    log.debug(f"{TAG_RE}, {line}")
     match = TAG_RE.match(line)
     log.info("Got match %s from line: %s", match, line)
     log.info("Line: %s", line.replace('\t', '\\t').replace(' ', '\\s'))
 
     if not match:
-        log.debug("HELLOHELLO1")
-        log.debug(TAG_RE)
         return None
 
     name = match.group('name')
 
     # fuzzy match -- if substring match of 90% or better
     fuzzy_score = fuzz.partial_ratio(query.lower(), name.lower())
-    log.debug("HELLOHELLO2")
-    log.debug(name)
-    log.debug(query)
-    log.debug(fuzzy_score)
     if fuzzy_score < 90:
         return None
 

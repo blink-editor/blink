@@ -3,6 +3,7 @@ import * as rpc from "vscode-jsonrpc"
 import * as lsp from "vscode-languageserver-protocol"
 import * as events from "events"
 import { clientCapabilities } from "./client-capabilities"
+import { URL as NodeURL, fileURLToPath } from "url"
 
 export class ConsoleLogger implements rpc.Logger, rpc.Tracer {
 	error(message: string) {
@@ -45,6 +46,11 @@ export interface LspClient {
 	 * Sends a document open notification to the server
 	 */
 	openDocument(documentInfo: DocumentInfo)
+
+	/**
+	 * Sends a document did save notification to the server
+	 */
+	saveDocument(textDocument: lsp.TextDocumentIdentifier, text: string)
 
 	/**
 	 * Sends a document close notification to the server
@@ -239,6 +245,26 @@ export class LspClientImpl extends events.EventEmitter implements LspClient {
 	private isInitialized = false
 	private serverCapabilities: lsp.ServerCapabilities
 
+	private getBaseSettings(): lsp.DidChangeConfigurationParams {
+		return {
+			// TODO: make settings language-server-agnostic
+			settings: {
+				pyls: {
+					plugins: {
+						pycodestyle: {
+							enabled: false
+						},
+						ctags: {
+							ctagsPath: "../ctags.exe",
+							tagFiles: [],
+							enabled: true
+						}
+					}
+				}
+			}
+		}
+	}
+
 	/**
 	 * Initializes an LspClient
 	 *
@@ -346,26 +372,7 @@ export class LspClientImpl extends events.EventEmitter implements LspClient {
 
 			this.connection.sendNotification("initialized")
 			this.connection.sendNotification("workspace/didChangeConfiguration", {
-				settings: {
-					// TODO: make settings language-server-agnostic
-					pyls: {
-						plugins: {
-							pycodestyle: {
-								enabled: false
-							},
-							ctags: {
-								ctagsPath: "C:/Users/benro/Desktop/Blink/ctags.exe",
-								tagFiles: [
-									{
-										filePath: "C:/Users/benro/Desktop/Blink/.blink/tags",
-										directory: "C:/Users/benro/Desktop/Blink/client/samples/modules"
-									}
-								],
-								enabled: true
-							}
-						}
-					}
-				},
+				settings: this.getBaseSettings()
 			})
 
 			this.emit("initialized")
@@ -375,6 +382,28 @@ export class LspClientImpl extends events.EventEmitter implements LspClient {
 	}
 
 	public openDocument(documentInfo: DocumentInfo) {
+		// get parent directory of file
+		let directory: string = documentInfo.documentUri
+		console.log(directory)
+		if (documentInfo.documentUri.lastIndexOf( "/" ) !== -1) {
+			directory = documentInfo.documentUri.substring( 0, documentInfo.documentUri.lastIndexOf( "/" ))
+		}
+		else if (documentInfo.documentUri.lastIndexOf( "\\" ) !== -1) {
+			directory = documentInfo.documentUri.substring( 0, documentInfo.documentUri.lastIndexOf( "\\" ))
+		}
+		directory = fileURLToPath(new NodeURL(directory))
+		// update ctags settings
+		const settings = this.getBaseSettings().settings
+		settings.pyls.plugins.ctags.tagFiles.push({
+			filePath: "../.blink/tags", // TODO: temp file?
+			directory: directory
+		})
+		console.log("RIGHTHERE")
+		console.log(settings)
+		this.connection.sendNotification("workspace/didChangeConfiguration", {
+			settings: settings,
+		})
+
 		const documentItem: lsp.TextDocumentItem = {
 			uri: documentInfo.documentUri,
 			languageId: documentInfo.languageId,
@@ -386,6 +415,14 @@ export class LspClientImpl extends events.EventEmitter implements LspClient {
 
 		this.connection.sendNotification("textDocument/didOpen", {
 			textDocument: documentItem,
+		})
+	}
+
+	public saveDocument(textDocument: lsp.TextDocumentIdentifier, text: string) {
+		this.logger?.log("Saving file" + textDocument.uri)
+		this.connection.sendNotification("textDocument/didSave", {
+			textDocument: textDocument,
+			text: text
 		})
 	}
 
