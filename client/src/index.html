@@ -114,24 +114,45 @@
 
 		#find-name-modal {
 			flex: 0 0 auto;
-			width: 300px;
-			height: 200px;
-			background-color: red;
+			width: 350px;
+			height: 225px;
+			background-color: #727273;
 			display: flex;
 			flex-direction: column;
 		}
 
 		#find-name-input {
 			flex: 0 0 auto;
+			background-color: #272822; /* monokai */
+			color: white;
 			width: 100%;
-			font-size: 32pt;
+			margin: 0;
+			font-size: 28pt;
+			border: none;
 		}
 
 		#find-name-result-list {
 			flex: 1 1 auto;
 			overflow: scroll;
 			list-style-type: none;
+			margin: 0;
 			padding-left: 0;
+			overflow-x: hidden;
+			font-size: 14pt;
+			font-family: monospace;
+		}
+
+		#find-name-exit {
+			font-size: 12pt;
+			color: black;
+			margin: 0 3px 0;
+			padding: 0;
+			width: 20px;
+			display: inline-block;
+		}
+
+		#find-name-exit:hover {
+			cursor: pointer;
 		}
 
 		#find-name-result-list li:nth-of-type(even) {
@@ -274,9 +295,9 @@
 				</div>
 			</div>
 		</div>
-		<div id="modal-container">
+		<div id="modal-container" onclick="editor.closeJumpToSymByName(event)">
 			<div id="find-name-modal">
-				<p onclick="editor.jumpToSymByName(false)">✕</p>
+				<p id="find-name-exit" onclick="editor.closeJumpToSymByNameUnconditional()">✕</p>
 				<input id="find-name-input" type="text">
 				<ul id="find-name-result-list"></ul>
 			</div>

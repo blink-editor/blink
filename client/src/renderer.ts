@@ -181,7 +181,7 @@ class Editor {
 		onShortcut("JumpPane6", () => this.swapToCaller(2))
 		onShortcut("NavigateBack", () => this.navBack())
 		onShortcut("navigateForward", () => this.navForward())
-		onShortcut("JumpByName", () => {this.jumpToSymByName(true)})
+		onShortcut("JumpByName", () => {this.openJumpToSymByName()})
 		onShortcut("Undo", () => this.activeEditorPane.editor.undo())
 		onShortcut("Redo", () => this.activeEditorPane.editor.redo())
 		onShortcut("SelectAll", () => {
@@ -336,13 +336,27 @@ class Editor {
 		this.updatePreviewPanes()
 	}
 
-	// opens/closes prompt allowing user to fuzzy search for symbol and jump to it
-	jumpToSymByName(visible) {
-		const modalContainer = (document.querySelector("#modal-container") as HTMLDivElement)
-		if (visible)
-			modalContainer.style.display = "flex"
-		else
-			modalContainer.style.display = "none"
+	// opens prompt allowing user to fuzzy search for symbol and jump to it
+	openJumpToSymByName() {
+		(document.querySelector("#modal-container") as HTMLDivElement).style.display = "flex"
+	}
+
+	// closes prompt allowing user to fuzzy search for symbol and jump to it
+	closeJumpToSymByName(event: MouseEvent) {
+		// check that user clicked on #modal-container
+		console.log((event.target as HTMLElement).id)
+		if ((event.target as HTMLElement).id === "modal-container")
+			this.closeJumpToSymByNameUnconditional()
+	}
+
+	closeJumpToSymByNameUnconditional() {
+		// close window
+		(document.querySelector("#modal-container") as HTMLDivElement).style.display = "none"
+		// clear input
+		;(document.querySelector("#find-name-input") as HTMLInputElement).value = ""
+		// clear results
+		const list = document.querySelector("#find-name-result-list")!
+		Array.from(list.children).forEach((e) => list.removeChild(e))
 	}
 
 	addJumpToSymByNameListener() {
@@ -366,9 +380,12 @@ class Editor {
 					// use closure to specify which symbol to swap to when clicked
 					const paneContext = await this.retrieveContextForSymbol(result)
 					const contextSymbol = paneContext?.topLevelSymbols[result.name]
+
 					if (contextSymbol) {
 						el.addEventListener("click", () => {
+							// swap to clicked symbol and close window
 							this.swapToSymbol(contextSymbol.symbol)
+							this.closeJumpToSymByNameUnconditional()
 						})
 					}
 
