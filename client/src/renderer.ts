@@ -2,6 +2,7 @@
 // be executed in the renderer process for that window.
 
 import * as fs from "fs"
+import * as os from "os"
 import * as path from "path"
 import { promisify } from "util"
 import { URL as NodeURL, pathToFileURL } from "url"
@@ -575,7 +576,7 @@ class Editor {
 		}
 	}
 
-	async setFile(text: string, fileDir: string) {
+	async setFile(text: string, filePath: string) {
 		this.pendingSwap = null
 		this.activeEditorPane.symbol = null
 		this.calleePanes.forEach((p) => p.symbol = null)
@@ -583,16 +584,25 @@ class Editor {
 
 		this.navObject.reset()
 
-		const url = pathToFileURL(path.resolve(fileDir))
+		const url = pathToFileURL(path.resolve(filePath))
 		// language server normalizes drive letter to lowercase, so follow
 		if (process.platform === "win32" && (url.pathname ?? "")[2] == ":")
 			url.pathname = "/" + url.pathname[1].toLowerCase() + url.pathname.slice(2)
 		const uri = url.toString()
 
+		const fileDir = path.dirname(filePath)
 		this.currentProject = new Project("Untitled", fileDir)
 
 		// change file and kick off reanalysis to find main initially
 		this.ChangeOwnedFile(uri, text)
+
+		// update server settings (ctags)
+		const baseSettings = this.lspClient.getBaseSettings().settings
+		baseSettings.pyls.plugins.ctags.tagFiles.push({
+			filePath: path.join(os.tmpdir(), "blink_tags"), // directory of tags file
+			directory: fileDir // directory of project
+		})
+		this.lspClient.changeConfiguration({ settings: baseSettings })
 
 		const navObject = await this.AnalyzeUri(uri, text)
 		this.navigateToUpdatedSymbol(navObject)

@@ -144,7 +144,7 @@ class CtagsPlugin(object):
             mode = tag_file.get('onStart', DEFAULT_ON_START_MODE)
 
             if mode == CtagMode.NONE:
-                log.debug("Skipping tag file with onStart mode NONE: %s", tag_file)
+                log.warn("Skipping tag file with onStart mode NONE: %s", tag_file)
                 continue
 
             tag_file_path = self._format_path(tag_file['filePath'])
@@ -161,14 +161,14 @@ class CtagsPlugin(object):
             mode = tag_file.get('onSave', DEFAULT_ON_SAVE_MODE)
 
             if mode == CtagMode.NONE:
-                log.debug("Skipping tag file with onSave mode NONE: %s", tag_file)
+                log.warn("Skipping tag file with onSave mode NONE: %s", tag_file)
                 continue
 
             tag_file_path = self._format_path(tag_file['filePath'])
             tags_dir = self._format_path(tag_file['directory'])
 
             if not os.path.abspath(document.path).startswith(os.path.abspath(tags_dir)):
-                log.debug("Skipping onSave tag generation since %s is not in %s", os.path.abspath(document.path), os.path.abspath(tags_dir))
+                log.warn("Skipping onSave tag generation since %s is not in %s", os.path.abspath(document.path), os.path.abspath(tags_dir))
                 continue
 
             execute(ctags_exe, tag_file_path, tags_dir, mode == CtagMode.APPEND)
@@ -199,7 +199,7 @@ def execute(ctags_exe, tag_file, directory, append=False):
     if not os.path.exists(tag_file_dir):
         os.makedirs(tag_file_dir)
 
-    cmd = [uris.to_fs_path(uris.from_fs_path((ctags_exe)), '-f', uris.to_fs_path(uris.from_fs_path((tag_file)), '--languages=Python', '-R'] + CTAG_OPTIONS
+    cmd = [uris.to_fs_path(uris.from_fs_path(ctags_exe)), '-f', uris.to_fs_path(uris.from_fs_path(tag_file)), '--languages=Python', '-R'] + CTAG_OPTIONS
     if append:
         cmd.append('--append')
     cmd.append(uris.to_fs_path(uris.from_fs_path(directory))) # TODO: Fix

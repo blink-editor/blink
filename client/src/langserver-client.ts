@@ -4,6 +4,8 @@ import * as lsp from "vscode-languageserver-protocol"
 import * as events from "events"
 import { clientCapabilities } from "./client-capabilities"
 import { URL as NodeURL, fileURLToPath } from "url"
+import * as path from "path"
+import * as os from "os"
 
 export class ConsoleLogger implements rpc.Logger, rpc.Tracer {
 	error(message: string) {
@@ -140,6 +142,10 @@ export interface LspClient {
 	 */
 	isReferencesSupported(): boolean
 
+	getBaseSettings(): lsp.DidChangeConfigurationParams
+
+	changeConfiguration(settings: lsp.DidChangeConfigurationParams)
+
 	// TODO: refactor
 	getUsedDocumentSymbols(uri: string): Thenable<lsp.DocumentSymbol[] | lsp.SymbolInformation[] | null>
 	getReferencesWithRequest(request: lsp.ReferenceParams): Thenable<lsp.Location[] | null>
@@ -245,7 +251,7 @@ export class LspClientImpl extends events.EventEmitter implements LspClient {
 	private isInitialized = false
 	private serverCapabilities: lsp.ServerCapabilities
 
-	private getBaseSettings(): lsp.DidChangeConfigurationParams {
+	public getBaseSettings(): lsp.DidChangeConfigurationParams {
 		return {
 			// TODO: make settings language-server-agnostic
 			settings: {
@@ -255,7 +261,7 @@ export class LspClientImpl extends events.EventEmitter implements LspClient {
 							enabled: false
 						},
 						ctags: {
-							ctagsPath: "../ctags.exe",
+							ctagsPath: "ctags", // path to ctags executable
 							tagFiles: [],
 							enabled: true
 						}
@@ -382,28 +388,6 @@ export class LspClientImpl extends events.EventEmitter implements LspClient {
 	}
 
 	public openDocument(documentInfo: DocumentInfo) {
-		// get parent directory of file
-		let directory: string = documentInfo.documentUri
-		console.log(directory)
-		if (documentInfo.documentUri.lastIndexOf( "/" ) !== -1) {
-			directory = documentInfo.documentUri.substring( 0, documentInfo.documentUri.lastIndexOf( "/" ))
-		}
-		else if (documentInfo.documentUri.lastIndexOf( "\\" ) !== -1) {
-			directory = documentInfo.documentUri.substring( 0, documentInfo.documentUri.lastIndexOf( "\\" ))
-		}
-		directory = fileURLToPath(new NodeURL(directory))
-		// update ctags settings
-		const settings = this.getBaseSettings().settings
-		settings.pyls.plugins.ctags.tagFiles.push({
-			filePath: "../.blink/tags", // TODO: temp file?
-			directory: directory
-		})
-		console.log("RIGHTHERE")
-		console.log(settings)
-		this.connection.sendNotification("workspace/didChangeConfiguration", {
-			settings: settings,
-		})
-
 		const documentItem: lsp.TextDocumentItem = {
 			uri: documentInfo.documentUri,
 			languageId: documentInfo.languageId,
@@ -436,6 +420,10 @@ export class LspClientImpl extends events.EventEmitter implements LspClient {
 		this.connection.sendNotification("textDocument/didClose", {
 			uri: uri
 		})
+	}
+
+	public changeConfiguration(settings: lsp.DidChangeConfigurationParams) {
+		this.connection.sendNotification("workspace/didChangeConfiguration", settings)
 	}
 
 	public isDocumentOpen(uri: string): boolean {
