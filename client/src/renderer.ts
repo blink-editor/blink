@@ -5,7 +5,8 @@ import * as fs from "fs"
 import * as os from "os"
 import * as path from "path"
 import { promisify } from "util"
-import { URL as NodeURL, pathToFileURL } from "url"
+import { URL as NodeURL, pathToFileURL, fileURLToPath } from "url"
+import { spawn } from "child_process"
 
 import * as electron from "electron"
 import CodeMirror from "codemirror"
@@ -147,6 +148,7 @@ class Editor {
 			extraKeys: Object.assign({
 				Tab: (cm) => {
 					if (cm.somethingSelected()) cm.execCommand("indentMore")
+					else cm.execCommand("insertSoftTab")
 				}
 			}, (process.platform === "darwin") ? MacKeyBindings : WindowsKeyBindings),
 
@@ -557,8 +559,16 @@ class Editor {
 							paneContentToSet = paneContextSymbol.definitionString
 							paneContextStringToSet = `${paneContext.name},${paneContextSymbol.symbol.detail}`
 						} else {
-							paneContextStringToSet = `(${symbols[i].name}: not top level)`
-							console.warn("did not find top-level symbol for", symbols[i], "in", paneContext)
+							// Check if the wanted symbol is within a top-level symbol.
+							const topLevelInfoContainingSymbole = paneContext.getTopLevelSymbolContaining(symbols[i])
+							if(topLevelInfoContainingSymbole){
+								paneSymbolToSet = topLevelInfoContainingSymbole[0] as SymbolInfo
+								paneContentToSet = topLevelInfoContainingSymbole[1] as string
+								paneContextStringToSet = `${paneContext.name},${paneSymbolToSet.detail}`
+							}else{
+								paneContextStringToSet = `(${symbols[i].name}: not top level)`
+								console.warn("did not find top-level symbol for", symbols[i], "in", paneContext)
+							}
 						}
 					} else {
 						paneContextStringToSet = `(${symbols[i].name}: no matching context)`
@@ -752,6 +762,21 @@ class Editor {
 					})
 			}
 
+		})
+	}
+
+	runProject() {
+		const symbol = this.activeEditorPane.symbol
+		if (!symbol) { return }
+		const scriptPath = fileURLToPath(new NodeURL(symbol.uri))
+
+		const ls = spawn(
+			"python3",
+			[scriptPath]
+		)
+
+		ls.stdout.on("data", (data) => {
+			alert(data)
 		})
 	}
 
