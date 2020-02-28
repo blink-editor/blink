@@ -69,7 +69,7 @@ export class Context{
 	 * @param innerSymbol Symbol to get top-level that contains it.
 	 * @returns Tuple of toplevel code string and toplevel symbol.
 	 */
-	getTopLevelSymbolContaining(innerSymbol) {
+	getTopLevelSymbolContaining(innerSymbol): [SymbolInfo, string] | null {
 		// loop through topLevelSymbols
 		for(const key in this.topLevelSymbols){
 			const potentialParentSymbol = this.topLevelSymbols[key]
