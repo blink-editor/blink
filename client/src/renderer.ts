@@ -503,15 +503,6 @@ class Editor {
 	}
 
 	updatePreviewPanes() {
-		const symbolsEqual = (symbolA: SymbolInfo, symbolB: SymbolInfo): boolean => {
-			// TODO: will this always hold?
-			return symbolA.name === symbolB.name && symbolA.uri === symbolB.uri
-				&& symbolA.range.start.line === symbolB.range.start.line
-				&& symbolA.range.start.character === symbolB.range.start.character
-				&& symbolA.range.end.line === symbolB.range.end.line
-				&& symbolA.range.end.character === symbolB.range.end.character
-		}
-
 		const assignSymbols = async (symbols, index, panes) => {
 			const freePanes = panes.filter((pane) => !pane.isPinned)
 
@@ -564,7 +555,7 @@ class Editor {
 
 				// check if this candidate symbol is already in a pinned pane
 				const symbolAlreadyPinned = pinnedSymbols
-					.find((pinnedSymbol) => symbolsEqual(pinnedSymbol, paneContextSymbol.symbol))
+					.find((pinnedSymbol) => this.symbolsEqual(pinnedSymbol, paneContextSymbol.symbol))
 
 				// if the symbol is already pinned, call this function again
 				// to get the next viable symbol after this one.
