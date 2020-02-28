@@ -617,11 +617,8 @@ class Editor {
 			url.pathname = "/" + url.pathname[1].toLowerCase() + url.pathname.slice(2)
 		const uri = url.toString()
 
-		const fileDir = path.dirname(filePath)
+		const fileDir = path.resolve(path.dirname(filePath))
 		this.currentProject = new Project("Untitled", fileDir)
-
-		// change file and kick off reanalysis to find main initially
-		this.ChangeOwnedFile(uri, text)
 
 		// update server settings (ctags)
 		const baseSettings = this.lspClient.getBaseSettings().settings
@@ -630,6 +627,9 @@ class Editor {
 			directory: fileDir // directory of project
 		})
 		this.lspClient.changeConfiguration({ settings: baseSettings })
+
+		// change file and kick off reanalysis to find main initially
+		this.ChangeOwnedFile(uri, text)
 
 		const navObject = await this.AnalyzeUri(uri, text)
 		this.navigateToUpdatedSymbol(navObject)

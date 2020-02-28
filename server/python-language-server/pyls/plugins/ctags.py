@@ -199,7 +199,7 @@ def execute(ctags_exe, tag_file, directory, append=False):
     if not os.path.exists(tag_file_dir):
         os.makedirs(tag_file_dir)
 
-    cmd = [uris.to_fs_path(uris.from_fs_path(ctags_exe)), '-f', uris.to_fs_path(uris.from_fs_path(tag_file)), '--languages=Python', '-R'] + CTAG_OPTIONS
+    cmd = [ctags_exe, '-f', uris.to_fs_path(uris.from_fs_path(tag_file)), '--languages=Python', '-R'] + CTAG_OPTIONS
     if append:
         cmd.append('--append')
     cmd.append(uris.to_fs_path(uris.from_fs_path(directory))) # TODO: Fix
