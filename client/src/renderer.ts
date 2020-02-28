@@ -477,6 +477,15 @@ class Editor {
 		this.updatePreviewPanes()
 	}
 
+	private symbolsEqual = (symbolA: SymbolInfo, symbolB: SymbolInfo): boolean => {
+		// TODO: will this always hold?
+		return symbolA.name === symbolB.name && symbolA.uri === symbolB.uri
+			&& symbolA.range.start.line === symbolB.range.start.line
+			&& symbolA.range.start.character === symbolB.range.start.character
+			&& symbolA.range.end.line === symbolB.range.end.line
+			&& symbolA.range.end.character === symbolB.range.end.character
+	}
+
 	updatePreviewPanes() {
 		const assignSymbols = async (symbols, index, panes) => {
 			for (let i = index; i < index + 3; i++) {
@@ -568,15 +577,6 @@ class Editor {
 	}
 
 	async FindCallers(targetSymbol: SymbolInfo): Promise<SymbolInfo[]> {
-		// TODO: merge with the other local function of the same name
-		const symbolsEqual = (symbolA: SymbolInfo, symbolB: SymbolInfo): boolean => {
-			return symbolA.name === symbolB.name && symbolA.uri === symbolB.uri
-			&& symbolA.range.start.line === symbolB.range.start.line
-			&& symbolA.range.start.character === symbolB.range.start.character
-			&& symbolA.range.end.line === symbolB.range.end.line
-			&& symbolA.range.end.character === symbolB.range.end.character
-		}
-
 		// TODO: make this language-agnostic
 		// determine where the cursor should be before the name of the symbol
 		const nameStartPos =
@@ -618,7 +618,7 @@ class Editor {
 			// if this symbol is already in callers, skip it
 			let passed = true
 			for (const sym2 of callers) {
-				if (symbolsEqual(symbol, sym2)) {
+				if (this.symbolsEqual(symbol, sym2)) {
 					passed = false
 					break
 				}
