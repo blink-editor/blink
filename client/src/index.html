@@ -9,6 +9,7 @@
 		html, body {
 			margin: 0;
 			height: 100vh;
+			background-color: #272822; /* monokai */
 		}
 
 		/* SIDEBAR */
@@ -57,46 +58,68 @@
 			display: none;
 		}
 
+		/* PROJECT STRUCTURE */
+
+		#project-structure-bar {
+			background-color: rgb(36, 36, 36);
+			color: white;
+			padding: 8px 16px;
+		}
+
+		ul.jqtree-tree .jqtree-title {
+			color: #f8f8f2 !important; /* monokai variable */
+			font-weight: lighter !important;
+		}
+
+		ul.jqtree-tree .jqtree-toggler {
+			color: white !important;
+		}
+
 		/* PANES */
-		/* h-pane-context and h-pane-editor go together. */
+		/* pane-context-bar and h-pane-editor go together. */
 		/* the context gets 1.2rem, the editor gets the rest. */
-		.h-pane-context {
+		.pane-context-bar {
 			height: 1.2rem !important;
+			background-color: #272822; /* monokai */
+			color: #75715e; /* monokai comment */
 		}
 		.h-pane-editor {
 			height: calc(100% - 1.2rem) !important;
 		}
 
-		.context-label {
-			background-color: #272822; /* monokai */
-			color: #75715e; /* monokai comment */
+		.pane-context-items {
+			display: flex;
+			align-items: center;
 		}
 
-		#top-left-pane-context, #top-mid-pane-context, #top-right-pane-context,
-		#side-top-pane-context, #side-mid-pane-context, #side-bottom-pane-context,
-		#main-pane-context {
-			padding-left: 32px;
+		.pane-context-items span {
+			width: 100%;
 		}
 
-		#main-pane-context {
+		#main-pane .context-label {
 			padding-left: 42px;
 		}
 
-		#top-left-pane-context, #top-mid-pane-context,
-		#top-left-pane, #top-mid-pane,
-		#main-pane-context, #main-pane {
+		#top-left-pane, #top-mid-pane, #main-pane {
 			border-right: 1px solid white;
 		}
 
-		#main-pane-context, #side-top-pane-context,
-		#side-mid-pane-context, #side-bottom-pane-context {
+		#main-pane .pane-context-bar,
+		#side-panes-container .pane-context-bar {
 			border-top: 1px solid white;
 		}
 
-		#project-structure-bar {
-			background-color: grey;
+		.pin-icon {
+			color: white;
+			transform: rotate(30deg);
+			opacity: 0.2;
+
 		}
 
+		.pin-icon:hover, .pin-icon-pinned {
+			opacity: 1.0;
+			filter: grayscale(100%);
+		}
 		</style>
 
 		<!-- codemirror css -->
@@ -141,7 +164,7 @@
 					</li>
 
 					<li class="nav-item active">
-						<button class="nav-link" onclick="">
+						<button class="nav-link" onclick="editor.runProject()">
 							<i class="fa fas fa-fw fa-play"></i>
 						</button>
 					</li>
@@ -154,95 +177,116 @@
 				</ul>
 			</nav>
 
-			<div id="project-structure-bar" class="sidebar-false">
-				<div>Project Explorer</div>
+			<aside id="project-structure-bar" class="sidebar-false">
+				<span>Project Explorer</span>
 				<div id="tree1"></div>
-			</div>
+			</aside>
 
-			<div id="panes" class="container col-11 h-100">
+			<main id="panes" class="container col-11 h-100">
 				<div class="row no-gutters h-25">
-					<div class="col-4 container h-100">
-						<div class="row no-gutters h-pane-context">
-							<div class="col h-100 context-label" id="top-left-pane-context"></div>
+					<div id="top-left-pane" class="col-4 container h-100">
+						<div class="row no-gutters pane-context-bar">
+							<div class="col h-100 pane-context-items">
+								<i class="pin-icon fa fa-fw fa-thumbtack"></i>
+								<span class="context-label"></span>
+							</div>
 						</div>
 						<div class="row no-gutters h-pane-editor">
-							<textarea class="col h-100" id="top-left-pane"></textarea>
+							<textarea class="col h-100"></textarea>
 						</div>
 					</div>
-					<div class="col-4 container h-100">
-						<div class="row no-gutters h-pane-context">
-							<div class="col h-100 context-label" id="top-mid-pane-context"></div>
+					<div id="top-mid-pane" class="col-4 container h-100">
+						<div class="row no-gutters pane-context-bar">
+							<div class="col h-100 pane-context-items">
+								<i class="pin-icon fa fa-fw fa-thumbtack"></i>
+								<span class="context-label"></span>
+							</div>
 						</div>
 						<div class="row no-gutters h-pane-editor">
-							<textarea class="col h-100" id="top-mid-pane"></textarea>
+							<textarea class="col h-100"></textarea>
 						</div>
 					</div>
-					<div class="col-4 container h-100">
-						<div class="row no-gutters h-pane-context">
-							<div class="col h-100 context-label" id="top-right-pane-context"></div>
+					<div id="top-right-pane" class="col-4 container h-100">
+						<div class="row no-gutters pane-context-bar">
+							<div class="col h-100 pane-context-items">
+								<i class="pin-icon fa fa-fw fa-thumbtack"></i>
+								<span class="context-label"></span>
+							</div>
 						</div>
 						<div class="row no-gutters h-pane-editor">
-							<textarea class="col h-100" id="top-right-pane"></textarea>
+							<textarea class="col h-100"></textarea>
 						</div>
 					</div>
 				</div>
 				<div class="row no-gutters h-75">
-					<div class="col-8 container h-100">
-						<div class="row no-gutters h-pane-context">
-							<div class="col h-100 context-label" id="main-pane-context"></div>
+					<div id="main-pane" class="col-8 container h-100">
+						<div class="row no-gutters pane-context-bar">
+							<span class="col h-100 context-label"></span>
 						</div>
 						<div class="row no-gutters h-pane-editor">
-							<textarea class="col h-100" id="main-pane"></textarea>
+							<textarea class="col h-100"></textarea>
 						</div>
 					</div>
-					<div class="container col-4 h-100">
+					<div id="side-panes-container" class="container col-4 h-100">
 						<div class="row no-gutters" style="height: 33.3333% !important">
-							<div class="col container h-100">
-								<div class="row no-gutters h-pane-context">
-									<div class="col h-100 context-label" id="side-top-pane-context"></div>
+							<div id="side-top-pane" class="col container h-100">
+								<div class="row no-gutters pane-context-bar">
+									<div class="col h-100 pane-context-items">
+										<i class="pin-icon fa fa-fw fa-thumbtack"></i>
+										<span class="context-label"></span>
+									</div>
 								</div>
 								<div class="row no-gutters h-pane-editor">
-									<textarea class="col h-100" id="side-top-pane"></textarea>
+									<textarea class="col h-100"></textarea>
 								</div>
 							</div>
 						</div>
 						<div class="row no-gutters" style="height: 33.3333% !important">
-							<div class="col container h-100">
-								<div class="row no-gutters h-pane-context">
-									<div class="col h-100 context-label" id="side-mid-pane-context"></div>
+							<div id="side-mid-pane" class="col container h-100">
+								<div class="row no-gutters pane-context-bar">
+									<div class="col h-100 pane-context-items">
+										<i class="pin-icon fa fa-fw fa-thumbtack"></i>
+										<span class="context-label"></span>
+									</div>
 								</div>
 								<div class="row no-gutters h-pane-editor">
-									<textarea class="col h-100" id="side-mid-pane"></textarea>
+									<textarea class="col h-100"></textarea>
 								</div>
 							</div>
 						</div>
 						<div class="row no-gutters" style="height: 33.3333% !important">
-							<div class="col container h-100">
-								<div class="row no-gutters h-pane-context">
-									<div class="col h-100 context-label" id="side-bottom-pane-context"></div>
+							<div id="side-bottom-pane" class="col container h-100">
+								<div class="row no-gutters pane-context-bar">
+									<div class="col h-100 pane-context-items">
+										<i class="pin-icon fa fa-fw fa-thumbtack"></i>
+										<span class="context-label"></span>
+									</div>
 								</div>
 								<div class="row no-gutters h-pane-editor">
-									<textarea class="col h-100" id="side-bottom-pane"></textarea>
+									<textarea class="col h-100"></textarea>
 								</div>
 							</div>
 						</div>
 					</div>
 				</div>
-			</div>
+			</main>
 		</div>
 
 		<!-- You can also require other files to run in this process -->
-		<script>var exports = {"__esModule": true};</script>
-		<script src="./renderer.js"></script>
 		<script>
-		window.nodeRequire = require;
-		delete window.require;
-		delete window.exports;
-		delete window.module;
+		let exports = { "__esModule": true }
+		window.nodeRequire = require
+		delete window.require
+		delete window.exports
+		delete window.module
 		</script>
 		<script src="node_modules/jquery/dist/jquery.min.js"></script>
 		<script src="node_modules/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
 		<script src="node_modules/jqtree/build/tree.jquery.js"></script>
 		<link rel="stylesheet" href="node_modules/jqtree/jqtree.css">
+		<script>
+		window.require = window.nodeRequire
+		</script>
+		<script src="./renderer.js"></script>
 	</body>
 </html>

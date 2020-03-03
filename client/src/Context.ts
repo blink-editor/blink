@@ -62,6 +62,36 @@ export class Context{
 		return this._hasLineNumberChanges
 	}
 
+	/**
+	 * Given a lsp.SymbolInformation object. Determins if a toplevel code contains that symbole.
+	 * If a toplevel code does contain the given symbol, return the top level symbol and the top level code of that symbole.
+	 * If the given symbol is not contained in any top-level code, return null.
+	 * @param innerSymbol Symbol to get top-level that contains it.
+	 * @returns Tuple of toplevel code string and toplevel symbol.
+	 */
+	getTopLevelSymbolContaining(innerSymbol): [SymbolInfo, string] | null {
+		// loop through topLevelSymbols
+		for(const key in this.topLevelSymbols){
+			const potentialParentSymbol = this.topLevelSymbols[key]
+
+			// check if innerSymbol is within current symbole
+			if(potentialParentSymbol.symbol.range.start.line < innerSymbol.location.range.start.line &&
+				potentialParentSymbol.symbol.range.end.line >= innerSymbol.location.range.end.line){
+					const parentTextArray = potentialParentSymbol.definitionString.split("\n")
+
+					const innerSymbolStartLineInParent = innerSymbol.location.range.start.line - potentialParentSymbol.symbol.range.start.line
+					parentTextArray.splice(0, innerSymbolStartLineInParent)
+
+					const innerSymbolEndLineInParent = innerSymbol.location.range.end.line - potentialParentSymbol.symbol.range.start.line
+					parentTextArray.length = innerSymbolEndLineInParent
+
+					const retText = parentTextArray.join("\n")
+					return [potentialParentSymbol.symbol, retText]
+			}
+		}
+		return null
+	}
+
 	getSortedTopLevelSymbolNames() {
 		// sort the top level symbols by their original line number
 		const symbolNames: string[] = Object.keys(this.topLevelSymbols)

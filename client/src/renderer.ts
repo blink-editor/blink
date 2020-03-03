@@ -4,7 +4,8 @@
 import * as fs from "fs"
 import * as path from "path"
 import { promisify } from "util"
-import { URL as NodeURL, pathToFileURL } from "url"
+import { URL as NodeURL, pathToFileURL, fileURLToPath } from "url"
+import { spawn } from "child_process"
 
 import * as electron from "electron"
 import CodeMirror from "codemirror"
@@ -26,8 +27,10 @@ import "codemirror/addon/hint/show-hint"
 
 interface PaneObject {
 	editor: CodeMirror.Editor
-	context: HTMLElement
+	context: Element
 	symbol: SymbolInfo | null
+	isPinned: boolean
+	pinImg: Element | null
 }
 
 interface TreeItem {
@@ -67,14 +70,14 @@ class Editor {
 
 	constructor() {
 		const replacePaneElement = (id) => (codemirror) => {
-			const textarea = document.getElementById(id) as HTMLTextAreaElement
+			const textarea = document.querySelector(`#${id} textarea`) as HTMLTextAreaElement
 			textarea.classList.forEach((cls) => codemirror.classList.add(cls))
 			codemirror.id = textarea.id
 			textarea.parentNode!.replaceChild(codemirror, textarea)
 		}
 
 		// creates a CodeMirror editor configured to look like a preview pane
-		const createPane = function(id, wrapping): PaneObject {
+		const createPane = (id, wrapping): PaneObject => {
 			const editor = CodeMirror(replacePaneElement(id), {
 				mode: "python",
 				lineNumbers: true,
@@ -83,11 +86,19 @@ class Editor {
 				lineWrapping: wrapping
 			})
 
-			return {
+			const pane = {
 				editor: editor,
-				context: document.getElementById(id + "-context")!,
+				context: document.querySelector(`#${id} .context-label`)!,
 				symbol: null,
+				isPinned: false,
+				pinImg: document.querySelector(`#${id} .pin-icon`)!
 			}
+
+			pane.pinImg.addEventListener("click", () => {
+				this.togglePreviewPanePinned(pane)
+			})
+
+			return pane
 		}
 
 		// create callee preview panes (top)
@@ -142,6 +153,7 @@ class Editor {
 			extraKeys: Object.assign({
 				Tab: (cm) => {
 					if (cm.somethingSelected()) cm.execCommand("indentMore")
+					else cm.execCommand("insertSoftTab")
 				}
 			}, (process.platform === "darwin") ? MacKeyBindings : WindowsKeyBindings),
 
@@ -149,8 +161,10 @@ class Editor {
 
 		this.activeEditorPane = {
 			editor: activeEditor,
-			context: document.getElementById("main-pane-context")!,
+			context: document.querySelector("#main-pane .context-label")!,
 			symbol: null,
+			isPinned: false,
+			pinImg: null,
 		}
 
 		// nag the main process to start the server for us if
@@ -309,24 +323,28 @@ class Editor {
 	}
 
 	panePageUp() {
-		this.calleeIndex = Math.max(this.calleeIndex - 3, 0)
+		const freePanes = this.calleePanes.filter((pane) => !pane.isPinned).length
+		this.calleeIndex = Math.max(this.calleeIndex - freePanes, 0)
 		this.updatePreviewPanes()
 	}
 
 	panePageDown() {
+		const freePanes = this.calleePanes.filter((pane) => !pane.isPinned).length
 		const maxIndex = Math.max(Math.floor((this.calleesOfActive.length - 1) / 3) * 3, 0)
-		this.calleeIndex = Math.min(this.calleeIndex + 3, maxIndex)
+		this.calleeIndex = Math.min(this.calleeIndex + freePanes, maxIndex)
 		this.updatePreviewPanes()
 	}
 
 	panePageLeft() {
-		this.callerIndex = Math.max(this.callerIndex - 3, 0)
+		const freePanes = this.callerPanes.filter((pane) => !pane.isPinned).length
+		this.callerIndex = Math.max(this.callerIndex - freePanes, 0)
 		this.updatePreviewPanes()
 	}
 
 	panePageRight() {
+		const freePanes = this.callerPanes.filter((pane) => !pane.isPinned).length
 		const maxIndex = Math.max(Math.floor((this.callersOfActive.length - 1) / 3) * 3, 0)
-		this.callerIndex = Math.min(this.callerIndex + 3, maxIndex)
+		this.callerIndex = Math.min(this.callerIndex + freePanes, maxIndex)
 		this.updatePreviewPanes()
 	}
 
@@ -476,33 +494,100 @@ class Editor {
 	}
 
 	updatePreviewPanes() {
-		const assignSymbols = async (symbols, index, panes) => {
-			for (let i = index; i < index + 3; i++) {
-				let paneSymbolToSet: SymbolInfo | null = null
-				let paneContentToSet: string | null = null
-				let paneContextStringToSet: string | null = null
+		const symbolsEqual = (symbolA: SymbolInfo, symbolB: SymbolInfo): boolean => {
+			// TODO: will this always hold?
+			return symbolA.name === symbolB.name && symbolA.uri === symbolB.uri
+				&& symbolA.range.start.line === symbolB.range.start.line
+				&& symbolA.range.start.character === symbolB.range.start.character
+				&& symbolA.range.end.line === symbolB.range.end.line
+				&& symbolA.range.end.character === symbolB.range.end.character
+		}
 
-				if (i < symbols.length) {
-					const paneContext = await this.retrieveContextForSymbol(symbols[i])
-					if (paneContext) {
-						// TODO: find up-to-top-level symbol if this isn't a top-level symbol
-						const paneContextSymbol = paneContext.topLevelSymbols[symbols[i].name]
-						if (paneContextSymbol) {
-							paneSymbolToSet = paneContextSymbol.symbol
-							paneContentToSet = paneContextSymbol.definitionString
-							paneContextStringToSet = `${paneContext.name},${paneContextSymbol.symbol.detail}`
-						} else {
-							paneContextStringToSet = `(${symbols[i].name}: not top level)`
-							console.warn("did not find top-level symbol for", symbols[i], "in", paneContext)
+		const assignSymbols = async (symbols, index, panes) => {
+			const freePanes = panes.filter((pane) => !pane.isPinned)
+
+			const pinnedSymbols = panes
+				.filter((pane) => pane.isPinned)
+				.map((pane) => pane.symbol)
+
+			// the index to "start taking symbols from" is the paged offset
+			// but can be bumped forward if any items before it are pinned
+			let symbolIndexStartTakingFrom = index
+			let symbolIndex = -1
+
+			const getNextSymbol = async (): Promise<[SymbolInfo | undefined, string | undefined, string]> => {
+				symbolIndex += 1
+
+				// if we don't have enough symbols to populate panes, return undefined
+				if (!(symbolIndex < symbols.length)) {
+					return [undefined, undefined, "(no symbol)"]
+				}
+
+				const rawSymbol = symbols[symbolIndex]
+
+				// we need the context to find the most updated copy of this symbol
+				const paneContext = await this.retrieveContextForSymbol(rawSymbol)
+
+				// if we can't find the context, warn and return undefined
+				if (!paneContext) {
+					console.warn("did not find context for pane symbol", rawSymbol)
+					return [undefined, undefined, `(${rawSymbol.name}: no matching context)`]
+				}
+
+				// attempt to find the most updated copy of this symbol
+				let paneContextSymbol = paneContext.topLevelSymbols[rawSymbol.name]
+
+				if (!paneContextSymbol) {
+					// If we didn't find the symbol at the top level, then
+					// check if the wanted symbol is a child of a top-level symbol.
+					const topLevelInfoContainingSymbol = paneContext.getTopLevelSymbolContaining(rawSymbol)
+					if (topLevelInfoContainingSymbol) {
+						paneContextSymbol = {
+							symbol: topLevelInfoContainingSymbol[0],
+							definitionString: topLevelInfoContainingSymbol[1],
 						}
 					} else {
-						paneContextStringToSet = `(${symbols[i].name}: no matching context)`
+						// couldn't find the symbol; warn and return undefined
+						console.warn("did not find top-level symbol for", rawSymbol, "in", paneContext)
+						return [undefined, undefined, `(${rawSymbol.name}: not top level)`]
 					}
 				}
 
-				panes[i - index].symbol = paneSymbolToSet
-				panes[i - index].editor.setValue(paneContentToSet ?? "")
-				panes[i - index].context.textContent = paneContextStringToSet ?? "(no symbol)"
+				// check if this candidate symbol is already in a pinned pane
+				const symbolAlreadyPinned = pinnedSymbols
+					.find((pinnedSymbol) => symbolsEqual(pinnedSymbol, paneContextSymbol.symbol))
+
+				// if the symbol is already pinned, call this function again
+				// to get the next viable symbol after this one.
+				if (symbolAlreadyPinned) {
+					// if an already-pinned symbol occurs before the paged offset
+					// then we need to bump the offset forward
+					if (symbolIndex < symbolIndexStartTakingFrom) {
+						symbolIndexStartTakingFrom += 1
+					}
+
+					return await getNextSymbol()
+				}
+
+				// if we haven't yet reached the index that we've paged to,
+				// then return the one after this (which could recur)
+				if (symbolIndex < symbolIndexStartTakingFrom) {
+					return await getNextSymbol()
+				}
+
+				// we got a symbol that isn't already pinned, is past the offset, and is up-to-date
+				return [
+					paneContextSymbol.symbol,
+					paneContextSymbol.definitionString,
+					`${paneContext.name}`,
+				]
+			}
+
+			for (let i = 0; i < freePanes.length; i++) {
+				const [newPaneSymbol, newPaneContent, newPaneContext] = await getNextSymbol()
+				freePanes[i].symbol = newPaneSymbol
+				freePanes[i].editor.setValue(newPaneContent ?? "")
+				freePanes[i].context.textContent = newPaneContext
 			}
 		}
 
@@ -680,6 +765,21 @@ class Editor {
 		})
 	}
 
+	runProject() {
+		const symbol = this.activeEditorPane.symbol
+		if (!symbol) { return }
+		const scriptPath = fileURLToPath(new NodeURL(symbol.uri))
+
+		const ls = spawn(
+			"python3",
+			[scriptPath]
+		)
+
+		ls.stdout.on("data", (data) => {
+			alert(data)
+		})
+	}
+
 	getjqTreeObject(): TreeItem[] {
 
 		const symbolToTreeItem = (symbol: SymbolInfo): TreeItem => {
@@ -701,6 +801,12 @@ class Editor {
 						.map((key) => symbolToTreeItem(context.topLevelSymbols[key].symbol))
 				}
 			})
+	}
+
+	togglePreviewPanePinned(pane: PaneObject) {
+		pane.pinImg!.classList.toggle("pin-icon-pinned")
+		pane.isPinned = !pane.isPinned
+		this.updatePreviewPanes()
 	}
 
 	toggleProjectStructure() {
