@@ -69,20 +69,28 @@ export class Context{
 	 * @param innerSymbol Symbol to get top-level that contains it.
 	 * @returns Tuple of toplevel code string and toplevel symbol.
 	 */
-	getTopLevelSymbolContaining(innerSymbol) {
-		// loop through topLevelSymbols
-		for(const key in this.topLevelSymbols){
-			const potentialParentSymbol = this.topLevelSymbols[key]
+	getTopLevelSymbolContaining(innerSymbol: lsp.SymbolInformation | SymbolInfo): [SymbolInfo, string] | null {
+		function isLspSymbolInformation(x: SymbolInfo | lsp.SymbolInformation): x is lsp.SymbolInformation {
+			return (x as lsp.SymbolInformation).location !== undefined
+		}
 
+		const innerRange = isLspSymbolInformation(innerSymbol) ? innerSymbol.location.range : innerSymbol.range
+
+		// loop through topLevelSymbols
+		for(const potentialParentSymbol of Object.values(this.topLevelSymbols)){
 			// check if innerSymbol is within current symbole
-			if(potentialParentSymbol.symbol.range.start.line < innerSymbol.location.range.start.line &&
-				potentialParentSymbol.symbol.range.end.line >= innerSymbol.location.range.end.line){
+			if(potentialParentSymbol.symbol.range.start.line < innerRange.start.line &&
+				potentialParentSymbol.symbol.range.end.line >= innerRange.end.line){
+					if (innerSymbol.kind === lsp.SymbolKind.Variable) {
+						return [potentialParentSymbol.symbol, potentialParentSymbol.definitionString]
+					}
+
 					const parentTextArray = potentialParentSymbol.definitionString.split("\n")
 
-					const innerSymbolStartLineInParent = innerSymbol.location.range.start.line - potentialParentSymbol.symbol.range.start.line
+					const innerSymbolStartLineInParent = innerRange.start.line - potentialParentSymbol.symbol.range.start.line
 					parentTextArray.splice(0, innerSymbolStartLineInParent)
 
-					const innerSymbolEndLineInParent = innerSymbol.location.range.end.line - potentialParentSymbol.symbol.range.start.line
+					const innerSymbolEndLineInParent = innerRange.end.line - potentialParentSymbol.symbol.range.start.line
 					parentTextArray.length = innerSymbolEndLineInParent
 
 					const retText = parentTextArray.join("\n")
