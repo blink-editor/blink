@@ -192,6 +192,7 @@ class Editor {
 		onShortcut("navigateForward", () => this.navForward())
 		onShortcut("Undo", () => this.activeEditorPane.editor.undo())
 		onShortcut("Redo", () => this.activeEditorPane.editor.redo())
+		onShortcut("ExpandTopMiddleLeft", () => this.expandTopMiddleLeft())
 		onShortcut("SelectAll", () => {
 			CodeMirror.commands.selectAll(this.activeEditorPane.editor)
 		})
@@ -611,6 +612,20 @@ class Editor {
 		} else {
 			console.warn("cannot go forward End Of Stack ")
 		}
+	}
+
+	expandTopMiddleLeft() {
+
+		// debugger
+		let colStr = Array.from(document.getElementById("top-left-pane")!.classList).find(cls => cls.startsWith("col"))
+		let smallerColSize = parseInt(colStr![4]) - 1
+		document.getElementById("top-left-pane")!.classList.remove(colStr!)
+		document.getElementById("top-left-pane")!.classList.add("col-" + smallerColSize)
+
+		colStr = Array.from(document.getElementById("top-mid-pane")!.classList).find(cls => cls.startsWith("col"))
+		let largerColSize = parseInt(colStr![4]) + 1
+		document.getElementById("top-mid-pane")!.classList.remove(colStr!)
+		document.getElementById("top-mid-pane")!.classList.add("col-" + largerColSize)
 	}
 
 	async setFile(text: string, fileDir: string) {

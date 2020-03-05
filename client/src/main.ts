@@ -205,6 +205,11 @@ class Application {
 					accelerator: isMac ? "Cmd+Alt+Left" : "Ctrl+Alt+Left",
 					click: () => sendRendererMessage("PanePageLeft")
 				},
+				{
+					label: "Expand top middle pane left",
+					accelerator: isMac ? "Cmd+Alt+<" : "Ctrl+Alt+<",
+					click: () => sendRendererMessage("ExpandTopMiddleLeft")
+				},
 				{ type: "separator" },
 			]
 		},
