@@ -245,10 +245,13 @@ export class CodeMirrorAdapter extends IEditorAdapter<CodeMirror.Editor> {
 	public handleChange(cm: CodeMirror.Editor, change: CodeMirror.EditorChange) {
 		// call the onChange method to get the whole file
 		const editorCode = this.editor.getValue()
-		const lspCode = this.onChange(editorCode)
+		if (change.origin !== "setValue") {
+			const lspCode = this.onChange(editorCode)
+			// send the change to the server so it's up to date
+			this.connection.sendChange(this.document!.uri, { text: lspCode })
+		}
 
-		// send the change to the server so it's up to date
-		this.connection.sendChange(this.document!.uri, { text: lspCode })
+
 
 		const editorLocation = this.editor.getDoc().getCursor("end")
 		const lspLocation: lsp.Position = this._docPositionToLsp(editorLocation)

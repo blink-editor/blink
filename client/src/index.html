@@ -45,9 +45,35 @@
 			color: white;
 		}
 
+		.file-open-button{
+			padding-bottom: 4px !important;
+		}
+
+		#save-button{
+			padding-top: 0px;
+		}
+
+		#save-indicator{
+			color: aquamarine;
+			padding-right: 20px;
+		}
+
+		#save-button-indicator-group:not(.save-button-with-indicator) #save-indicator{
+			display: none;
+		}
+
+		#save-button-indicator-group:not(.save-button-with-indicator){
+			padding-top: 20px;
+		}
+
+		.save-button-with-indicator{
+			padding-top: 0px;
+		}
+
 		.sidebar .nav-item button {
 			background: #727273;
 			border: 0px;
+			outline: none;
 		}
 
 		.sidebar-true {
@@ -151,14 +177,17 @@
 					</li>
 
 					<li class="nav-item active">
-						<button class="nav-link" onclick="editor.openFile()" href="" id="open-file">
+						<button class="file-open-button nav-link" onclick="editor.openFile()" href="" id="open-file">
 							<i class="fa fas fa-fw fa-folder-open"></i>
 						</button>
 					</li>
 
 					<li class="nav-item active">
-						<button class="nav-link" onclick="editor.saveFile()" href="" id="save-file">
-							<i class="fa fas fa-fw fa-save"></i>
+						<button class="nav-link" id="save-button" onclick="editor.saveFile()" href="" id="save-file">
+							<div id="save-button-indicator-group">
+								<div id="save-indicator"><i class="fas fa-xs fa-asterisk"></i></div>
+								<i class="fa fas fa-lg fa-save"></i>
+							</div>
 						</button>
 					</li>
 

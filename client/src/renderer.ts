@@ -249,7 +249,12 @@ class Editor {
 		context.topLevelSymbols[activeSymbol.name].definitionString = text
 
 		const newFile = context.getLinearizedCode()
+
 		context.fileString = newFile
+
+		if(context.hasChanges){
+			(document.querySelector("#save-button-indicator-group")! as HTMLDivElement).classList.add("save-button-with-indicator");
+		}
 
 		return newFile
 	}
@@ -743,6 +748,7 @@ class Editor {
 	 * loop through all contexts and save them
 	 */
 	saveFile() {
+			(document.querySelector("#save-button-indicator-group")! as HTMLDivElement).classList.remove("save-button-with-indicator");
 		this.currentProject.contexts.forEach((context) => {
 			if (!context.hasChanges) { return }
 
@@ -769,7 +775,6 @@ class Editor {
 		const symbol = this.activeEditorPane.symbol
 		if (!symbol) { return }
 		const scriptPath = fileURLToPath(new NodeURL(symbol.uri))
-
 		const ls = spawn(
 			"python3",
 			[scriptPath]
