@@ -508,6 +508,39 @@ class Editor {
 				&& symbolA.range.end.character === symbolB.range.end.character
 		}
 
+		const getPreviewSymbol = async (rawSymbol: lsp.SymbolInformation | SymbolInfo):
+			Promise<{ symbol: SymbolInfo; definitionString: string; context: Context } | undefined> =>
+		{
+			// we need the context to find the most updated copy of this symbol
+			const paneContext = await this.retrieveContextForSymbol(rawSymbol)
+
+			// if we can't find the context, warn and return undefined
+			if (!paneContext) {
+				console.warn("did not find context for pane symbol", rawSymbol)
+				return undefined
+			}
+
+			// attempt to find the most updated copy of this symbol
+			const paneContextSymbol = paneContext.topLevelSymbols[rawSymbol.name]
+			if (paneContextSymbol) {
+				return { ...paneContextSymbol, context: paneContext }
+			}
+
+			// If we didn't find the symbol at the top level, then
+			// check if the wanted symbol is a child of a top-level symbol.
+			const topLevelInfoContainingSymbol = paneContext.getTopLevelSymbolContaining(rawSymbol)
+			if (topLevelInfoContainingSymbol) {
+				return {
+					symbol: topLevelInfoContainingSymbol[0],
+					definitionString: topLevelInfoContainingSymbol[1],
+					context: paneContext
+				}
+			} else {
+				console.warn("did not find top level symbol for pane symbol", rawSymbol)
+				return undefined
+			}
+		}
+
 		const assignSymbols = async (symbols, index, panes) => {
 			const freePanes = panes.filter((pane) => !pane.isPinned)
 
@@ -528,50 +561,24 @@ class Editor {
 					return [undefined, undefined, "(no symbol)"]
 				}
 
-				const rawSymbol = symbols[symbolIndex]
+				const symbolToPreview = await getPreviewSymbol(symbols[symbolIndex])
 
-				// we need the context to find the most updated copy of this symbol
-				const paneContext = await this.retrieveContextForSymbol(rawSymbol)
+				if (symbolToPreview) {
+					// check if this candidate symbol is already in a pinned pane
+					const symbolAlreadyPinned = pinnedSymbols
+						.find((pinnedSymbol) => symbolsEqual(pinnedSymbol, symbolToPreview.symbol))
 
-				// if we can't find the context, warn and return undefined
-				if (!paneContext) {
-					console.warn("did not find context for pane symbol", rawSymbol)
-					return [undefined, undefined, `(${rawSymbol.name}: no matching context)`]
-				}
-
-				// attempt to find the most updated copy of this symbol
-				let paneContextSymbol = paneContext.topLevelSymbols[rawSymbol.name]
-
-				if (!paneContextSymbol) {
-					// If we didn't find the symbol at the top level, then
-					// check if the wanted symbol is a child of a top-level symbol.
-					const topLevelInfoContainingSymbol = paneContext.getTopLevelSymbolContaining(rawSymbol)
-					if (topLevelInfoContainingSymbol) {
-						paneContextSymbol = {
-							symbol: topLevelInfoContainingSymbol[0],
-							definitionString: topLevelInfoContainingSymbol[1],
+					// if the symbol is already pinned, call this function again
+					// to get the next viable symbol after this one.
+					if (symbolAlreadyPinned) {
+						// if an already-pinned symbol occurs before the paged-to offset
+						// then we need to bump the offset forward
+						if (symbolIndex < symbolIndexStartTakingFrom) {
+							symbolIndexStartTakingFrom += 1
 						}
-					} else {
-						// couldn't find the symbol; warn and return undefined
-						console.warn("did not find top-level symbol for", rawSymbol, "in", paneContext)
-						return [undefined, undefined, `(${rawSymbol.name}: not top level)`]
+
+						return await getNextSymbol()
 					}
-				}
-
-				// check if this candidate symbol is already in a pinned pane
-				const symbolAlreadyPinned = pinnedSymbols
-					.find((pinnedSymbol) => symbolsEqual(pinnedSymbol, paneContextSymbol.symbol))
-
-				// if the symbol is already pinned, call this function again
-				// to get the next viable symbol after this one.
-				if (symbolAlreadyPinned) {
-					// if an already-pinned symbol occurs before the paged offset
-					// then we need to bump the offset forward
-					if (symbolIndex < symbolIndexStartTakingFrom) {
-						symbolIndexStartTakingFrom += 1
-					}
-
-					return await getNextSymbol()
 				}
 
 				// if we haven't yet reached the index that we've paged to,
@@ -580,11 +587,17 @@ class Editor {
 					return await getNextSymbol()
 				}
 
+				if (!symbolToPreview) {
+					// we should be previewing this symbol, but couldn't generate a preview
+					console.warn("could not generate preview for symbol", symbols[symbolIndex])
+					return [undefined, undefined, `(${symbols[symbolIndex].name}: no preview)`]
+				}
+
 				// we got a symbol that isn't already pinned, is past the offset, and is up-to-date
 				return [
-					paneContextSymbol.symbol,
-					paneContextSymbol.definitionString,
-					`${paneContext.name}`,
+					symbolToPreview.symbol,
+					symbolToPreview.definitionString,
+					`${symbolToPreview.context.name}`,
 				]
 			}
 
