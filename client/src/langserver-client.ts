@@ -3,9 +3,6 @@ import * as rpc from "vscode-jsonrpc"
 import * as lsp from "vscode-languageserver-protocol"
 import * as events from "events"
 import { clientCapabilities } from "./client-capabilities"
-import { URL as NodeURL, fileURLToPath } from "url"
-import * as path from "path"
-import * as os from "os"
 
 export class ConsoleLogger implements rpc.Logger, rpc.Tracer {
 	error(message: string) {

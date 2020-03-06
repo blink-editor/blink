@@ -202,7 +202,7 @@ def execute(ctags_exe, tag_file, directory, append=False):
     cmd = [ctags_exe, '-f', uris.to_fs_path(uris.from_fs_path(tag_file)), '--languages=Python', '-R'] + CTAG_OPTIONS
     if append:
         cmd.append('--append')
-    cmd.append(uris.to_fs_path(uris.from_fs_path(directory))) # TODO: Fix
+    cmd.append(uris.to_fs_path(uris.from_fs_path(directory)))
 
     log.info("Executing exuberant ctags: %s", cmd)
     log.info("ctags: %s", subprocess.check_output(cmd))

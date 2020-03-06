@@ -24,7 +24,6 @@ import "codemirror/mode/python/python"
 // import "codemirror/lib/codemirror.css"
 // import "codemirror/theme/monokai.css"
 import "codemirror/addon/hint/show-hint"
-import { SymbolInformation } from "vscode-languageserver-protocol"
 // import "codemirror/addon/hint/show-hint.css"
 
 interface PaneObject {
@@ -368,7 +367,6 @@ class Editor {
 	// closes prompt allowing user to fuzzy search for symbol and jump to it
 	closeJumpToSymByName(event: MouseEvent) {
 		// check that user clicked on #modal-container
-		console.log((event.target as HTMLElement).id)
 		if ((event.target as HTMLElement).id === "modal-container")
 			this.closeJumpToSymByNameUnconditional()
 	}
@@ -384,7 +382,6 @@ class Editor {
 	}
 
 	addJumpToSymByNameListener() {
-		// move this listener to somewhere else
 		const nameInput = (document.querySelector("#find-name-input") as HTMLInputElement)
 		nameInput.addEventListener("input", () => {
 		  // query string
@@ -836,14 +833,14 @@ class Editor {
 	 * loop through all contexts and save them
 	 */
 	saveFile() {
-			(document.querySelector("#save-button-indicator-group")! as HTMLDivElement).classList.remove("save-button-with-indicator");
+		(document.querySelector("#save-button-indicator-group")! as HTMLDivElement).classList.remove("save-button-with-indicator");
 		this.currentProject.contexts.forEach((context) => {
 			if (!context.hasChanges) { return }
 			const hasPath = context.uri !== null
 
 			if (hasPath) {
-				promisify(fs.writeFile)(new NodeURL(context.uri), context.fileString, { encoding: "utf8" })
-				this.lspClient.saveDocument({ uri: context.uri }, context.fileString)
+				return promisify(fs.writeFile)(new NodeURL(context.uri), context.fileString, { encoding: "utf8" })
+					.then(() => this.lspClient.saveDocument({ uri: context.uri }, context.fileString))
 			} else {
 				const dialog = electron.remote.dialog
 
@@ -852,8 +849,8 @@ class Editor {
 						if (!result.filePath) {
 							return Promise.reject()
 						}
-						promisify(fs.writeFile)(result.filePath, context.fileString, { encoding: "utf8" })
-						return this.lspClient.saveDocument({ uri: context.uri }, context.fileString)
+						return promisify(fs.writeFile)(result.filePath, context.fileString, { encoding: "utf8" })
+							.then(() => this.lspClient.saveDocument({ uri: context.uri }, context.fileString))
 					})
 			}
 
