@@ -1,7 +1,7 @@
 import * as lsp from "vscode-languageserver-protocol"
 import { SymbolInfo } from "./nav-object"
 
-const extractRangeOfFile = function(file, range): string {
+const extractRangeOfFile = function(file: string, range: lsp.Range): string {
 	const allLines = file.split("\n") // TODO: worry about other line endings
 
 	if (range.start.line === range.end.line) {
@@ -85,15 +85,12 @@ export class Context{
 						return [potentialParentSymbol.symbol, potentialParentSymbol.definitionString]
 					}
 
-					const parentTextArray = potentialParentSymbol.definitionString.split("\n")
+					const rangeToExtract = {
+						start: { line: innerRange.start.line, character: 0 },
+						end: { line: innerRange.end.line, character: 0 }
+					}
 
-					const innerSymbolStartLineInParent = innerRange.start.line - potentialParentSymbol.symbol.range.start.line
-					parentTextArray.splice(0, innerSymbolStartLineInParent)
-
-					const innerSymbolEndLineInParent = innerRange.end.line - potentialParentSymbol.symbol.range.start.line
-					parentTextArray.length = innerSymbolEndLineInParent
-
-					const retText = parentTextArray.join("\n")
+					const retText = extractRangeOfFile(this.fileString, rangeToExtract)
 					return [potentialParentSymbol.symbol, retText]
 			}
 		}

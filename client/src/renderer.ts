@@ -384,7 +384,7 @@ class Editor {
 	addJumpToSymByNameListener() {
 		const nameInput = (document.querySelector("#find-name-input") as HTMLInputElement)
 		nameInput.addEventListener("input", () => {
-		  // query string
+			// query string
 			const query = nameInput.value
 
 			// refresh results list
@@ -642,6 +642,39 @@ class Editor {
 			let symbolIndexStartTakingFrom = index
 			let symbolIndex = -1
 
+			// strip leading tabs/spaces from definition string such that the minimum necessary indentation results
+			const stripWhitespace = (origString: string): string => {
+				// split string into lines
+				const lines: string[] = origString.split("\n")
+				// count min number of spaces/tabs
+				let leastCount: number = -1
+				for (const line of lines) {
+					if (line.length === 0) {
+						continue
+					}
+					let count: number = 0
+					for (const char of line) {
+						if (char === " " || char === "\t") {
+							count += 1
+						}
+						else {
+							break
+						}
+					}
+					if (leastCount === -1 || count < leastCount) {
+						leastCount = count
+					}
+				}
+				// this shouldn't happen unless the string is all whitespace/empty
+				if (leastCount === -1) {
+					return origString
+				}
+				// construct new string with stripped whitespace
+				return lines
+					.map((line) => line.slice(leastCount))
+					.join("\n")
+			}
+
 			const getNextSymbol = async (): Promise<[SymbolInfo | undefined, string | undefined, string]> => {
 				symbolIndex += 1
 
@@ -685,7 +718,7 @@ class Editor {
 				// we got a symbol that isn't already pinned, is past the offset, and is up-to-date
 				return [
 					symbolToPreview.symbol,
-					symbolToPreview.definitionString,
+					stripWhitespace(symbolToPreview.definitionString),
 					`${symbolToPreview.context.name}`,
 				]
 			}
