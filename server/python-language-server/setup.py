@@ -38,7 +38,8 @@ setup(
         'backports.functools_lru_cache; python_version<"3.2"',
         'jedi>=0.15.0,<0.16',
         'python-jsonrpc-server>=0.1.0',
-        'pluggy'
+        'pluggy',
+        'fuzzywuzzy'
     ],
 
     # List additional groups of dependencies here (e.g. development
@@ -78,6 +79,7 @@ setup(
         ],
         'pyls': [
             'autopep8 = pyls.plugins.autopep8_format',
+            'ctags = pyls.plugins.ctags:INSTANCE',
             'flake8 = pyls.plugins.flake8_lint',
             'jedi_completion = pyls.plugins.jedi_completion',
             'jedi_definition = pyls.plugins.definition',
