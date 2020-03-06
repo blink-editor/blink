@@ -670,12 +670,9 @@ class Editor {
 					return origString
 				}
 				// construct new string with stripped whitespace
-				let newString = ""
-				for (const line of lines) {
-					newString += line.slice(leastCount) + "\n"
-				}
-
-				return newString
+				return lines
+					.map((line) => line.slice(leastCount))
+					.join("\n")
 			}
 
 			const getNextSymbol = async (): Promise<[SymbolInfo | undefined, string | undefined, string]> => {
