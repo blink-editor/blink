@@ -47,6 +47,11 @@ export interface LspClient {
 	openDocument(documentInfo: DocumentInfo)
 
 	/**
+	 * Sends a document did save notification to the server
+	 */
+	saveDocument(textDocument: lsp.TextDocumentIdentifier, text: string)
+
+	/**
 	 * Sends a document close notification to the server
 	 */
 	closeDocument(uri: string)
@@ -134,9 +139,14 @@ export interface LspClient {
 	 */
 	isReferencesSupported(): boolean
 
+	getBaseSettings(): lsp.DidChangeConfigurationParams
+
+	changeConfiguration(settings: lsp.DidChangeConfigurationParams)
+
 	// TODO: refactor
 	getUsedDocumentSymbols(uri: string): Thenable<lsp.DocumentSymbol[] | lsp.SymbolInformation[] | null>
 	getReferencesWithRequest(request: lsp.ReferenceParams): Thenable<lsp.Location[] | null>
+	getWorkspaceSymbols(query: string): Thenable<lsp.SymbolInformation[] | null>
 }
 
 export function createTcpRpcConnection(
@@ -238,6 +248,26 @@ export class LspClientImpl extends events.EventEmitter implements LspClient {
 	private isInitialized = false
 	private serverCapabilities: lsp.ServerCapabilities
 
+	public getBaseSettings(): lsp.DidChangeConfigurationParams {
+		return {
+			// TODO: make settings language-server-agnostic
+			settings: {
+				pyls: {
+					plugins: {
+						pycodestyle: {
+							enabled: false
+						},
+						ctags: {
+							ctagsPath: "ctags", // path to ctags executable
+							tagFiles: [],
+							enabled: true
+						}
+					}
+				}
+			}
+		}
+	}
+
 	/**
 	 * Initializes an LspClient
 	 *
@@ -308,7 +338,7 @@ export class LspClientImpl extends events.EventEmitter implements LspClient {
 		})
 
 		this.connection.onError((e) => {
-			logger?.error(`onError (${event})`)
+			logger?.error(`onError (${e})`)
 		})
 
 		if (logger !== undefined) {
@@ -345,16 +375,7 @@ export class LspClientImpl extends events.EventEmitter implements LspClient {
 
 			this.connection.sendNotification("initialized")
 			this.connection.sendNotification("workspace/didChangeConfiguration", {
-				settings: {
-					// TODO: make settings language-server-agnostic
-					pyls: {
-						plugins: {
-							pycodestyle: {
-								enabled: false
-							}
-						}
-					}
-				},
+				settings: this.getBaseSettings()
 			})
 
 			this.emit("initialized")
@@ -378,6 +399,14 @@ export class LspClientImpl extends events.EventEmitter implements LspClient {
 		})
 	}
 
+	public saveDocument(textDocument: lsp.TextDocumentIdentifier, text: string) {
+		this.logger?.log("Saving file" + textDocument.uri)
+		this.connection.sendNotification("textDocument/didSave", {
+			textDocument: textDocument,
+			text: text
+		})
+	}
+
 	public closeDocument(uri: string) {
 		if (!this.documents[uri]) {
 			return
@@ -388,6 +417,10 @@ export class LspClientImpl extends events.EventEmitter implements LspClient {
 		this.connection.sendNotification("textDocument/didClose", {
 			uri: uri
 		})
+	}
+
+	public changeConfiguration(settings: lsp.DidChangeConfigurationParams) {
+		this.connection.sendNotification("workspace/didChangeConfiguration", settings)
 	}
 
 	public isDocumentOpen(uri: string): boolean {
@@ -624,6 +657,10 @@ export class LspClientImpl extends events.EventEmitter implements LspClient {
 
 	public getReferencesWithRequest(request: lsp.ReferenceParams): Thenable<lsp.Location[] | null> {
 		return this.connection.sendRequest("textDocument/references", request)
+	}
+
+	public getWorkspaceSymbols(query: string): Thenable<lsp.SymbolInformation[] | null> {
+		return this.connection.sendRequest("workspace/symbol", { query: query })
 	}
 
 	/**

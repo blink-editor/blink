@@ -2,6 +2,7 @@
 // be executed in the renderer process for that window.
 
 import * as fs from "fs"
+import * as os from "os"
 import * as path from "path"
 import { promisify } from "util"
 import { URL as NodeURL, pathToFileURL, fileURLToPath } from "url"
@@ -101,6 +102,9 @@ class Editor {
 			return pane
 		}
 
+		// add listener for "Jump to Symbol by Name" feature
+		this.addJumpToSymByNameListener()
+
 		// create callee preview panes (top)
 		this.calleePanes = [
 			createPane("top-left-pane", true),
@@ -190,6 +194,7 @@ class Editor {
 		onShortcut("JumpPane6", () => this.swapToCaller(2))
 		onShortcut("NavigateBack", () => this.navBack())
 		onShortcut("navigateForward", () => this.navForward())
+		onShortcut("JumpByName", () => {this.openJumpToSymByName()})
 		onShortcut("Undo", () => this.activeEditorPane.editor.undo())
 		onShortcut("Redo", () => this.activeEditorPane.editor.redo())
 		onShortcut("SelectAll", () => {
@@ -249,7 +254,12 @@ class Editor {
 		context.topLevelSymbols[activeSymbol.name].definitionString = text
 
 		const newFile = context.getLinearizedCode()
+
 		context.fileString = newFile
+
+		if(context.hasChanges){
+			(document.querySelector("#save-button-indicator-group")! as HTMLDivElement).classList.add("save-button-with-indicator");
+		}
 
 		return newFile
 	}
@@ -302,7 +312,7 @@ class Editor {
 		// TODO: ask context for symbol instead
 		const locatedSymbol = this.navObject.bestSymbolForLocation(location)
 		if (locatedSymbol) {
-			this.swapToSymbol(locatedSymbol)
+			this.swapToPossiblyNestedSymbol(locatedSymbol)
 		}
 	}
 
@@ -346,6 +356,63 @@ class Editor {
 		const maxIndex = Math.max(Math.floor((this.callersOfActive.length - 1) / 3) * 3, 0)
 		this.callerIndex = Math.min(this.callerIndex + freePanes, maxIndex)
 		this.updatePreviewPanes()
+	}
+
+	// opens prompt allowing user to fuzzy search for symbol and jump to it
+	openJumpToSymByName() {
+		(document.querySelector("#modal-container") as HTMLDivElement).style.display = "flex";
+		(document.querySelector("#find-name-input") as HTMLInputElement).focus();
+	}
+
+	// closes prompt allowing user to fuzzy search for symbol and jump to it
+	closeJumpToSymByName(event: MouseEvent) {
+		// check that user clicked on #modal-container
+		if ((event.target as HTMLElement).id === "modal-container")
+			this.closeJumpToSymByNameUnconditional()
+	}
+
+	closeJumpToSymByNameUnconditional() {
+		// close window
+		(document.querySelector("#modal-container") as HTMLDivElement).style.display = "none"
+		// clear input
+		;(document.querySelector("#find-name-input") as HTMLInputElement).value = ""
+		// clear results
+		const list = document.querySelector("#find-name-result-list")!
+		Array.from(list.children).forEach((e) => list.removeChild(e))
+	}
+
+	addJumpToSymByNameListener() {
+		const nameInput = (document.querySelector("#find-name-input") as HTMLInputElement)
+		nameInput.addEventListener("input", () => {
+			// query string
+			const query = nameInput.value
+
+			// refresh results list
+			const list = document.querySelector("#find-name-result-list")!
+			Array.from(list.children).forEach((e) => list.removeChild(e))
+
+			// make lsp call
+			this.lspClient.getWorkspaceSymbols(query).then((results) => {
+				results?.forEach((result: lsp.SymbolInformation, i) => {
+					// only display first 12 results
+					if (i > 11) { return }
+
+					// add symbol to list of results
+					const el = document.createElement("li")
+					el.classList.add("response-list-item")
+					el.innerText = result.name
+
+					// use closure to specify which symbol to swap to when clicked
+					el.addEventListener("click", () => {
+						// swap to clicked symbol and close window
+						this.swapToPossiblyNestedSymbol(result)
+						this.closeJumpToSymByNameUnconditional()
+					})
+
+					list.appendChild(el)
+				})
+			})
+		})
 	}
 
 	navigateToUpdatedSymbol(navObject: NavObject) {
@@ -493,6 +560,66 @@ class Editor {
 		this.updatePreviewPanes()
 	}
 
+	/**
+	 * Swaps to a symbol, finding its container if the given symbol
+	 * should not be directly placed into the active editor pane.
+	 */
+	async swapToPossiblyNestedSymbol(rawSymbol: lsp.SymbolInformation | SymbolInfo, updateStack: boolean = true) {
+		const symbolToNavigateTo = await this.getSymbolToNavigateTo(rawSymbol)
+		if (symbolToNavigateTo) {
+			this.swapToSymbol(symbolToNavigateTo, updateStack)
+		}
+	}
+
+	/**
+	 * Takes a symbol which may not be top level and returns
+	 * the symbol that should be placed in the active editor
+	 * pane when navigating to the given symbol.
+	 *
+	 * For example, given a class method, will return the class.
+	 * Given a top-level function/class, will just return it.
+	 */
+	async getSymbolToNavigateTo(rawSymbol: lsp.SymbolInformation | SymbolInfo): Promise<SymbolInfo | undefined> {
+		return (await this._getSymbolPreviewDetails(rawSymbol))?.symbol
+	}
+
+	/**
+	 * Returns symbol to navigate to, preview string, and context
+	 * of the given symbol.
+	 */
+	async _getSymbolPreviewDetails(rawSymbol: lsp.SymbolInformation | SymbolInfo):
+		Promise<{ symbol: SymbolInfo; definitionString: string; context: Context } | undefined>
+	{
+		// we need the context to find the most updated copy of this symbol
+		const context = await this.retrieveContextForSymbol(rawSymbol)
+
+		// if we can't find the context, warn and return undefined
+		if (!context) {
+			console.warn("did not find context for symbol", rawSymbol)
+			return undefined
+		}
+
+		// attempt to find the most updated copy of this symbol
+		const topLevelSymbol = context.topLevelSymbols[rawSymbol.name]
+		if (topLevelSymbol) {
+			return { ...topLevelSymbol, context }
+		}
+
+		// If we didn't find the symbol at the top level, then
+		// check if the wanted symbol is a child of a top-level symbol.
+		const topLevelContainerSymbol = context.getTopLevelSymbolContaining(rawSymbol)
+		if (topLevelContainerSymbol) {
+			return {
+				symbol: topLevelContainerSymbol[0],
+				definitionString: topLevelContainerSymbol[1],
+				context
+			}
+		} else {
+			console.warn("did not find symbol to navigate to for symbol", rawSymbol)
+			return undefined
+		}
+	}
+
 	private symbolsEqual = (symbolA: SymbolInfo, symbolB: SymbolInfo): boolean => {
 		// TODO: will this always hold?
 		return symbolA.name === symbolB.name && symbolA.uri === symbolB.uri
@@ -515,6 +642,39 @@ class Editor {
 			let symbolIndexStartTakingFrom = index
 			let symbolIndex = -1
 
+			// strip leading tabs/spaces from definition string such that the minimum necessary indentation results
+			const stripWhitespace = (origString: string): string => {
+				// split string into lines
+				const lines: string[] = origString.split("\n")
+				// count min number of spaces/tabs
+				let leastCount: number = -1
+				for (const line of lines) {
+					if (line.length === 0) {
+						continue
+					}
+					let count: number = 0
+					for (const char of line) {
+						if (char === " " || char === "\t") {
+							count += 1
+						}
+						else {
+							break
+						}
+					}
+					if (leastCount === -1 || count < leastCount) {
+						leastCount = count
+					}
+				}
+				// this shouldn't happen unless the string is all whitespace/empty
+				if (leastCount === -1) {
+					return origString
+				}
+				// construct new string with stripped whitespace
+				return lines
+					.map((line) => line.slice(leastCount))
+					.join("\n")
+			}
+
 			const getNextSymbol = async (): Promise<[SymbolInfo | undefined, string | undefined, string]> => {
 				symbolIndex += 1
 
@@ -523,50 +683,24 @@ class Editor {
 					return [undefined, undefined, "(no symbol)"]
 				}
 
-				const rawSymbol = symbols[symbolIndex]
+				const symbolToPreview = await this._getSymbolPreviewDetails(symbols[symbolIndex])
 
-				// we need the context to find the most updated copy of this symbol
-				const paneContext = await this.retrieveContextForSymbol(rawSymbol)
+				if (symbolToPreview) {
+					// check if this candidate symbol is already in a pinned pane
+					const symbolAlreadyPinned = pinnedSymbols
+						.find((pinnedSymbol) => this.symbolsEqual(pinnedSymbol, symbolToPreview.symbol))
 
-				// if we can't find the context, warn and return undefined
-				if (!paneContext) {
-					console.warn("did not find context for pane symbol", rawSymbol)
-					return [undefined, undefined, `(${rawSymbol.name}: no matching context)`]
-				}
-
-				// attempt to find the most updated copy of this symbol
-				let paneContextSymbol = paneContext.topLevelSymbols[rawSymbol.name]
-
-				if (!paneContextSymbol) {
-					// If we didn't find the symbol at the top level, then
-					// check if the wanted symbol is a child of a top-level symbol.
-					const topLevelInfoContainingSymbol = paneContext.getTopLevelSymbolContaining(rawSymbol)
-					if (topLevelInfoContainingSymbol) {
-						paneContextSymbol = {
-							symbol: topLevelInfoContainingSymbol[0],
-							definitionString: topLevelInfoContainingSymbol[1],
+					// if the symbol is already pinned, call this function again
+					// to get the next viable symbol after this one.
+					if (symbolAlreadyPinned) {
+						// if an already-pinned symbol occurs before the paged-to offset
+						// then we need to bump the offset forward
+						if (symbolIndex < symbolIndexStartTakingFrom) {
+							symbolIndexStartTakingFrom += 1
 						}
-					} else {
-						// couldn't find the symbol; warn and return undefined
-						console.warn("did not find top-level symbol for", rawSymbol, "in", paneContext)
-						return [undefined, undefined, `(${rawSymbol.name}: not top level)`]
+
+						return await getNextSymbol()
 					}
-				}
-
-				// check if this candidate symbol is already in a pinned pane
-				const symbolAlreadyPinned = pinnedSymbols
-					.find((pinnedSymbol) => this.symbolsEqual(pinnedSymbol, paneContextSymbol.symbol))
-
-				// if the symbol is already pinned, call this function again
-				// to get the next viable symbol after this one.
-				if (symbolAlreadyPinned) {
-					// if an already-pinned symbol occurs before the paged offset
-					// then we need to bump the offset forward
-					if (symbolIndex < symbolIndexStartTakingFrom) {
-						symbolIndexStartTakingFrom += 1
-					}
-
-					return await getNextSymbol()
 				}
 
 				// if we haven't yet reached the index that we've paged to,
@@ -575,11 +709,17 @@ class Editor {
 					return await getNextSymbol()
 				}
 
+				if (!symbolToPreview) {
+					// we should be previewing this symbol, but couldn't generate a preview
+					console.warn("could not generate preview for symbol", symbols[symbolIndex])
+					return [undefined, undefined, `(${symbols[symbolIndex].name}: no preview)`]
+				}
+
 				// we got a symbol that isn't already pinned, is past the offset, and is up-to-date
 				return [
-					paneContextSymbol.symbol,
-					paneContextSymbol.definitionString,
-					`${paneContext.name}`,
+					symbolToPreview.symbol,
+					stripWhitespace(symbolToPreview.definitionString),
+					`${symbolToPreview.context.name}`,
 				]
 			}
 
@@ -613,7 +753,7 @@ class Editor {
 		}
 	}
 
-	async setFile(text: string, fileDir: string) {
+	async setFile(text: string, filePath: string) {
 		this.pendingSwap = null
 		this.activeEditorPane.symbol = null
 		this.calleePanes.forEach((p) => p.symbol = null)
@@ -621,13 +761,22 @@ class Editor {
 
 		this.navObject.reset()
 
-		const url = pathToFileURL(path.resolve(fileDir))
+		const url = pathToFileURL(path.resolve(filePath))
 		// language server normalizes drive letter to lowercase, so follow
 		if (process.platform === "win32" && (url.pathname ?? "")[2] == ":")
 			url.pathname = "/" + url.pathname[1].toLowerCase() + url.pathname.slice(2)
 		const uri = url.toString()
 
+		const fileDir = path.resolve(path.dirname(filePath))
 		this.currentProject = new Project("Untitled", fileDir)
+
+		// update server settings (ctags)
+		const baseSettings = this.lspClient.getBaseSettings().settings
+		baseSettings.pyls.plugins.ctags.tagFiles.push({
+			filePath: path.join(os.tmpdir(), "blink_tags"), // directory of tags file
+			directory: fileDir // directory of project
+		})
+		this.lspClient.changeConfiguration({ settings: baseSettings })
 
 		// change file and kick off reanalysis to find main initially
 		this.ChangeOwnedFile(uri, text)
@@ -755,13 +904,14 @@ class Editor {
 	 * loop through all contexts and save them
 	 */
 	saveFile() {
+		(document.querySelector("#save-button-indicator-group")! as HTMLDivElement).classList.remove("save-button-with-indicator");
 		this.currentProject.contexts.forEach((context) => {
 			if (!context.hasChanges) { return }
-
 			const hasPath = context.uri !== null
 
 			if (hasPath) {
-				promisify(fs.writeFile)(new NodeURL(context.uri), context.fileString, { encoding: "utf8" })
+				return promisify(fs.writeFile)(new NodeURL(context.uri), context.fileString, { encoding: "utf8" })
+					.then(() => this.lspClient.saveDocument({ uri: context.uri }, context.fileString))
 			} else {
 				const dialog = electron.remote.dialog
 
@@ -770,10 +920,11 @@ class Editor {
 						if (!result.filePath) {
 							return Promise.reject()
 						}
-
 						return promisify(fs.writeFile)(result.filePath, context.fileString, { encoding: "utf8" })
+							.then(() => this.lspClient.saveDocument({ uri: context.uri }, context.fileString))
 					})
 			}
+
 		})
 	}
 
@@ -781,7 +932,6 @@ class Editor {
 		const symbol = this.activeEditorPane.symbol
 		if (!symbol) { return }
 		const scriptPath = fileURLToPath(new NodeURL(symbol.uri))
-
 		const ls = spawn(
 			"python3",
 			[scriptPath]
@@ -851,7 +1001,7 @@ class Editor {
 				e.preventDefault()
 				const symbol = (e.node as TreeItem).rayBensSymbol
 				if (symbol) {
-					this.swapToSymbol(symbol)
+					this.swapToPossiblyNestedSymbol(symbol)
 				}
 			}
 		)

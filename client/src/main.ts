@@ -206,6 +206,11 @@ class Application {
 					click: () => sendRendererMessage("PanePageLeft")
 				},
 				{ type: "separator" },
+				{
+					label: "Jump to Symbol by Name",
+					accelerator: isMac ? "Cmd+Shift+O" : "Ctrl+Shift+O",
+					click: () => sendRendererMessage("JumpByName")
+				},
 			]
 		},
 		// { role: "viewMenu" }

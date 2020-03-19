@@ -45,9 +45,35 @@
 			color: white;
 		}
 
+		.file-open-button{
+			padding-bottom: 4px !important;
+		}
+
+		#save-button{
+			padding-top: 0px;
+		}
+
+		#save-indicator{
+			color: aquamarine;
+			padding-right: 20px;
+		}
+
+		#save-button-indicator-group:not(.save-button-with-indicator) #save-indicator{
+			display: none;
+		}
+
+		#save-button-indicator-group:not(.save-button-with-indicator){
+			padding-top: 20px;
+		}
+
+		.save-button-with-indicator{
+			padding-top: 0px;
+		}
+
 		.sidebar .nav-item button {
 			background: #727273;
 			border: 0px;
+			outline: none;
 		}
 
 		.sidebar-true {
@@ -109,10 +135,119 @@
 			border-top: 1px solid white;
 		}
 
+		/* Change scroll bar style */
+		.CodeMirror-vscrollbar::-webkit-scrollbar {
+			width: 0.5rem;
+		}
+		.CodeMirror-vscrollbar::-webkit-scrollbar-track {
+			background: #1e1e24;
+		}
+		.CodeMirror-vscrollbar::-webkit-scrollbar-thumb {
+			background: #565578;
+			border-radius: 0.3rem;
+		}
+
+		.CodeMirror-hscrollbar::-webkit-scrollbar {
+			height: 0.5rem;
+		}
+		.CodeMirror-hscrollbar::-webkit-scrollbar-track {
+			background: #1e1e24;
+		}
+		.CodeMirror-hscrollbar::-webkit-scrollbar-thumb {
+			background: #565578;
+			border-radius: 0.2rem;
+		}
+
+		.CodeMirror-scrollbar-filler{
+			background: #1e1e24 !important;
+			background-color: black;
+		}
+		/* ----------- */
+
+		.CodeMirror-gutters{
+			background: #1e1e24;
+		}
+
 		.pin-icon {
 			color: white;
 			transform: rotate(30deg);
 			opacity: 0.2;
+		}
+
+		#modal-container {
+			position: absolute;
+			background-color: rgba(0, 0, 0, 0.4);
+			z-index: 6;
+			top: 0;
+			left: 0;
+			width: 100%;
+			height: 100%;
+			flex-direction: column;
+			align-items: center;
+			justify-content: center;
+			align-content: center;
+			display: none; /* hide until needed (then flex) */
+		}
+
+		#find-name-modal {
+			flex: 0 0 auto;
+			width: 350px;
+			height: 225px;
+			background-color: #727273;
+			display: flex;
+			flex-direction: column;
+			border-radius: 5px;
+		}
+
+		#find-name-input {
+			flex: 0 0 auto;
+			background-color: #272822; /* monokai */
+			color: white;
+			width: 100%;
+			margin: 0;
+			font-size: 28pt;
+			border: none;
+			margin-bottom: 3px;
+		}
+
+		#find-name-input:focus{
+			box-shadow: 0px 3px 0px #7977ff;
+			outline: none;
+		}
+
+		#find-name-result-list {
+			flex: 1 1 auto;
+			overflow: scroll;
+			list-style-type: none;
+			margin: 0;
+			padding-left: 0;
+			overflow-x: hidden;
+			font-size: 14pt;
+			font-family: monospace;
+		}
+
+		#find-name-exit {
+			font-size: 12pt;
+			color: black;
+			margin: 0 3px 0;
+			padding: 0;
+			width: 20px;
+			display: inline-block;
+		}
+
+		#find-name-exit:hover {
+			cursor: pointer;
+		}
+
+		#find-name-result-list li:nth-of-type(even) {
+			background-color: lightgrey;
+		}
+		#find-name-result-list li:nth-of-type(odd) {
+			background-color: grey;
+		}
+
+		.response-list-item{
+			padding-left: 2px;
 		}
 
 		.pin-icon:hover, .pin-icon-pinned {
@@ -151,14 +286,17 @@
 					</li>
 
 					<li class="nav-item active">
-						<button class="nav-link" onclick="editor.openFile()" href="" id="open-file">
+						<button class="file-open-button nav-link" onclick="editor.openFile()" href="" id="open-file">
 							<i class="fa fas fa-fw fa-folder-open"></i>
 						</button>
 					</li>
 
 					<li class="nav-item active">
-						<button class="nav-link" onclick="editor.saveFile()" href="" id="save-file">
-							<i class="fa fas fa-fw fa-save"></i>
+						<button class="nav-link" id="save-button" onclick="editor.saveFile()" href="" id="save-file">
+							<div id="save-button-indicator-group">
+								<div id="save-indicator"><i class="fas fa-xs fa-asterisk"></i></div>
+								<i class="fa fas fa-lg fa-save"></i>
+							</div>
 						</button>
 					</li>
 
@@ -269,6 +407,13 @@
 					</div>
 				</div>
 			</main>
+		</div>
+		<div id="modal-container" onclick="editor.closeJumpToSymByName(event)">
+			<div id="find-name-modal">
+				<p id="find-name-exit" onclick="editor.closeJumpToSymByNameUnconditional()">✕</p>
+				<input id="find-name-input" type="text">
+				<ul id="find-name-result-list"></ul>
+			</div>
 		</div>
 
 		<!-- You can also require other files to run in this process -->
