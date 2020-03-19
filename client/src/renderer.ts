@@ -620,16 +620,16 @@ class Editor {
 		}
 	}
 
-	updatePreviewPanes() {
-		const symbolsEqual = (symbolA: SymbolInfo, symbolB: SymbolInfo): boolean => {
-			// TODO: will this always hold?
-			return symbolA.name === symbolB.name && symbolA.uri === symbolB.uri
-				&& symbolA.range.start.line === symbolB.range.start.line
-				&& symbolA.range.start.character === symbolB.range.start.character
-				&& symbolA.range.end.line === symbolB.range.end.line
-				&& symbolA.range.end.character === symbolB.range.end.character
-		}
+	private symbolsEqual = (symbolA: SymbolInfo, symbolB: SymbolInfo): boolean => {
+		// TODO: will this always hold?
+		return symbolA.name === symbolB.name && symbolA.uri === symbolB.uri
+			&& symbolA.range.start.line === symbolB.range.start.line
+			&& symbolA.range.start.character === symbolB.range.start.character
+			&& symbolA.range.end.line === symbolB.range.end.line
+			&& symbolA.range.end.character === symbolB.range.end.character
+	}
 
+	updatePreviewPanes() {
 		const assignSymbols = async (symbols, index, panes) => {
 			const freePanes = panes.filter((pane) => !pane.isPinned)
 
@@ -688,7 +688,7 @@ class Editor {
 				if (symbolToPreview) {
 					// check if this candidate symbol is already in a pinned pane
 					const symbolAlreadyPinned = pinnedSymbols
-						.find((pinnedSymbol) => symbolsEqual(pinnedSymbol, symbolToPreview.symbol))
+						.find((pinnedSymbol) => this.symbolsEqual(pinnedSymbol, symbolToPreview.symbol))
 
 					// if the symbol is already pinned, call this function again
 					// to get the next viable symbol after this one.
@@ -827,6 +827,18 @@ class Editor {
 			if (symbol.name === targetSymbol.name
 					&& symbol.kind === targetSymbol.kind
 					&& symbol.uri === targetSymbol.uri) {
+				continue
+			}
+
+			// if this symbol is already in callers, skip it
+			let passed = true
+			for (const sym2 of callers) {
+				if (this.symbolsEqual(symbol, sym2)) {
+					passed = false
+					break
+				}
+			}
+			if (!passed) {
 				continue
 			}
 

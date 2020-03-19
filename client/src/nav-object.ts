@@ -45,6 +45,14 @@ export class NavObject {
 		return { name: arr[0], kind: arr[1], module: arr[2] }
 	}
 
+	private symbolsEqual = (symbolA: lsp.SymbolInformation, symbolB: lsp.SymbolInformation): boolean => {
+		return symbolA.name === symbolB.name && symbolA.location.uri === symbolB.location.uri
+		&& symbolA.location.range.start.line === symbolB.location.range.start.line
+		&& symbolA.location.range.start.character === symbolB.location.range.start.character
+		&& symbolA.location.range.end.line === symbolB.location.range.end.line
+		&& symbolA.location.range.end.character === symbolB.location.range.end.character
+	}
+
 	/*
 	 * Clears the symbol cache.
 	 */
@@ -152,7 +160,7 @@ export class NavObject {
 	/*
 	 * Finds the callers of a function whose name is at the position given. Should be called on navigate, return, save.
 	 * @param symPos  A position object representing the position of the name of the function to find callers of.
-	 * @returns       An array of DocumentSymbol objects with ranges that enclose the definitions of calling functions.
+	 * @returns       An array of Location objects with ranges that enclose the definitions of calling functions.
 	 */
 	findCallers(symPos: lsp.TextDocumentPositionParams): Thenable<lsp.Location[]> {
 		const request: lsp.ReferenceParams = {
@@ -211,8 +219,22 @@ export class NavObject {
 
 					output.push(symbol)
 				}
+				// filter out duplicate symbols
+				const newOutput: lsp.SymbolInformation[] = []
+				for (const sym1 of output) {
+					let passed: boolean = true
+					for (const sym2 of newOutput) {
+						if (this.symbolsEqual(sym1, sym2)) {
+							passed = false
+							break
+						}
+					}
+					if (passed) {
+						newOutput.push(sym1)
+					}
+				}
 
-				return output
+				return newOutput
 			})
 	}
 
