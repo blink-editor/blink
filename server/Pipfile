@@ -9,6 +9,7 @@ verify_ssl = true
 jedi = "*"
 pyflakes = "*"
 python-language-server = {editable = true,path = "./python-language-server"}
+rope = "*"
 
 [requires]
 python_version = "3.7"

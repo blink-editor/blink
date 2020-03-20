@@ -639,6 +639,10 @@ export class CodeMirrorAdapter extends IEditorAdapter<CodeMirror.Editor> {
 			if (this.connection.isReferencesSupported()) {
 				entries.push(this.referencesContextEntry(docPosition))
 			}
+
+			if (this.connection.isRenameSupported()) {
+				entries.push(this.renameContextEntry(docPosition))
+			}
 		}
 
 		if (entries.length === 0) {
@@ -684,6 +688,22 @@ export class CodeMirrorAdapter extends IEditorAdapter<CodeMirror.Editor> {
 		getReferences.innerText = "Find all References"
 		getReferences.addEventListener("click", () => {
 			this.connection.getReferences(this.document!.uri, this._docPositionToLsp(docPosition))
+		})
+		return getReferences
+	}
+
+	private renameContextEntry(docPosition: CodeMirror.Position): HTMLDivElement {
+		const getReferences = document.createElement("div")
+		getReferences.innerText = "Rename Symbol"
+		getReferences.addEventListener("click", () => {
+			const newName = "renameFoo" // TODO
+			console.log(this.document!.uri)
+			console.log(this._docPositionToLsp(docPosition))
+			console.log(newName)
+			this.connection.renameSymbol(this.document!.uri, this._docPositionToLsp(docPosition), newName)
+			.then((result: lsp.WorkspaceEdit | null) => {
+				console.log(result)
+			})
 		})
 		return getReferences
 	}
