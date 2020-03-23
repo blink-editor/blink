@@ -59,13 +59,14 @@ function persistentDialog(cm, text, deflt, onEnter, onKeyDown) {
 		value: deflt,
 		selectValueOnOpen: true,
 		closeOnEnter: false,
+		closeOnBlur: false,
 		onClose: function() { clearSearch(cm); },
 		onKeyDown: onKeyDown
 	});
 }
 
 function dialog(cm, text, shortText, deflt, f) {
-	if (cm.openDialog) cm.openDialog(text, f, {value: deflt, selectValueOnOpen: true});
+	if (cm.openDialog) cm.openDialog(text, f, {value: deflt, closeOnBlur: false, selectValueOnOpen: true});
 	else f(prompt(shortText, deflt));
 }
 
