@@ -189,6 +189,7 @@ class Editor {
 		onShortcut("SelectAll", () => {
 			CodeMirror.commands.selectAll(this.activeEditorPane.editor)
 		})
+		onShortcut("NewProject", () => {this.createNewProject()})
 	}
 
 	/**
@@ -225,6 +226,64 @@ class Editor {
 				console.assert(sampleFileText, "must load demo file text")
 				this.setFile(sampleFileText ?? "", "samples/modules/game.py")
 			})
+	}
+
+	// To trigger this run: Cmd+Shift+N
+	async createNewProject() {
+
+		const newProjectURI = "untilted://foo"
+		const newProjectName = "Untitled"
+		const newProjectContent = ""
+
+		this.clearProject()
+		this.currentProject = new Project(newProjectName, newProjectContent)
+		//this.setFile("", "untitled://foo")
+
+		// update server settings (ctags)
+		const baseSettings = this.lspClient.getBaseSettings().settings
+		baseSettings.pyls.plugins.ctags.tagFiles.push({
+			filePath: path.join(os.tmpdir(), "blink_tags"), // directory of tags file
+			directory: newProjectURI // directory of project
+		})
+		this.lspClient.changeConfiguration({ settings: baseSettings })
+
+		// updates the LSPClient and NavObject
+		this.ChangeOwnedFile(newProjectURI, newProjectContent)
+		const navObject = await this.AnalyzeUri(newProjectURI, newProjectContent)
+
+		// populate pane [in place of swapToSymbol]
+		this.activeEditorPane.symbol = null // TODO symbol cannot be null because onFileChange requires a symbol here
+		this.activeEditorPane.editor.setValue(newProjectContent)
+		this.activeEditorPane.editor.clearHistory()
+		this.activeEditorPane.context.textContent = newProjectName
+
+		this.calleesOfActive = []
+		this.callersOfActive = []
+		this.calleeIndex = 0
+		this.callerIndex = 0
+		this.updatePreviewPanes()
+		console.log("<><><><><><><><>")
+		const newSymFromNav = this.navObject.createInitialSymbol()
+		console.log(newSymFromNav)
+		alert("checkout that log.")
+
+
+		// Note To Bradley: I am running into probjems because the topLevelCode and topLevelSymboles are null and I'm trying to reassing them here
+		const initialContext = new Context(newProjectName, newProjectURI, newProjectContent)
+		initialContext.topLevelCode = ""
+		initialContext.topLevelSymbols[newProjectName] = { symbol: newSymFromNav, definitionString: newProjectContent }
+		this.currentProject.contexts.push(initialContext)
+		this.activeEditorPane.symbol = newSymFromNav
+
+		}
+
+	clearProject() {
+		// [from setFile]
+		this.pendingSwap = null
+		this.activeEditorPane.symbol = null
+		this.calleePanes.forEach((p) => p.symbol = null)
+		this.callerPanes.forEach((p) => p.symbol = null)
+		this.navObject.reset()
 	}
 
 	/**
