@@ -142,12 +142,14 @@ class Editor {
 			"Cmd-[": () => this.navBack(),
 			"Cmd-]": () => this.navForward(),
 			"Cmd-F": "findPersistent",
+			"Cmd-Option-F": "replace",
 		}
 
 		const WindowsKeyBindings = {
 			"Ctrl-[": () => this.navBack(),
 			"Ctrl-]": () => this.navForward(),
 			"Ctrl-F": "findPersistent",
+			"Shift-Ctrl-F": "replace",
 		}
 
 		// create active editor pane
