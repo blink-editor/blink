@@ -18,13 +18,16 @@ import { CodeMirrorAdapter } from "./codemirror-adapter"
 import { NavObject, SymbolInfo } from "./nav-object"
 import * as client from "./langserver-client"
 
-// css imported in html for now
+// css imported in html
 // import "./codemirror-lsp.css"
 import "codemirror/mode/python/python"
 // import "codemirror/lib/codemirror.css"
 // import "codemirror/theme/monokai.css"
 import "codemirror/addon/hint/show-hint"
 // import "codemirror/addon/hint/show-hint.css"
+import "codemirror/addon/dialog/dialog"
+import "codemirror/addon/search/search"
+import "codemirror/addon/search/searchcursor"
 
 interface PaneObject {
 	editor: CodeMirror.Editor
@@ -138,13 +141,14 @@ class Editor {
 		const MacKeyBindings = {
 			"Cmd-[": () => this.navBack(),
 			"Cmd-]": () => this.navForward(),
+			"Cmd-F": "findPersistent",
 		}
 
 		const WindowsKeyBindings = {
 			"Ctrl-[": () => this.navBack(),
 			"Ctrl-]": () => this.navForward(),
+			"Ctrl-F": "findPersistent",
 		}
-
 
 		// create active editor pane
 		const activeEditor = CodeMirror(replacePaneElement("main-pane"), {
@@ -160,7 +164,6 @@ class Editor {
 					else cm.execCommand("insertSoftTab")
 				}
 			}, (process.platform === "darwin") ? MacKeyBindings : WindowsKeyBindings),
-
 		})
 
 		this.activeEditorPane = {
@@ -1009,6 +1012,4 @@ class Editor {
 }
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
-
-
 const editor = new Editor()

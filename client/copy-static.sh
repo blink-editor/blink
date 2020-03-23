@@ -2,6 +2,7 @@
 mkdir -p ./dist/node_modules/codemirror/lib/ \
 	./dist/node_modules/codemirror/theme/ \
 	./dist/node_modules/codemirror/addon/hint/ \
+	./dist/node_modules/codemirror/addon/dialog/ \
 	./dist/node_modules/bootstrap/dist/css/ \
 	./dist/node_modules/bootstrap/dist/js/ \
 	./dist/node_modules/jquery/dist/ \
@@ -14,6 +15,7 @@ cp ./src/index.html ./src/codemirror-lsp.css ./dist
 cp ./node_modules/codemirror/lib/codemirror.css ./dist/node_modules/codemirror/lib/codemirror.css
 cp ./node_modules/codemirror/theme/monokai.css ./dist/node_modules/codemirror/theme/monokai.css
 cp ./node_modules/codemirror/addon/hint/show-hint.css ./dist/node_modules/codemirror/addon/hint/show-hint.css
+cp ./node_modules/codemirror/addon/dialog/dialog.css ./dist/node_modules/codemirror/addon/dialog/dialog.css
 cp ./node_modules/bootstrap/dist/css/bootstrap.min.css ./dist/node_modules/bootstrap/dist/css/bootstrap.min.css
 cp ./node_modules/bootstrap/dist/js/bootstrap.bundle.min.js ./dist/node_modules/bootstrap/dist/js/bootstrap.bundle.min.js
 cp ./node_modules/jquery/dist/jquery.min.js ./dist/node_modules/jquery/dist/jquery.min.js
