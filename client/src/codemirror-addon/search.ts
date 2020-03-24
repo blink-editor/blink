@@ -159,6 +159,11 @@ function doSearch(cm, rev, persistent, immediate) {
 			});
 		});
 	}
+
+	const includePanesToggle: HTMLInputElement | null = document.querySelector("#CodeMirror-search-RayBens-include-panes-toggle")
+	includePanesToggle?.addEventListener("change", (e) => {
+		console.warn("include panes changed to", includePanesToggle!.checked)
+	})
 }
 
 function findNext(cm, rev, callback) {cm.operation(function() {
@@ -185,7 +190,8 @@ function clearSearch(cm) {cm.operation(function() {
 
 
 function getQueryDialog(cm) {
-	return '<span class="CodeMirror-search-label">' + cm.phrase("Search:") + '</span> <input type="text" style="width: 10em" class="CodeMirror-search-field"/> <span style="color: #888" class="CodeMirror-search-hint">' + cm.phrase("(Use /re/ syntax for regexp search)") + '</span>';
+	return '<span class="CodeMirror-search-label">' + cm.phrase("Search:") + '</span> <input type="text" style="width: 10em" class="CodeMirror-search-field"/> <span style="color: #888" class="CodeMirror-search-hint">' + cm.phrase("(Use /re/ syntax for regexp search)") + '</span>'
+		+ '<label style="margin-left: 8px;"><input type="checkbox" id="CodeMirror-search-RayBens-include-panes-toggle" style="width: auto; margin-right: 8px;">' + cm.phrase("Include panes") + '</label>';
 }
 function getReplaceQueryDialog(cm) {
 	return ' <input type="text" style="width: 10em" class="CodeMirror-search-field"/> <span style="color: #888" class="CodeMirror-search-hint">' + cm.phrase("(Use /re/ syntax for regexp search)") + '</span>';
