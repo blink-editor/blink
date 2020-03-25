@@ -7,14 +7,7 @@ import { SymbolInfo } from "./nav-object"
 import * as lsp from "vscode-languageserver-protocol"
 
 export class Project {
-	public readonly name: string
-	public readonly directory: string
 	public contexts: Context[] = []
-
-	constructor(name: string, filePath: string) {
-		this.name = name
-		this.directory = filePath
-	}
 
 	// TODO: this isn't language-agnostic
 	contextForUri(uri: string): Context | undefined {

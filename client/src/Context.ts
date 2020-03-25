@@ -315,7 +315,7 @@ export class Context {
 			return firstNonImport
 		}
 
-		return Object.values(this.topLevelSymbols)[0].symbol
+		return Object.values(this.topLevelSymbols)[0]?.symbol
 	}
 
 	/**

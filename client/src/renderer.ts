@@ -34,6 +34,16 @@ interface PaneObject {
 	pinImg: Element | null
 }
 
+interface NewSymbolInContext {
+	context: Context
+}
+
+interface ActiveEditorPane {
+	editor: CodeMirror.Editor
+	context: Element
+	symbol: SymbolInfo | NewSymbolInContext | null
+}
+
 class Editor {
 	// program state
 	lspClient: client.LspClient
@@ -47,7 +57,7 @@ class Editor {
 	navStack: SymbolInfo[] = []
 	curNavStackIndex = 0
 
-	activeEditorPane: PaneObject
+	activeEditorPane: ActiveEditorPane
 
 	calleesOfActive: lsp.SymbolInformation[] = []
 	callersOfActive: SymbolInfo[] = []
@@ -56,7 +66,7 @@ class Editor {
 
 	projectStructureToggled: boolean = false
 
-	currentProject: Project = new Project("Untitled", "") // TODO
+	currentProject: Project = new Project()
 
 	constructor() {
 		const replacePaneElement = (id) => (codemirror) => {
@@ -156,8 +166,6 @@ class Editor {
 			editor: activeEditor,
 			context: document.querySelector("#main-pane .context-label")!,
 			symbol: null,
-			isPinned: false,
-			pinImg: null,
 		}
 
 		// nag the main process to start the server for us if
@@ -189,7 +197,7 @@ class Editor {
 		onShortcut("SelectAll", () => {
 			CodeMirror.commands.selectAll(this.activeEditorPane.editor)
 		})
-		onShortcut("NewProject", () => {this.createNewProject()})
+		onShortcut("NewProject", () => this.setUntitled())
 	}
 
 	/**
@@ -228,64 +236,6 @@ class Editor {
 			})
 	}
 
-	// To trigger this run: Cmd+Shift+N
-	async createNewProject() {
-
-		const newProjectURI = "untilted://foo"
-		const newProjectName = "Untitled"
-		const newProjectContent = ""
-
-		this.clearProject()
-		this.currentProject = new Project(newProjectName, newProjectContent)
-		//this.setFile("", "untitled://foo")
-
-		// update server settings (ctags)
-		const baseSettings = this.lspClient.getBaseSettings().settings
-		baseSettings.pyls.plugins.ctags.tagFiles.push({
-			filePath: path.join(os.tmpdir(), "blink_tags"), // directory of tags file
-			directory: newProjectURI // directory of project
-		})
-		this.lspClient.changeConfiguration({ settings: baseSettings })
-
-		// updates the LSPClient and NavObject
-		this.ChangeOwnedFile(newProjectURI, newProjectContent)
-		const navObject = await this.AnalyzeUri(newProjectURI, newProjectContent)
-
-		// populate pane [in place of swapToSymbol]
-		this.activeEditorPane.symbol = null // TODO symbol cannot be null because onFileChange requires a symbol here
-		this.activeEditorPane.editor.setValue(newProjectContent)
-		this.activeEditorPane.editor.clearHistory()
-		this.activeEditorPane.context.textContent = newProjectName
-
-		this.calleesOfActive = []
-		this.callersOfActive = []
-		this.calleeIndex = 0
-		this.callerIndex = 0
-		this.updatePreviewPanes()
-		console.log("<><><><><><><><>")
-		const newSymFromNav = this.navObject.createInitialSymbol()
-		console.log(newSymFromNav)
-		alert("checkout that log.")
-
-
-		// Note To Bradley: I am running into probjems because the topLevelCode and topLevelSymboles are null and I'm trying to reassing them here
-		const initialContext = new Context(newProjectName, newProjectURI, newProjectContent)
-		initialContext.topLevelCode = ""
-		initialContext.topLevelSymbols[newProjectName] = { symbol: newSymFromNav, definitionString: newProjectContent }
-		this.currentProject.contexts.push(initialContext)
-		this.activeEditorPane.symbol = newSymFromNav
-
-		}
-
-	clearProject() {
-		// [from setFile]
-		this.pendingSwap = null
-		this.activeEditorPane.symbol = null
-		this.calleePanes.forEach((p) => p.symbol = null)
-		this.callerPanes.forEach((p) => p.symbol = null)
-		this.navObject.reset()
-	}
-
 	/**
 	 * Called by the CodeMirror adapter when the contents of the
 	 * the active editor pane have changed.
@@ -296,14 +246,24 @@ class Editor {
 		const activeSymbol = this.activeEditorPane.symbol
 		if (!activeSymbol) { return }
 
-		const context = this.currentProject.contextForSymbol(activeSymbol)!
+		const isNewSymbol = (s: SymbolInfo | NewSymbolInContext): s is NewSymbolInContext =>
+			(s as NewSymbolInContext).context !== undefined
 
-		// update our knowledge of the active symbol
-		context.updateSymbolDefinition(activeSymbol, text)
+		if (isNewSymbol(activeSymbol)) {
+			const context = activeSymbol.context
 
-		// send the change to the server so it's up to date
-		const lspCode = context.getLinearizedCode()
-		this.lspClient.sendChange(activeSymbol.uri, { text: lspCode })
+			const lspCode = context.getLinearizedCode() + "\n\n" + text
+			this.lspClient.sendChange(context.uri, { text: lspCode })
+		} else {
+			const context = this.currentProject.contextForSymbol(activeSymbol)!
+
+			// update our knowledge of the active symbol
+			context.updateSymbolDefinition(activeSymbol, text)
+
+			// send the change to the server so it's up to date
+			const lspCode = context.getLinearizedCode()
+			this.lspClient.sendChange(context.uri, { text: lspCode })
+		}
 
 		// show save indicator
 		;(document.querySelector("#save-button-indicator-group")! as HTMLDivElement)
@@ -322,6 +282,13 @@ class Editor {
 	 */
 	getFirstLineOfActiveSymbolWithinFile(): number {
 		if (!this.activeEditorPane.symbol) {
+			return 0
+		}
+
+		const isNewSymbol = (s: SymbolInfo | NewSymbolInContext): s is NewSymbolInContext =>
+			(s as NewSymbolInContext).context !== undefined
+
+		if (isNewSymbol(this.activeEditorPane.symbol)) {
 			return 0
 		}
 
@@ -450,7 +417,14 @@ class Editor {
 		// if we are not "fresh" - meaning the user has inserted newlines
 		// then the line numbers for our caller and callee panes may be wrong
 		// so we need to call Reanalyze() to get updated symbols, then swap.
-		if (context && context.hasLineNumberChanges) {
+		//
+		// also applies if this context is the context for an uninserted symbol
+		const isNewSymbol = (s: SymbolInfo | NewSymbolInContext): s is NewSymbolInContext =>
+			(s as NewSymbolInContext).context !== undefined
+		const isContextForNewSymbol = this.activeEditorPane.symbol
+			&& isNewSymbol(this.activeEditorPane.symbol)
+			&& this.activeEditorPane.symbol.context.uri === context?.uri
+		if (context && (context.hasLineNumberChanges || isContextForNewSymbol)) {
 			try {
 				await this.ReanalyzeContext(context)
 			} catch {
@@ -513,20 +487,34 @@ class Editor {
 		// don't update any panes / props until done
 		const [callees, callers] = await Promise.all([calleesAsync, callersAsync])
 
-		// populate panes
-		this.activeEditorPane.symbol = symbol
-		this.activeEditorPane.editor.setValue(contents)
-		// TODO: keep history per-symbol?
-		this.activeEditorPane.editor.clearHistory()
-		this.activeEditorPane.context.textContent = context.name
-
 		// change which file we're tracking as "currently editing"
 		// TODO: close old one?
 		this.adapter.changeOwnedFile(context.uri)
 
+		// populate panes
+		this.activeEditorPane.symbol = symbol
+		this.activeEditorPane.editor.setValue(contents ?? "")
+		this.activeEditorPane.context.textContent = context.name
+		// TODO: keep history per-symbol?
+		this.activeEditorPane.editor.clearHistory()
+
 		// new callers/callees are fetched ones
 		this.calleesOfActive = callees
 		this.callersOfActive = callers
+		this.calleeIndex = 0
+		this.callerIndex = 0
+		this.updatePreviewPanes()
+	}
+
+	setActiveSymbolToNewSymbol(symbol: NewSymbolInContext) {
+		this.activeEditorPane.symbol = symbol
+		this.activeEditorPane.editor.setValue("")
+		this.activeEditorPane.context.textContent = symbol.context.name
+		// TODO: keep history per-symbol?
+		this.activeEditorPane.editor.clearHistory()
+
+		this.calleesOfActive = []
+		this.callersOfActive = []
 		this.calleeIndex = 0
 		this.callerIndex = 0
 		this.updatePreviewPanes()
@@ -740,7 +728,7 @@ class Editor {
 		const uri = url.toString()
 
 		const fileDir = path.resolve(path.dirname(filePath))
-		this.currentProject = new Project("Untitled", fileDir)
+		this.currentProject = new Project()
 
 		// update server settings (ctags)
 		const baseSettings = this.lspClient.getBaseSettings().settings
@@ -766,6 +754,36 @@ class Editor {
 		} else {
 			console.warn("no starting symbol detected")
 		}
+	}
+
+	async setUntitled() {
+		this.activeEditorPane.symbol = null
+		this.calleePanes.forEach((p) => p.symbol = null)
+		this.callerPanes.forEach((p) => p.symbol = null)
+
+		this.adapter.changeOwnedFile("untitled:Untitled-1")
+		this.navObject.reset()
+
+		this.currentProject = new Project()
+
+		// update server settings (ctags)
+		// TODO: enable ctags after save or use temp file
+		const baseSettings = this.lspClient.getBaseSettings().settings
+		baseSettings.pyls.plugins.ctags.enabled = false
+		this.lspClient.changeConfiguration({ settings: baseSettings })
+
+		// analyze context once to obtain top level symbols
+		const context = await this.AnalyzeForNewContext("untitled:Untitled-1", "", null)
+
+		// analyze the context again after linearizing code - line numbers could change
+		await this.ReanalyzeContext(context)
+
+		// this is now the first context in our new project
+		this.currentProject.contexts.push(context)
+
+		// set panes to empty
+		this.setActiveSymbolToNewSymbol({ context })
+		this.activeEditorPane.context.textContent = context.name
 	}
 
 	// MARK: LSP/NavObject Interface
@@ -873,7 +891,17 @@ class Editor {
 		console.assert(this.lspClient.isDocumentOpen(context.uri))
 
 		// update the language server with the latest change before analyzing
-		const contents = context.getLinearizedCode()
+		let contents = context.getLinearizedCode()
+
+		const isNewSymbol = (s: SymbolInfo | NewSymbolInContext): s is NewSymbolInContext =>
+			(s as NewSymbolInContext).context !== undefined
+		const isContextForNewSymbol = this.activeEditorPane.symbol
+			&& isNewSymbol(this.activeEditorPane.symbol)
+			&& this.activeEditorPane.symbol.context.uri === context.uri
+		if (isContextForNewSymbol) {
+			contents += "\n\n" + this.activeEditorPane.editor.getValue()
+		}
+
 		this.lspClient.sendChange(context.uri, { text: contents })
 
 		const symbols = await this.lspClient.getDocumentSymbol(context.uri)
@@ -907,12 +935,23 @@ class Editor {
 	/**
 	 * loop through all contexts and save them
 	 */
-	saveFile() {
+	async saveFile() {
 		(document.querySelector("#save-button-indicator-group")! as HTMLDivElement).classList.remove("save-button-with-indicator");
 
-		this.currentProject.contexts.forEach((context) => {
-			if (!context.hasChanges) { return }
-			const hasPath = context.uri !== null
+		// fetch most up-to-date contexts
+		const contexts = (await Promise.all(this.currentProject.contexts
+			.map((context) => this.retrieveContextForUri(context.uri, null))))
+			.filter((context): context is Context => context !== undefined)
+
+		contexts.forEach((context) => {
+			const isNewSymbol = (s: SymbolInfo | NewSymbolInContext): s is NewSymbolInContext =>
+				(s as NewSymbolInContext).context !== undefined
+			const isContextForNewSymbol = this.activeEditorPane.symbol
+				&& isNewSymbol(this.activeEditorPane.symbol)
+				&& this.activeEditorPane.symbol.context.uri === context.uri
+
+			if (!(context.hasChanges || isContextForNewSymbol)) { return }
+			const hasPath = context.uri !== null && (new NodeURL(context.uri).protocol !== "untitled")
 			const contents = context.getLinearizedCode()
 
 			if (hasPath) {
@@ -940,6 +979,11 @@ class Editor {
 	runProject() {
 		const symbol = this.activeEditorPane.symbol
 		if (!symbol) { return }
+
+		const isNewSymbol = (s: SymbolInfo | NewSymbolInContext): s is NewSymbolInContext =>
+			(s as NewSymbolInContext).context !== undefined
+		if (isNewSymbol(symbol)) { return }
+
 		const scriptPath = fileURLToPath(new NodeURL(symbol.uri))
 		const ls = spawn(
 			"python3",
@@ -957,7 +1001,7 @@ class Editor {
 		this.updatePreviewPanes()
 	}
 
-	toggleProjectStructure() {
+	async toggleProjectStructure() {
 		this.projectStructureToggled = !this.projectStructureToggled
 
 		if (this.projectStructureToggled) {
@@ -979,7 +1023,12 @@ class Editor {
 			dragAndDrop: false
 		})
 
-		const contextTrees: DisplaySymbolTree[] = this.currentProject.contexts
+		// fetch most up-to-date contexts
+		const contexts = (await Promise.all(this.currentProject.contexts
+			.map((context) => this.retrieveContextForUri(context.uri, null))))
+			.filter((context): context is Context => context !== undefined)
+
+		const contextTrees: DisplaySymbolTree[] = contexts
 			.map((context) => {
 				return {
 					name: context.name,
