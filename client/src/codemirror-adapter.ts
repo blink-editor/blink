@@ -193,6 +193,7 @@ export class CodeMirrorAdapter extends IEditorAdapter<CodeMirror.Editor> {
 	public onChange: (text: string) => string
 	public getLineOffset: () => number
 	public onGoToLocation: (loc: lsp.Location) => void
+	public renameSymbol: (uri: string, position: lsp.Position) => void
 
 	constructor(connection: LspClient, navObject: NavObject, options: ITextEditorOptions, editor: CodeMirror.Editor) {
 		super(connection, options, editor)
@@ -696,14 +697,7 @@ export class CodeMirrorAdapter extends IEditorAdapter<CodeMirror.Editor> {
 		const getReferences = document.createElement("div")
 		getReferences.innerText = "Rename Symbol"
 		getReferences.addEventListener("click", () => {
-			const newName = "renameFoo" // TODO
-			console.log(this.document!.uri)
-			console.log(this._docPositionToLsp(docPosition))
-			console.log(newName)
-			this.connection.renameSymbol(this.document!.uri, this._docPositionToLsp(docPosition), newName)
-			.then((result: lsp.WorkspaceEdit | null) => {
-				console.log(result)
-			})
+			this.renameSymbol(this.document!.uri, this._docPositionToLsp(docPosition))
 		})
 		return getReferences
 	}

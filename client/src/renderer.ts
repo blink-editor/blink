@@ -223,6 +223,7 @@ class Editor {
 			this.adapter.onChange = this.onFileChanged.bind(this)
 			this.adapter.onGoToLocation = this.goToLocation.bind(this)
 			this.adapter.getLineOffset = this.getFirstLineOfActiveSymbolWithinFile.bind(this)
+			this.adapter.renameSymbol = this.renameSymbol.bind(this)
 
 			this.lspClient.once("initialized", () => {
 				this.openDemoFile()
@@ -304,6 +305,40 @@ class Editor {
 		return lineno
 	}
 
+	// opens prompt allowing user to fuzzy search for symbol and jump to it
+	openRenameSymbol() {
+		(document.querySelector("#modal-container") as HTMLDivElement).style.display = "flex";
+		(document.querySelector("#find-name-input") as HTMLInputElement).focus()
+	}
+
+	// closes prompt allowing user to fuzzy search for symbol and jump to it
+	closeRenameSymbol(event: MouseEvent) {
+		// check that user clicked on #modal-container
+		if ((event.target as HTMLElement).id === "modal-container")
+			this.closeJumpToSymByNameUnconditional()
+	}
+
+	closeRenameSymbolUnconditional() {
+		// close window
+		(document.querySelector("#modal-container") as HTMLDivElement).style.display = "none"
+		// clear input
+		;(document.querySelector("#find-name-input") as HTMLInputElement).value = ""
+		// clear results
+		const list = document.querySelector("#find-name-result-list")!
+		Array.from(list.children).forEach((e) => list.removeChild(e))
+	}
+
+	renameSymbol(uri: string, position: lsp.Position) {
+		const newName = "renameFoo" // TODO: get name
+		this.lspClient.renameSymbol(uri, position, newName)
+		.then((result: lsp.WorkspaceEdit | null) => {
+			console.log(result)
+			if (result !== null) {
+				// apply workspace edits
+			}
+		})
+	}
+
 	async goToLocation(location: lsp.Location) {
 		const context = await this.retrieveContextForUri(location.uri, "Not yet loaded") // TODO: name
 		if (!context) {
@@ -361,7 +396,7 @@ class Editor {
 	// opens prompt allowing user to fuzzy search for symbol and jump to it
 	openJumpToSymByName() {
 		(document.querySelector("#modal-container") as HTMLDivElement).style.display = "flex";
-		(document.querySelector("#find-name-input") as HTMLInputElement).focus();
+		(document.querySelector("#find-name-input") as HTMLInputElement).focus()
 	}
 
 	// closes prompt allowing user to fuzzy search for symbol and jump to it
