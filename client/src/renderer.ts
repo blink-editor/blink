@@ -478,7 +478,7 @@ class Editor {
 								context = new Context("TEST", docEdit.textDocument.uri, docEdit.edits[0].newText)
 								this.currentProject.contexts.push(context)
 							}
-							context!.fileString = docEdit.edits[0].newText // TODO: check range
+							context!.fileString = docEdit.edits[0].newText // TODO: check range and modify in place
 							this.lspClient.sendChange(context.uri, { text: context.fileString })
 							this.updatePreviewPanes()
 							this.retrieveContextForUri(this.activeEditorPane.symbol!.uri, "TEST")

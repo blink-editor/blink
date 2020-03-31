@@ -707,20 +707,12 @@ export class CodeMirrorAdapter extends IEditorAdapter<CodeMirror.Editor> {
 	private _handleClickOutside(ev: MouseEvent) {
 		if (this.isShowingContextMenu) {
 			let target: HTMLElement | null = ev.target as HTMLElement
-			let isInside = false
 			while (target && target !== document.body) {
 				if (target.classList.contains("CodeMirror-lsp-tooltip")) {
-					isInside = true
 					break
 				}
 				target = target.parentElement
 			}
-
-			if (isInside) {
-				return
-			}
-
-			// Only remove tooltip if clicked outside right click
 			this._removeTooltip()
 		}
 	}
