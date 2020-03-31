@@ -24,7 +24,6 @@ import "codemirror/mode/python/python"
 // import "codemirror/lib/codemirror.css"
 // import "codemirror/theme/monokai.css"
 import "codemirror/addon/hint/show-hint"
-import { TextDocumentEdit } from "vscode-languageserver-protocol"
 // import "codemirror/addon/hint/show-hint.css"
 
 interface PaneObject {
@@ -42,11 +41,6 @@ interface TreeItem {
 	children?: TreeItem[]
 	// our custom stuff
 	rayBensSymbol?: SymbolInfo
-}
-
-interface TooltipCursorState {
-	uri: string
-	position: lsp.Position
 }
 
 class Editor {
@@ -74,12 +68,6 @@ class Editor {
 	projectStructureToggled: boolean = false
 
 	currentProject: Project = new Project("Untitled", "") // TODO
-
-	// current state of cursor as of last updateTooltipCursorState call
-	tooltipCursorState: TooltipCursorState = {
-		uri: "",
-		position: {line: 0, character: 0}
-	}
 
 	constructor() {
 		const replacePaneElement = (id) => (codemirror) => {
@@ -116,8 +104,6 @@ class Editor {
 
 		// add listener for "Jump to Symbol by Name" feature
 		this.addJumpToSymByNameListener()
-		// add listener for "Rename Symbol" feature
-		this.addRenameSymbolListener()
 
 		// create callee preview panes (top)
 		this.calleePanes = [
@@ -237,7 +223,6 @@ class Editor {
 			this.adapter.onChange = this.onFileChanged.bind(this)
 			this.adapter.onGoToLocation = this.goToLocation.bind(this)
 			this.adapter.getLineOffset = this.getFirstLineOfActiveSymbolWithinFile.bind(this)
-			this.adapter.updateTooltipCursorState = this.updateTooltipCursorState.bind(this)
 			this.adapter.openRenameSymbol = this.openRenameSymbol.bind(this)
 
 			this.lspClient.once("initialized", () => {
@@ -432,9 +417,23 @@ class Editor {
 	}
 
 	// opens prompt allowing user to rename a symbol
-	openRenameSymbol() {
+	openRenameSymbol(atLocation: lsp.TextDocumentPositionParams) {
 		(document.querySelector("#rename-modal-container") as HTMLDivElement).style.display = "flex";
 		(document.querySelector("#rename-input") as HTMLInputElement).focus()
+
+		const nameInput = (document.querySelector("#rename-input") as HTMLInputElement)
+
+		const listener = (event) => {
+			// if enter is pressed, rename with given name
+			if (event.keyCode === 13) {
+				nameInput.removeEventListener("keydown", listener)
+
+				this.renameSymbol({ ...atLocation, newName: nameInput.value })
+				this.closeRenameSymbolUnconditional()
+			}
+		}
+
+		nameInput.addEventListener("keydown", listener)
 	}
 
 	closeRenameSymbol(event: MouseEvent) {
@@ -451,53 +450,36 @@ class Editor {
 		;(document.querySelector("#rename-input") as HTMLInputElement).value = ""
 	}
 
-	addRenameSymbolListener() {
-		const nameInput = (document.querySelector("#rename-input") as HTMLInputElement)
-		nameInput.addEventListener("keydown", event => {
-			// if enter is pressed, rename with given name
-			if (event.keyCode == 13) {
-				this.renameSymbol(nameInput.value)
-				this.closeRenameSymbolUnconditional()
-			}
-		})
-	}
+	renameSymbol(params: lsp.RenameParams) { // TODO: tooltip doesn't close automatically?
+		if (params.newName.trim() === "") { return }
 
-	renameSymbol(newName: string) { // TODO: tooltip doesn't close automatically?
-		if (newName.trim() != "") { // TODO: more filtering?
-			// make lsp call
-			this.lspClient.renameSymbol(this.tooltipCursorState.uri, this.tooltipCursorState.position, newName)
+		// make lsp call
+		this.lspClient.renameSymbol(params)
 			.then((result: lsp.WorkspaceEdit | null) => {
-				console.log(result)
-				if (result !== null) {
-					// use documentChanges
-					if (result.documentChanges) {
-						for (const change of result.documentChanges) {
-							const docEdit = (change as lsp.TextDocumentEdit)
-							let context: Context | undefined = this.currentProject.contextForUri(docEdit.textDocument.uri)
-							if (!context) {
-								context = new Context("TEST", docEdit.textDocument.uri, docEdit.edits[0].newText)
-								this.currentProject.contexts.push(context)
-							}
-							context!.fileString = docEdit.edits[0].newText // TODO: check range
-							this.lspClient.sendChange(context.uri, { text: context.fileString })
-							this.updatePreviewPanes()
-							this.retrieveContextForUri(this.activeEditorPane.symbol!.uri, "TEST")
+				if (result === null) {
+					return
+				}
+
+				// use documentChanges
+				if (result.documentChanges) {
+					for (const change of result.documentChanges) {
+						const docEdit = (change as lsp.TextDocumentEdit)
+						let context: Context | undefined = this.currentProject.contextForUri(docEdit.textDocument.uri)
+						if (!context) {
+							context = new Context("TEST", docEdit.textDocument.uri, docEdit.edits[0].newText)
+							this.currentProject.contexts.push(context)
 						}
-					}
-					// use changes
-					else if (result.changes) {
-						// TODO
+						context!.fileString = docEdit.edits[0].newText // TODO: check range
+						this.lspClient.sendChange(context.uri, { text: context.fileString })
+						this.updatePreviewPanes()
+						this.retrieveContextForUri(this.activeEditorPane.symbol!.uri, "TEST")
 					}
 				}
+				// use changes
+				else if (result.changes) {
+					// TODO
+				}
 			})
-		}
-	}
-
-	updateTooltipCursorState(uri: string, position: lsp.Position) {
-		this.tooltipCursorState = {
-			uri: uri,
-			position: position
-		}
 	}
 
 	navigateToUpdatedSymbol(navObject: NavObject) {
