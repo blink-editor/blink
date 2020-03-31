@@ -470,9 +470,10 @@ class Editor {
 							this.currentProject.contexts.push(context)
 						}
 						context!.fileString = docEdit.edits[0].newText // TODO: check range
+						;(context as any)._hasLineNumberChanges = true
 						this.lspClient.sendChange(context.uri, { text: context.fileString })
 						this.updatePreviewPanes()
-						this.retrieveContextForUri(this.activeEditorPane.symbol!.uri, "TEST")
+						this.swapToSymbol(this.activeEditorPane.symbol!, false)
 					}
 				}
 				// use changes
