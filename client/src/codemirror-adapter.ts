@@ -695,13 +695,13 @@ export class CodeMirrorAdapter extends IEditorAdapter<CodeMirror.Editor> {
 	}
 
 	private renameContextEntry(docPosition: CodeMirror.Position): HTMLDivElement {
-		const getReferences = document.createElement("div")
-		getReferences.innerText = "Rename Symbol"
-		getReferences.addEventListener("click", () => {
+		const renameSymbol = document.createElement("div")
+		renameSymbol.innerText = "Rename Symbol"
+		renameSymbol.addEventListener("click", () => {
 			this.updateTooltipCursorState(this.document!.uri, this._docPositionToLsp(docPosition))
 			this.openRenameSymbol()
 		})
-		return getReferences
+		return renameSymbol
 	}
 
 	private _handleClickOutside(ev: MouseEvent) {

@@ -24,6 +24,7 @@ import "codemirror/mode/python/python"
 // import "codemirror/lib/codemirror.css"
 // import "codemirror/theme/monokai.css"
 import "codemirror/addon/hint/show-hint"
+import { TextDocumentEdit } from "vscode-languageserver-protocol"
 // import "codemirror/addon/hint/show-hint.css"
 
 interface PaneObject {
@@ -437,9 +438,9 @@ class Editor {
 	}
 
 	closeRenameSymbol(event: MouseEvent) {
-		// check that user clicked on #modal-container
+		// check that user clicked on #rename-modal-container
 		if ((event.target as HTMLElement).id === "rename-modal-container")
-			this.closeJumpToSymByNameUnconditional()
+			this.closeRenameSymbolUnconditional()
 	}
 
 	// closes prompt allowing user to rename symbol
@@ -461,14 +462,32 @@ class Editor {
 		})
 	}
 
-	renameSymbol(newName: string) { // TODO: openRenameSymbol don't work
+	renameSymbol(newName: string) { // TODO: tooltip doesn't close automatically?
 		if (newName.trim() != "") { // TODO: more filtering?
 			// make lsp call
 			this.lspClient.renameSymbol(this.tooltipCursorState.uri, this.tooltipCursorState.position, newName)
 			.then((result: lsp.WorkspaceEdit | null) => {
 				console.log(result)
 				if (result !== null) {
-					// apply workspace edits
+					// use documentChanges
+					if (result.documentChanges) {
+						for (const change of result.documentChanges) {
+							const docEdit = (change as lsp.TextDocumentEdit)
+							let context: Context | undefined = this.currentProject.contextForUri(docEdit.textDocument.uri)
+							if (!context) {
+								context = new Context("TEST", docEdit.textDocument.uri, docEdit.edits[0].newText)
+								this.currentProject.contexts.push(context)
+							}
+							context!.fileString = docEdit.edits[0].newText // TODO: check range
+							this.lspClient.sendChange(context.uri, { text: context.fileString })
+							this.updatePreviewPanes()
+							this.retrieveContextForUri(this.activeEditorPane.symbol!.uri, "TEST")
+						}
+					}
+					// use changes
+					else if (result.changes) {
+						// TODO
+					}
 				}
 			})
 		}
