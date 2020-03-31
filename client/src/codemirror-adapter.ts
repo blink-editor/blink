@@ -165,10 +165,6 @@ function getFilledDefaults(options: ITextEditorOptions): ITextEditorOptions {
   }, options)
 }
 
-interface AdapterDocument {
-	uri: string
-}
-
 export class CodeMirrorAdapter extends IEditorAdapter<CodeMirror.Editor> {
 	public options: ITextEditorOptions
 	public editor: CodeMirror.Editor
@@ -189,12 +185,11 @@ export class CodeMirrorAdapter extends IEditorAdapter<CodeMirror.Editor> {
 	private isShowingContextMenu: boolean = false
 
 	// TODO: refactor
-	private document: AdapterDocument | null
+	private document: lsp.TextDocumentIdentifier | null
 	public onChange: (text: string) => string
 	public getLineOffset: () => number
 	public onGoToLocation: (loc: lsp.Location) => void
-	public updateTooltipCursorState: (uri: string, position: lsp.Position) => void
-	public openRenameSymbol: () => void
+	public openRenameSymbol: (at: lsp.TextDocumentPositionParams) => void
 
 	constructor(connection: LspClient, navObject: NavObject, options: ITextEditorOptions, editor: CodeMirror.Editor) {
 		super(connection, options, editor)
@@ -698,8 +693,12 @@ export class CodeMirrorAdapter extends IEditorAdapter<CodeMirror.Editor> {
 		const renameSymbol = document.createElement("div")
 		renameSymbol.innerText = "Rename Symbol"
 		renameSymbol.addEventListener("click", () => {
-			this.updateTooltipCursorState(this.document!.uri, this._docPositionToLsp(docPosition))
-			this.openRenameSymbol()
+			if (!this.document) { return }
+
+			this.openRenameSymbol({
+				textDocument: this.document,
+				position: this._docPositionToLsp(docPosition)
+			})
 		})
 		return renameSymbol
 	}

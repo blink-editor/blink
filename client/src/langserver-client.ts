@@ -122,7 +122,7 @@ export interface LspClient {
 	 * Request a workspace-wide rename of all references to the current symbol.
 	 * Returns WorkspaceEdit or null.
 	 */
-	renameSymbol(uri: string, position: lsp.Position, newName: string): Thenable<lsp.WorkspaceEdit | null>
+	renameSymbol(params: lsp.RenameParams): Thenable<lsp.WorkspaceEdit | null>
 
 	getLanguageCompletionCharacters(): string[]
 	getLanguageSignatureCharacters(): string[]
@@ -654,20 +654,12 @@ export class LspClientImpl extends events.EventEmitter implements LspClient {
 	 * Request a workspace-wide rename of all references to the current symbol.
 	 * Returns WorkspaceEdit or null.
 	 */
-	public renameSymbol(uri: string, position: lsp.Position, newName: string): Thenable<lsp.WorkspaceEdit | null> {
-		if (!this.isInitialized || !this.documents[uri] || !this.isRenameSupported()) {
+	public renameSymbol(params: lsp.RenameParams): Thenable<lsp.WorkspaceEdit | null> {
+		if (!this.isInitialized || !this.documents[params.textDocument.uri] || !this.isRenameSupported()) {
 			return Promise.reject()
 		}
 
-		return this.connection.sendRequest("textDocument/rename", {
-			textDocument: {
-				uri: uri,
-			},
-			position: position,
-			newName: newName,
-		} as lsp.RenameParams).then((result: lsp.WorkspaceEdit | null) => {
-			return result
-		})
+		return this.connection.sendRequest("textDocument/rename", params)
 	}
 
 	public getUsedDocumentSymbols(uri: string): Thenable<lsp.DocumentSymbol[] | lsp.SymbolInformation[] | null> {
