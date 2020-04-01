@@ -40,6 +40,9 @@ def pyls_used_document_symbols(config, document):
             log.debug(f"{pformat(ref._name.tree_name.parent)}")
             continue
 
+        log.debug(f"^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^")
+        log.debug(f"pyls_used_document_symbols:\ndocument.uri={document.uri}\nfirst_def.module_path={first_def.module_path if first_def else None}")
+        log.debug(f"----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------")
         def_uri = uris.uri_with(document.uri, path=first_def.module_path) if first_def else None
 
         out.append({

@@ -412,6 +412,8 @@ class Editor {
 	async retrieveContextForUri(uri: string, moduleName: string | null): Promise<Context | undefined> {
 		// obtain the definition string of the new symbol
 		const project = this.currentProject
+		console.log("This is not the uri you are looking for: " + uri)
+		console.log(project.contexts)
 		let context = project.contextForUri(uri)
 
 		// if we are not "fresh" - meaning the user has inserted newlines
@@ -761,7 +763,7 @@ class Editor {
 		this.calleePanes.forEach((p) => p.symbol = null)
 		this.callerPanes.forEach((p) => p.symbol = null)
 
-		this.adapter.changeOwnedFile("untitled:Untitled-1")
+		this.adapter.changeOwnedFile("untitled://Untitled-1")
 		this.navObject.reset()
 
 		this.currentProject = new Project()
@@ -773,7 +775,7 @@ class Editor {
 		this.lspClient.changeConfiguration({ settings: baseSettings })
 
 		// analyze context once to obtain top level symbols
-		const context = await this.AnalyzeForNewContext("untitled:Untitled-1", "", null)
+		const context = await this.AnalyzeForNewContext("untitled://Untitled-1", "", null)
 
 		// analyze the context again after linearizing code - line numbers could change
 		await this.ReanalyzeContext(context)
