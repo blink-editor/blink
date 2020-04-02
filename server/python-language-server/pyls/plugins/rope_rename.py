@@ -24,6 +24,9 @@ def pyls_rename(config, workspace, document, position, new_name):
     log.debug("Executing rename of %s to %s", document.word_at_position(position), new_name)
     changeset = rename.get_changes(new_name, in_hierarchy=True, docs=True)
     log.debug("Finished rename: %s", changeset.changes)
+
+    rope_project.close() # (Ray-Bens)
+
     return {
         'documentChanges': [{
             'textDocument': {
