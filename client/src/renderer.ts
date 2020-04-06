@@ -450,15 +450,13 @@ class Editor {
 		;(document.querySelector("#rename-input") as HTMLInputElement).value = ""
 	}
 
-	renameSymbol(params: lsp.RenameParams) { // TODO: tooltip doesn't close automatically?
+	renameSymbol(params: lsp.RenameParams) {
 		if (params.newName.trim() === "") { return }
 
 		// make lsp call
 		this.lspClient.renameSymbol(params)
 			.then((result: lsp.WorkspaceEdit | null) => {
-				if (result === null) {
-					return
-				}
+				if (result === null) { return }
 				// use documentChanges
 				if (result.documentChanges) {
 					for (const change of result.documentChanges) {
