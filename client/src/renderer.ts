@@ -762,23 +762,21 @@ class Editor {
 	async setUntitled() {
 		let newFilePath = ''
 		let newFileName = ''
+		let wasCanceled = false
 
-		const contentAndNewFilePath = await this.chooseFileDir().then(result => {
+		await this.CreateFileDir().then(result => {
+			wasCanceled = result.canceled
 			newFilePath = result.filePath!
 			newFileName = newFilePath.split("/").slice(-1)[0]
 		})
 
-		//const newFileURI = newFileName + ":" + newFilePath
-
-
+		// if the new project prompt was not cancled proceed
+		if (!wasCanceled) {
 		const url = pathToFileURL(path.resolve(newFilePath))
 		// language server normalizes drive letter to lowercase, so follow
 		if (process.platform === "win32" && (url.pathname ?? "")[2] == ":")
 			url.pathname = "/" + url.pathname[1].toLowerCase() + url.pathname.slice(2)
 		const newFileURI = url.toString()
-
-		alert(newFileURI)
-
 
 		this.activeEditorPane.symbol = null
 		this.calleePanes.forEach((p) => p.symbol = null)
@@ -807,6 +805,7 @@ class Editor {
 		// set panes to empty
 		this.setActiveSymbolToNewSymbol({ context })
 		this.activeEditorPane.context.textContent = context.name
+		}
 	}
 
 	// MARK: LSP/NavObject Interface
@@ -957,20 +956,13 @@ class Editor {
 
 
 
-	chooseFileDir() {
+	CreateFileDir() {
 		const dialog = electron.remote.dialog
-
-		return dialog.showSaveDialog({})
-
-		// return dialog.showSaveDialog({})
-		// 	.then((result) => {
-		// 		if (!result.filePath) {
-		// 			return Promise.reject()
-		// 		}
-		// 		return promisify(fs.writeFile)(result.filePath, "", { encoding: "utf8" })
-		// 			.then(() =>
-		// 			this.lspClient.saveDocument({ uri: result.filePath! }, ""))
-		// 	})
+		let options = {
+			title: "Choose Project Location",
+			buttonLabel: "Create"
+		}
+		return dialog.showSaveDialog(options)
 	}
 
 	/**
