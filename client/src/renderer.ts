@@ -234,6 +234,7 @@ class Editor {
 				console.assert(sampleFileText, "must load demo file text")
 				this.setFile(sampleFileText ?? "", "samples/modules/game.py")
 			})
+
 	}
 
 	/**
@@ -759,11 +760,31 @@ class Editor {
 	}
 
 	async setUntitled() {
+		let newFilePath = ''
+		let newFileName = ''
+
+		const contentAndNewFilePath = await this.chooseFileDir().then(result => {
+			newFilePath = result.filePath!
+			newFileName = newFilePath.split("/").slice(-1)[0]
+		})
+
+		//const newFileURI = newFileName + ":" + newFilePath
+
+
+		const url = pathToFileURL(path.resolve(newFilePath))
+		// language server normalizes drive letter to lowercase, so follow
+		if (process.platform === "win32" && (url.pathname ?? "")[2] == ":")
+			url.pathname = "/" + url.pathname[1].toLowerCase() + url.pathname.slice(2)
+		const newFileURI = url.toString()
+
+		alert(newFileURI)
+
+
 		this.activeEditorPane.symbol = null
 		this.calleePanes.forEach((p) => p.symbol = null)
 		this.callerPanes.forEach((p) => p.symbol = null)
 
-		this.adapter.changeOwnedFile("untitled://Untitled-1")
+		this.adapter.changeOwnedFile(newFileURI)
 		this.navObject.reset()
 
 		this.currentProject = new Project()
@@ -775,7 +796,7 @@ class Editor {
 		this.lspClient.changeConfiguration({ settings: baseSettings })
 
 		// analyze context once to obtain top level symbols
-		const context = await this.AnalyzeForNewContext("untitled://Untitled-1", "", null)
+		const context = await this.AnalyzeForNewContext(newFileURI, "", newFileName)
 
 		// analyze the context again after linearizing code - line numbers could change
 		await this.ReanalyzeContext(context)
@@ -932,6 +953,24 @@ class Editor {
 			.then(([filePath, contents]) => {
 				this.setFile(contents, filePath)
 			})
+	}
+
+
+
+	chooseFileDir() {
+		const dialog = electron.remote.dialog
+
+		return dialog.showSaveDialog({})
+
+		// return dialog.showSaveDialog({})
+		// 	.then((result) => {
+		// 		if (!result.filePath) {
+		// 			return Promise.reject()
+		// 		}
+		// 		return promisify(fs.writeFile)(result.filePath, "", { encoding: "utf8" })
+		// 			.then(() =>
+		// 			this.lspClient.saveDocument({ uri: result.filePath! }, ""))
+		// 	})
 	}
 
 	/**
