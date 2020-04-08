@@ -253,69 +253,82 @@ export class Context {
 	 * @returns [top level code string, top-level definition strings by symbol name]
 	 */
 	private static splitFileBySymbols(file: string, topLevelSymbols: lsp.DocumentSymbol[]): [Chunk[], Map<number, number>] {
+		const lines = file.split("\n") // TODO: line endings
+		const firstNonEmptyLineFrom = (line: number): number => {
+			while (line < lines.length && lines[line] === "") {
+				line++
+			}
+			return line
+		}
+
 		// inclusive
 		let currentChunkStart = 0
-		let lastChunkEnd: number | null = null
+		let currentChunkEnd: number | null = null
 
 		const chunks: Chunk[] = []
 		const symbolIndexToChunkIndex: Map<number, number> = new Map()
 
 		for (const [symbolIndex, currentSymbol] of topLevelSymbols.entries()) {
-			if ((lastChunkEnd !== null) && (currentSymbol.range.start.line > lastChunkEnd)) {
+			if ((currentChunkEnd !== null) && (currentSymbol.range.start.line > currentChunkEnd)) {
+				const endLine = firstNonEmptyLineFrom(currentChunkEnd + 1)
+
 				chunks.push({
 					contents: extractRangeOfFile(file, {
 						start: { line: currentChunkStart, character: 0 },
-						end: { line: lastChunkEnd + 1, character: 0 },
+						end: { line: endLine, character: 0 },
 					}),
 					lineOffset: currentChunkStart
 				})
 
 				// new chunk started
 
-				currentChunkStart = lastChunkEnd + 1
+				currentChunkStart = endLine
 
 				symbolIndexToChunkIndex.set(symbolIndex, chunks.length)
 
 				if (currentSymbol.range.end.character === 0) {
-					lastChunkEnd = currentSymbol.range.end.line - 1
+					currentChunkEnd = currentSymbol.range.end.line - 1
 				} else {
-					lastChunkEnd = currentSymbol.range.end.line
+					currentChunkEnd = currentSymbol.range.end.line
 				}
 			} else {
 				symbolIndexToChunkIndex.set(symbolIndex, chunks.length)
 
-				if (lastChunkEnd === null) {
+				if (currentChunkEnd === null) {
 					if (currentSymbol.range.end.character === 0) {
-						lastChunkEnd = currentSymbol.range.end.line - 1
+						currentChunkEnd = currentSymbol.range.end.line - 1
 					} else {
-						lastChunkEnd = currentSymbol.range.end.line
+						currentChunkEnd = currentSymbol.range.end.line
 					}
 				}
 			}
 		}
 
 		// add the last chunk containing a symbol
-		if (lastChunkEnd) {
+		if (currentChunkEnd) {
+			const endLine = firstNonEmptyLineFrom(currentChunkEnd + 1)
+
 			chunks.push({
 				contents: extractRangeOfFile(file, {
 					start: { line: currentChunkStart, character: 0 },
-					end: { line: lastChunkEnd + 1, character: 0 },
+					end: { line: endLine, character: 0 },
 				}),
 				lineOffset: currentChunkStart
 			})
 
-			currentChunkStart = lastChunkEnd + 1
+			currentChunkStart = endLine
 		}
 
 		// add the remainder of the file (top level code)
-		const lastLine = file.split("\n").length - 1 // TODO: line endings
-		chunks.push({
-			contents: extractRangeOfFile(file, {
-				start: { line: currentChunkStart, character: 0 },
-				end: { line: lastLine + 1, character: 0 },
-			}),
-			lineOffset: currentChunkStart
-		})
+		if (currentChunkStart < lines.length) {
+			chunks.push({
+				contents: extractRangeOfFile(file, {
+					start: { line: currentChunkStart, character: 0 },
+					end: { line: lines.length, character: 0 },
+				}),
+				lineOffset: currentChunkStart
+			})
+		}
 
 		return [chunks, symbolIndexToChunkIndex]
 	}
