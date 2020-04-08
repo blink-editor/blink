@@ -69,7 +69,7 @@ class Editor {
 
 	projectStructureToggled: boolean = false
 
-	currentProject: Project = new Project()
+	currentProject: Project = new Project(null, "Untitled")
 
 	constructor() {
 		const replacePaneElement = (id) => (codemirror) => {
@@ -210,7 +210,7 @@ class Editor {
 		const logger = new client.ConsoleLogger()
 
 		client.createTcpRpcConnection("localhost", 2087, (connection) => {
-			this.lspClient = new client.LspClientImpl(connection, undefined, logger)
+			this.lspClient = new client.LspClientImpl(connection, logger)
 			this.lspClient.initialize()
 
 			// The adapter is what allows the editor to provide UI elements
@@ -535,8 +535,8 @@ class Editor {
 				const newContext = await this.AnalyzeForNewContext(uri, contents)
 				project.contexts.push(newContext)
 				context = newContext
-			} catch {
-				console.warn("could not build context for uri", uri)
+			} catch (error) {
+				console.warn("could not build context for uri", uri, error)
 				return undefined
 			}
 		} else {
@@ -739,26 +739,35 @@ class Editor {
 		this.callerPanes.forEach((p) => p.symbol = null)
 
 		this.adapter.changeOwnedFile(null)
+		this.currentProject.contexts.forEach((context) => {
+			this.lspClient.closeDocument(context.uri)
+		})
 
 		const url = pathToFileURL(path.resolve(filePath))
 		// language server normalizes drive letter to lowercase, so follow
 		if (process.platform === "win32" && (url.pathname ?? "")[2] == ":")
 			url.pathname = "/" + url.pathname[1].toLowerCase() + url.pathname.slice(2)
-		const uri = url.toString()
+		const fileUri = url.toString()
 
-		const fileDir = path.resolve(path.dirname(filePath))
-		this.currentProject = new Project()
+		// change project / workspace folder
+		const workspacePath = path.resolve(path.dirname(filePath))
+		const workspaceUri = pathToFileURL(workspacePath).toString()
+		this.currentProject = new Project(workspaceUri, path.basename(workspacePath))
+		this.lspClient.changeWorkspaceFolder({
+			uri: this.currentProject.uri!,
+			name: this.currentProject.name,
+		})
 
 		// update server settings (ctags)
 		const baseSettings = this.lspClient.getBaseSettings().settings
 		baseSettings.pyls.plugins.ctags.tagFiles.push({
 			filePath: path.join(os.tmpdir(), "blink_tags"), // directory of tags file
-			directory: fileDir // directory of project
+			directory: workspacePath // directory of project
 		})
 		this.lspClient.changeConfiguration({ settings: baseSettings })
 
 		// analyze context once to obtain top level symbols
-		const context = await this.AnalyzeForNewContext(uri, text)
+		const context = await this.AnalyzeForNewContext(fileUri, text)
 
 		// this is now the first context in our new project
 		this.currentProject.contexts.push(context)

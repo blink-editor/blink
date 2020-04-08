@@ -97,12 +97,13 @@ class Workspace(object):
             doc_uri, source=source, version=version,
             extra_sys_path=self.source_roots(path),
             rope_project_builder=self._rope_project_builder,
+            ray_bens_workspace_root_path=self._root_path,
         )
 
 
 class Document(object):
 
-    def __init__(self, uri, source=None, version=None, local=True, extra_sys_path=None, rope_project_builder=None):
+    def __init__(self, uri, source=None, version=None, local=True, extra_sys_path=None, rope_project_builder=None, ray_bens_workspace_root_path=None):
         self.uri = uri
         self.version = version
         self.path = uris.to_fs_path(uri)
@@ -112,6 +113,7 @@ class Document(object):
         self._source = source
         self._extra_sys_path = extra_sys_path or []
         self._rope_project_builder = rope_project_builder
+        self.ray_bens_workspace_root_path = ray_bens_workspace_root_path
 
     def __str__(self):
         return str(self.uri)
@@ -197,10 +199,35 @@ class Document(object):
         return m_start[0] + m_end[-1]
 
     def jedi_names(self, all_scopes=False, definitions=True, references=False):
-        return jedi.api.names(
+        ray_bens_project = jedi.api.project.Project(self.ray_bens_workspace_root_path)
+
+        # jedi.api.names modified to take the project into account
+        def _jedi_api_names_modified(source=None, path=None, encoding='utf-8', all_scopes=False,
+                                     definitions=True, references=False, environment=None):
+            def def_ref_filter(_def):
+                is_def = _def._name.tree_name.is_definition()
+                return definitions and is_def or references and not is_def
+
+            # Set line/column to a random position, because they don't matter.
+            script = jedi.Script(
+                source, line=1, column=0, path=path, encoding=encoding,
+                environment=environment, _project=ray_bens_project
+            )
+            module_context = script._get_module_context()
+            defs = [
+                jedi.api.classes.Definition(
+                    script._inference_state,
+                    module_context.create_name(name)
+                ) for name in jedi.inference.helpers.get_module_names(script._module_node, all_scopes)
+            ]
+            return sorted(filter(def_ref_filter, defs), key=lambda x: (x.line, x.column))
+
+        result = _jedi_api_names_modified(
             source=self.source, path=self.path, all_scopes=all_scopes,
             definitions=definitions, references=references
         )
+
+        return result
 
     def jedi_script(self, position=None):
         kwargs = {

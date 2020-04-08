@@ -62,6 +62,11 @@ export interface LspClient {
 	isDocumentOpen(uri: string)
 
 	/**
+	 * Sets the current workspace folder.
+	 */
+	changeWorkspaceFolder(workspaceFolder: lsp.WorkspaceFolder)
+
+	/**
 	 * Sends a change to the document to the server
 	 */
 	sendChange(uri: string, change: lsp.TextDocumentContentChangeEvent): void
@@ -260,7 +265,7 @@ export class LspClientImpl extends events.EventEmitter implements LspClient {
 	private logger?: rpc.Logger
 
 	// lsp state
-	private rootUri: string | undefined
+	private workspaceFolders: lsp.WorkspaceFolder[] = []
 	private documents: { [uri: string]: lsp.TextDocumentItem } = {}
 
 	private isInitialized = false
@@ -290,20 +295,13 @@ export class LspClientImpl extends events.EventEmitter implements LspClient {
 	 * Initializes an LspClient
 	 *
 	 * @param connection The underlying connection to transport messages
-	 * @param rootUri    "The rootUri of the workspace. Is null if no folder is open."
 	 * @param logger     Logger
 	 */
-	constructor(
-		connection: rpc.MessageConnection,
-		rootUri?: string,
-		logger?: rpc.Logger,
-	) {
+	constructor(connection: rpc.MessageConnection, logger?: rpc.Logger) {
 		super()
 
 		this.connection = connection
 		this.logger = logger
-
-		this.rootUri = rootUri
 
 		// this.connection.onClose(() => {
 		// 	logger?.log("onClose")
@@ -382,7 +380,7 @@ export class LspClientImpl extends events.EventEmitter implements LspClient {
 			// },
 			initializationOptions: null,
 			processId: process.pid,
-			rootUri: this.rootUri ?? null,
+			rootUri: null,
 			workspaceFolders: null,
 			trace: "off",
 		}
@@ -402,6 +400,24 @@ export class LspClientImpl extends events.EventEmitter implements LspClient {
 		})
 	}
 
+	// TODO: support multiple workspace folders (Blink only needs one)
+	public changeWorkspaceFolder(workspaceFolder: lsp.WorkspaceFolder) {
+		const oldFolders = [...this.workspaceFolders]
+		this.workspaceFolders = [workspaceFolder]
+
+		// TODO: respond to server -> client workspace folder requests?
+
+		this.connection.sendNotification("workspace/didChangeWorkspaceFolders", {
+			event: {
+				added: [...this.workspaceFolders],
+				removed: oldFolders,
+			},
+			// https://github.com/palantir/python-language-server/issues/720
+			added: [...this.workspaceFolders],
+			removed: oldFolders,
+		} as lsp.DidChangeWorkspaceFoldersParams)
+	}
+
 	public openDocument(documentInfo: DocumentInfo) {
 		const documentItem: lsp.TextDocumentItem = {
 			uri: documentInfo.documentUri,
@@ -409,6 +425,8 @@ export class LspClientImpl extends events.EventEmitter implements LspClient {
 			text: documentInfo.initialText,
 			version: 0,
 		}
+
+		// TODO: assert that this document belongs to a workspace folder
 
 		this.documents[documentItem.uri] = documentItem
 

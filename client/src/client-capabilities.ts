@@ -91,6 +91,7 @@ export const clientCapabilities: lsp.ClientCapabilities = {
 			symbolKind: {
 				valueSet: supportedSymbols,
 			}
-		}
+		},
+		workspaceFolders: true
 	},
 }
