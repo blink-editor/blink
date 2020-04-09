@@ -413,8 +413,6 @@ class Editor {
 	async retrieveContextForUri(uri: string, moduleName: string | null): Promise<Context | undefined> {
 		// obtain the definition string of the new symbol
 		const project = this.currentProject
-		console.log("This is not the uri you are looking for: " + uri)
-		console.log(project.contexts)
 		let context = project.contextForUri(uri)
 
 		// if we are not "fresh" - meaning the user has inserted newlines
@@ -760,18 +758,17 @@ class Editor {
 	}
 
 	async setUntitled() {
-		let newFilePath = ''
-		let newFileName = ''
-		let wasCanceled = false
+		const result = await this.openCreateNewProjectDialog()
 
-		await this.CreateFileDir().then(result => {
-			wasCanceled = result.canceled
-			newFilePath = result.filePath!
-			newFileName = newFilePath.split("/").slice(-1)[0]
-		})
+		if (result.canceled) { return }
+
+		const newFilePath = result.filePath!
+		const newFileName = newFilePath.split("/").slice(-1)[0]
+
+		//this.setFile("", newFilePath)
 
 		// if the new project prompt was not cancled proceed
-		if (!wasCanceled) {
+		//this.setFile("", newFilePath)
 		const url = pathToFileURL(path.resolve(newFilePath))
 		// language server normalizes drive letter to lowercase, so follow
 		if (process.platform === "win32" && (url.pathname ?? "")[2] == ":")
@@ -785,12 +782,16 @@ class Editor {
 		this.adapter.changeOwnedFile(newFileURI)
 		this.navObject.reset()
 
+		const fileDir = path.resolve(path.dirname(newFilePath))
 		this.currentProject = new Project()
 
 		// update server settings (ctags)
 		// TODO: enable ctags after save or use temp file
 		const baseSettings = this.lspClient.getBaseSettings().settings
-		baseSettings.pyls.plugins.ctags.enabled = false
+		baseSettings.pyls.plugins.ctags.tagFiles.push({
+			filePath: path.join(os.tmpdir(), "blink_tags"), // directory of tags file
+			directory: fileDir // directory of project
+		})
 		this.lspClient.changeConfiguration({ settings: baseSettings })
 
 		// analyze context once to obtain top level symbols
@@ -802,10 +803,11 @@ class Editor {
 		// this is now the first context in our new project
 		this.currentProject.contexts.push(context)
 
+
 		// set panes to empty
 		this.setActiveSymbolToNewSymbol({ context })
 		this.activeEditorPane.context.textContent = context.name
-		}
+
 	}
 
 	// MARK: LSP/NavObject Interface
@@ -954,16 +956,13 @@ class Editor {
 			})
 	}
 
-
-
-	CreateFileDir() {
-		const dialog = electron.remote.dialog
-		let options = {
-			title: "Choose Project Location",
+	openCreateNewProjectDialog() {
+		return electron.remote.dialog.showSaveDialog({
+			title: "Create initial file in project directory",
 			buttonLabel: "Create"
-		}
-		return dialog.showSaveDialog(options)
+		})
 	}
+
 
 	/**
 	 * loop through all contexts and save them
