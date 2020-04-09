@@ -177,7 +177,7 @@ class Editor {
 
 		// listen for keyboard shortcut events from the main process menu
 		const onShortcut = (name, fn) => electron.ipcRenderer.on(name, fn)
-		onShortcut("Open", () => this.openFile())
+		onShortcut("Open", () => this.openExistingProjectDialog())
 		onShortcut("Save", () => this.saveFile())
 		onShortcut("PanePageRight", () => this.panePageRight())
 		onShortcut("PanePageLeft", () => this.panePageLeft())
@@ -197,7 +197,7 @@ class Editor {
 		onShortcut("SelectAll", () => {
 			CodeMirror.commands.selectAll(this.activeEditorPane.editor)
 		})
-		onShortcut("NewProject", () => this.setUntitled())
+		onShortcut("NewProject", () => this.openCreateNewProjectDialog())
 	}
 
 	/**
@@ -228,13 +228,8 @@ class Editor {
 		}, logger)
 	}
 
-	openDemoFile() {
-		promisify(fs.readFile)("samples/modules/game.py", { encoding: "utf8" })
-			.then((sampleFileText) => {
-				console.assert(sampleFileText, "must load demo file text")
-				this.setFile(sampleFileText ?? "", "samples/modules/game.py")
-			})
-
+	async openDemoFile() {
+		await this.activateProjectFromFile("samples/modules/game.py")
 	}
 
 	/**
@@ -519,6 +514,8 @@ class Editor {
 		this.calleeIndex = 0
 		this.callerIndex = 0
 		this.updatePreviewPanes()
+
+		this.adapter.changeOwnedFile(symbol.context.uri)
 	}
 
 	/**
@@ -714,7 +711,7 @@ class Editor {
 		}
 	}
 
-	async setFile(text: string, filePath: string) {
+	async _initializeProject(text: string, filePath: string): Promise<Context> {
 		this.activeEditorPane.symbol = null
 		this.calleePanes.forEach((p) => p.symbol = null)
 		this.callerPanes.forEach((p) => p.symbol = null)
@@ -748,6 +745,22 @@ class Editor {
 		// this is now the first context in our new project
 		this.currentProject.contexts.push(context)
 
+		return context
+	}
+
+	async activateNewProject(initialFilePath: string) {
+		const context = await this._initializeProject("", initialFilePath)
+
+		// set panes to empty
+		this.setActiveSymbolToNewSymbol({ context })
+		this.activeEditorPane.context.textContent = context.name
+	}
+
+	async activateProjectFromFile(filePath: string) {
+		const contents = await promisify(fs.readFile)(filePath, { encoding: "utf8" })
+
+		const context = await this._initializeProject(contents, filePath)
+
 		const mainSymbol = context.findStartingSymbol()
 		if (mainSymbol) {
 			// swap to the main symbol in this context
@@ -755,59 +768,6 @@ class Editor {
 		} else {
 			console.warn("no starting symbol detected")
 		}
-	}
-
-	async setUntitled() {
-		const result = await this.openCreateNewProjectDialog()
-
-		if (result.canceled) { return }
-
-		const newFilePath = result.filePath!
-		const newFileName = newFilePath.split("/").slice(-1)[0]
-
-		//this.setFile("", newFilePath)
-
-		// if the new project prompt was not cancled proceed
-		//this.setFile("", newFilePath)
-		const url = pathToFileURL(path.resolve(newFilePath))
-		// language server normalizes drive letter to lowercase, so follow
-		if (process.platform === "win32" && (url.pathname ?? "")[2] == ":")
-			url.pathname = "/" + url.pathname[1].toLowerCase() + url.pathname.slice(2)
-		const newFileURI = url.toString()
-
-		this.activeEditorPane.symbol = null
-		this.calleePanes.forEach((p) => p.symbol = null)
-		this.callerPanes.forEach((p) => p.symbol = null)
-
-		this.adapter.changeOwnedFile(newFileURI)
-		this.navObject.reset()
-
-		const fileDir = path.resolve(path.dirname(newFilePath))
-		this.currentProject = new Project()
-
-		// update server settings (ctags)
-		// TODO: enable ctags after save or use temp file
-		const baseSettings = this.lspClient.getBaseSettings().settings
-		baseSettings.pyls.plugins.ctags.tagFiles.push({
-			filePath: path.join(os.tmpdir(), "blink_tags"), // directory of tags file
-			directory: fileDir // directory of project
-		})
-		this.lspClient.changeConfiguration({ settings: baseSettings })
-
-		// analyze context once to obtain top level symbols
-		const context = await this.AnalyzeForNewContext(newFileURI, "", newFileName)
-
-		// analyze the context again after linearizing code - line numbers could change
-		await this.ReanalyzeContext(context)
-
-		// this is now the first context in our new project
-		this.currentProject.contexts.push(context)
-
-
-		// set panes to empty
-		this.setActiveSymbolToNewSymbol({ context })
-		this.activeEditorPane.context.textContent = context.name
-
 	}
 
 	// MARK: LSP/NavObject Interface
@@ -937,30 +897,32 @@ class Editor {
 
 	// MARK: index.html Interface
 
-	openFile() {
+	async openExistingProjectDialog() {
 		const dialog = electron.remote.dialog
 
-		return dialog.showOpenDialog({
+		const result = await dialog.showOpenDialog({
 			properties : ["openFile"]
 		})
-			.then((result) => {
-				if (result.filePaths.length < 1) {
-					return Promise.reject()
-				}
-				const dirPromise = Promise.resolve(result.filePaths[0])
-				const fileTextPromise = promisify(fs.readFile)(result.filePaths[0], { encoding: "utf8" })
-				return Promise.all([dirPromise, fileTextPromise])
-			})
-			.then(([filePath, contents]) => {
-				this.setFile(contents, filePath)
-			})
+
+		if (result.filePaths.length < 1) {
+			return
+		}
+
+		const filePath = result.filePaths[0]
+
+		await this.activateProjectFromFile(filePath)
 	}
 
-	openCreateNewProjectDialog() {
-		return electron.remote.dialog.showSaveDialog({
+	async openCreateNewProjectDialog() {
+		const result = await electron.remote.dialog.showSaveDialog({
 			title: "Create initial file in project directory",
 			buttonLabel: "Create"
 		})
+
+		if (result.canceled || result.filePath === undefined) { return }
+
+		const initialFilePath = result.filePath
+		await this.activateNewProject(initialFilePath)
 	}
 
 

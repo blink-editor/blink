@@ -517,8 +517,9 @@ export class CodeMirrorAdapter extends IEditorAdapter<CodeMirror.Editor> {
 		this.editorListeners.mouseover = mouseOverListener
 
 		const debouncedCursor = debounce(() => {
+			if (!this.document) { return }
 			const pos = this._docPositionToLsp(this.editor.getDoc().getCursor("start"))
-			return this.connection.getDocumentHighlights(this.document!.uri, pos)
+			return this.connection.getDocumentHighlights(this.document.uri, pos)
 		}, this.options.quickSuggestionsDelay)
 
 		const rightClickHandler = this._handleRightClick.bind(this)
