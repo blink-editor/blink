@@ -443,6 +443,9 @@ class Editor {
 	async renameSymbol(params: lsp.RenameParams) {
 		if (params.newName.trim() === "") { return }
 
+		// require the user to save before renaming - rope reads from disk
+		await this.saveFile()
+
 		// make lsp call
 		const result = await this.lspClient.renameSymbol(params)
 		if (result === null) { return }
@@ -459,9 +462,14 @@ class Editor {
 
 				this.lspClient.sendChange(context.uri, { text: contents })
 				;(context as any)._hasLineNumberChanges = true
+				;(context as any)._hasChanges = true
 				const symbols = await this.lspClient.getDocumentSymbol(context.uri)
 				this.navObject.rebuildMaps(symbols ?? [], context.uri)
 				context.updateWithNavObject(contents, this.navObject)
+
+				// show save indicator
+				;(document.querySelector("#save-button-indicator-group")! as HTMLDivElement)
+					.classList.add("save-button-with-indicator")
 
 				const isNewSymbol = (s: SymbolInfo | NewSymbolInContext): s is NewSymbolInContext =>
 					(s as NewSymbolInContext).context !== undefined
