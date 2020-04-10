@@ -87,6 +87,8 @@
 		/* PROJECT STRUCTURE */
 
 		#project-structure-bar {
+			height: 100%;
+			overflow-y: scroll;
 			background-color: rgb(36, 36, 36);
 			color: white;
 			padding: 8px 16px;
@@ -133,6 +135,39 @@
 		#main-pane .pane-context-bar,
 		#side-panes-container .pane-context-bar {
 			border-top: 1px solid white;
+		}
+
+		/* Change scroll bar style */
+		.CodeMirror-vscrollbar::-webkit-scrollbar {
+			width: 0.5rem;
+		}
+		.CodeMirror-vscrollbar::-webkit-scrollbar-track {
+			background: #1e1e24;
+		}
+		.CodeMirror-vscrollbar::-webkit-scrollbar-thumb {
+			background: #565578;
+			border-radius: 0.3rem;
+		}
+
+		.CodeMirror-hscrollbar::-webkit-scrollbar {
+			height: 0.5rem;
+		}
+		.CodeMirror-hscrollbar::-webkit-scrollbar-track {
+			background: #1e1e24;
+		}
+		.CodeMirror-hscrollbar::-webkit-scrollbar-thumb {
+			background: #565578;
+			border-radius: 0.2rem;
+		}
+
+		.CodeMirror-scrollbar-filler{
+			background: #1e1e24 !important;
+			background-color: black;
+		}
+		/* ----------- */
+
+		.CodeMirror-gutters{
+			background: #1e1e24;
 		}
 
 		.pin-icon {
@@ -313,7 +348,7 @@
 					</li>
 
 					<li class="nav-item active">
-						<button class="file-open-button nav-link" onclick="editor.openFile()" href="" id="open-file">
+						<button class="file-open-button nav-link" onclick="editor.openExistingProjectDialog()" href="" id="open-file">
 							<i class="fa fas fa-fw fa-folder-open"></i>
 						</button>
 					</li>

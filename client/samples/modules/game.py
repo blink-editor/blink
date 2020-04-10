@@ -1,9 +1,6 @@
 import player
-
 import world
-
 import util
-
 import random
 
 class Test():
@@ -13,13 +10,11 @@ class Test():
                 return 42
         return DeeplyNested()
 
-
 mc = Test()
 
 def get_rand_num():
     rand = random.randint(2, 8)
     return expo_mod(2, 2222, rand)
-
 
 def expo_mod(num, expo, mod):
     """Raises <num> to the <expo> and modes by <mod>"""
@@ -34,7 +29,6 @@ def expo_mod(num, expo, mod):
         else:
             return (num * z**2) % mod
 
-
 def main():
     b = mc.foo()
     c = b.bar()
@@ -45,5 +39,6 @@ def main():
     print("Player ability:", player.get_ability(p))
     print("Monsters:\n" + "\n".join(w))
     print(f"Likelihood of failure: {util.square(get_rand_num())}%")
+
 if __name__ == "__main__":
     main()

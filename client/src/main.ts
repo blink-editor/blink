@@ -84,6 +84,11 @@ class Application {
 			submenu: [
 				// Basic Commands
 				{
+					label: "New Project",
+					accelerator: isMac ? "Cmd+Shift+N" : "Ctrl+Shift+N",
+					click: () => sendRendererMessage("NewProject")
+				},
+				{
 					label: "Open Project...",
 					accelerator: isMac ? "Cmd+O" : "Ctrl+O",
 					click: () => sendRendererMessage("Open")
