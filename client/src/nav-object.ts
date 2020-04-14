@@ -212,7 +212,7 @@ export class NavObject {
 					// TODO: see above, but we also want to filter out things
 					// defined within the parent symbol scope
 					if (symbol.location.uri == parentSymbol.uri
-							&& symbol.location.range.start.line >= parentSymbol.range.start.line
+							&& symbol.location.range.start.line > parentSymbol.range.start.line
 							&& symbol.location.range.end.line <= parentSymbol.range.end.line) {
 						continue
 					}

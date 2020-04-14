@@ -191,7 +191,7 @@ class Editor {
 		onShortcut("JumpPane6", () => this.swapToCaller(2))
 		onShortcut("NavigateBack", () => this.navBack())
 		onShortcut("navigateForward", () => this.navForward())
-		onShortcut("JumpByName", () => {this.openJumpToSymByName()})
+		onShortcut("JumpByName", () => this.openJumpToSymByName())
 		onShortcut("Undo", () => this.activeEditorPane.editor.undo())
 		onShortcut("Redo", () => this.activeEditorPane.editor.redo())
 		onShortcut("SelectAll", () => {
@@ -831,6 +831,7 @@ class Editor {
 		await Promise.all(retrieveContexts)
 
 		const callers: SymbolInfo[] = []
+		let skippedSelf = false
 
 		// for each reference recieved, find parent scope
 		for (const loc of locations) {
@@ -841,14 +842,13 @@ class Editor {
 				continue
 			}
 
-			// if the symbol's own definition is found, skip it
-			if (symbol.name === targetSymbol.name
-					&& symbol.kind === targetSymbol.kind
-					&& symbol.uri === targetSymbol.uri) {
+			// if the symbol's own definition is found, skip it the first time
+			if (this.symbolsEqual(symbol, targetSymbol) && !skippedSelf) {
+				skippedSelf = true
 				continue
 			}
 
-			// if this symbol is already in callers, skip it
+			// if a symbol is already in callers, skip it every time
 			let passed = true
 			for (const sym2 of callers) {
 				if (this.symbolsEqual(symbol, sym2)) {
