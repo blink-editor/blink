@@ -36,7 +36,7 @@ class Workspace(object):
         from rope.base.project import Project
 
         # TODO: we could keep track of dirty files and validate only those
-        if self.__rope is None or self.__rope_config != rope_config:
+        if True: # (Ray-Bens) self.__rope is None or self.__rope_config != rope_config:
             rope_folder = rope_config.get('ropeFolder')
             self.__rope = Project(self._root_path, ropefolder=rope_folder)
             self.__rope.prefs.set('extension_modules', rope_config.get('extensionModules', []))

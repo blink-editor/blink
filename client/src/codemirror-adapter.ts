@@ -165,10 +165,6 @@ function getFilledDefaults(options: ITextEditorOptions): ITextEditorOptions {
   }, options)
 }
 
-interface AdapterDocument {
-	uri: string
-}
-
 export class CodeMirrorAdapter extends IEditorAdapter<CodeMirror.Editor> {
 	public options: ITextEditorOptions
 	public editor: CodeMirror.Editor
@@ -189,10 +185,11 @@ export class CodeMirrorAdapter extends IEditorAdapter<CodeMirror.Editor> {
 	private isShowingContextMenu: boolean = false
 
 	// TODO: refactor
-	private document: AdapterDocument | null
+	private document: lsp.TextDocumentIdentifier | null
 	public onChange: (text: string) => void
 	public getLineOffset: () => number
 	public onGoToLocation: (loc: lsp.Location) => void
+	public openRenameSymbol: (at: lsp.TextDocumentPositionParams) => void
 
 	constructor(connection: LspClient, navObject: NavObject, options: ITextEditorOptions, editor: CodeMirror.Editor) {
 		super(connection, options, editor)
@@ -636,6 +633,10 @@ export class CodeMirrorAdapter extends IEditorAdapter<CodeMirror.Editor> {
 			if (this.connection.isReferencesSupported()) {
 				entries.push(this.referencesContextEntry(docPosition))
 			}
+
+			if (this.connection.isRenameSupported()) {
+				entries.push(this.renameContextEntry(docPosition))
+			}
 		}
 
 		if (entries.length === 0) {
@@ -685,23 +686,29 @@ export class CodeMirrorAdapter extends IEditorAdapter<CodeMirror.Editor> {
 		return getReferences
 	}
 
+	private renameContextEntry(docPosition: CodeMirror.Position): HTMLDivElement {
+		const renameSymbol = document.createElement("div")
+		renameSymbol.innerText = "Rename Symbol"
+		renameSymbol.addEventListener("click", () => {
+			if (!this.document) { return }
+
+			this.openRenameSymbol({
+				textDocument: this.document,
+				position: this._docPositionToLsp(docPosition)
+			})
+		})
+		return renameSymbol
+	}
+
 	private _handleClickOutside(ev: MouseEvent) {
 		if (this.isShowingContextMenu) {
 			let target: HTMLElement | null = ev.target as HTMLElement
-			let isInside = false
 			while (target && target !== document.body) {
 				if (target.classList.contains("CodeMirror-lsp-tooltip")) {
-					isInside = true
 					break
 				}
 				target = target.parentElement
 			}
-
-			if (isInside) {
-				return
-			}
-
-			// Only remove tooltip if clicked outside right click
 			this._removeTooltip()
 		}
 	}

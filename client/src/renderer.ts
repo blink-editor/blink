@@ -221,6 +221,7 @@ class Editor {
 			this.adapter.onChange = this.onActiveEditorChanged.bind(this)
 			this.adapter.onGoToLocation = this.goToLocation.bind(this)
 			this.adapter.getLineOffset = this.getFirstLineOfActiveSymbolWithinFile.bind(this)
+			this.adapter.openRenameSymbol = this.openRenameSymbol.bind(this)
 
 			this.lspClient.once("initialized", () => {
 				this.openDemoFile()
@@ -350,20 +351,20 @@ class Editor {
 
 	// opens prompt allowing user to fuzzy search for symbol and jump to it
 	openJumpToSymByName() {
-		(document.querySelector("#modal-container") as HTMLDivElement).style.display = "flex";
-		(document.querySelector("#find-name-input") as HTMLInputElement).focus();
+		(document.querySelector("#find-name-modal-container") as HTMLDivElement).style.display = "flex";
+		(document.querySelector("#find-name-input") as HTMLInputElement).focus()
 	}
 
-	// closes prompt allowing user to fuzzy search for symbol and jump to it
 	closeJumpToSymByName(event: MouseEvent) {
 		// check that user clicked on #modal-container
-		if ((event.target as HTMLElement).id === "modal-container")
+		if ((event.target as HTMLElement).id === "find-name-modal-container")
 			this.closeJumpToSymByNameUnconditional()
 	}
 
+	// closes prompt allowing user to fuzzy search for symbol and jump to it
 	closeJumpToSymByNameUnconditional() {
 		// close window
-		(document.querySelector("#modal-container") as HTMLDivElement).style.display = "none"
+		(document.querySelector("#find-name-modal-container") as HTMLDivElement).style.display = "none"
 		// clear input
 		;(document.querySelector("#find-name-input") as HTMLInputElement).value = ""
 		// clear results
@@ -403,6 +404,87 @@ class Editor {
 				})
 			})
 		})
+	}
+
+	// opens prompt allowing user to rename a symbol
+	openRenameSymbol(atLocation: lsp.TextDocumentPositionParams) {
+		(document.querySelector("#rename-modal-container") as HTMLDivElement).style.display = "flex";
+		(document.querySelector("#rename-input") as HTMLInputElement).focus()
+
+		const nameInput = (document.querySelector("#rename-input") as HTMLInputElement)
+
+		const listener = (event) => {
+			// if enter is pressed, rename with given name
+			if (event.keyCode === 13) {
+				nameInput.removeEventListener("keydown", listener)
+
+				this.renameSymbol({ ...atLocation, newName: nameInput.value })
+				this.closeRenameSymbolUnconditional()
+			}
+		}
+
+		nameInput.addEventListener("keydown", listener)
+	}
+
+	closeRenameSymbol(event: MouseEvent) {
+		// check that user clicked on #rename-modal-container
+		if ((event.target as HTMLElement).id === "rename-modal-container")
+			this.closeRenameSymbolUnconditional()
+	}
+
+	// closes prompt allowing user to rename symbol
+	closeRenameSymbolUnconditional() {
+		// close window
+		(document.querySelector("#rename-modal-container") as HTMLDivElement).style.display = "none"
+		// clear input
+		;(document.querySelector("#rename-input") as HTMLInputElement).value = ""
+	}
+
+	async renameSymbol(params: lsp.RenameParams) {
+		if (params.newName.trim() === "") { return }
+
+		// require the user to save before renaming - rope reads from disk
+		await this.saveFile()
+
+		// make lsp call
+		const result = await this.lspClient.renameSymbol(params)
+		if (result === null) { return }
+
+		// use documentChanges
+		if (result.documentChanges) {
+			for (const change of result.documentChanges) {
+				const docEdit = (change as lsp.TextDocumentEdit)
+				const contents = docEdit.edits[0].newText // TODO: check range
+				let context = this.currentProject.contextForUri(docEdit.textDocument.uri)
+				if (!context) {
+					context = await this.AnalyzeForNewContext(docEdit.textDocument.uri, contents, null)
+				}
+
+				this.lspClient.sendChange(context.uri, { text: contents })
+				;(context as any)._hasLineNumberChanges = true
+				;(context as any)._hasChanges = true
+				const symbols = await this.lspClient.getDocumentSymbol(context.uri)
+				this.navObject.rebuildMaps(symbols ?? [], context.uri)
+				context.updateWithNavObject(contents, this.navObject)
+
+				// show save indicator
+				;(document.querySelector("#save-button-indicator-group")! as HTMLDivElement)
+					.classList.add("save-button-with-indicator")
+
+				const isNewSymbol = (s: SymbolInfo | NewSymbolInContext): s is NewSymbolInContext =>
+					(s as NewSymbolInContext).context !== undefined
+				this.updatePreviewPanes()
+				const activeSymbol = this.activeEditorPane.symbol
+				if (activeSymbol && !isNewSymbol(activeSymbol)) {
+					this.swapToSymbol(activeSymbol, false)
+				}
+			}
+		}
+		// use changes
+		else if (result.changes) {
+			// TODO: support changes
+			throw new Error("Not Supported: WorkspaceEdit response from Rename request did not contain documentChanges.")
+		}
 	}
 
 	async retrieveContextForUri(uri: string, moduleName: string | null): Promise<Context | undefined> {

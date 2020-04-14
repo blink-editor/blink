@@ -176,7 +176,7 @@
 			opacity: 0.2;
 		}
 
-		#modal-container {
+		#find-name-modal-container {
 			position: absolute;
 			background-color: rgba(0, 0, 0, 0.4);
 			z-index: 6;
@@ -188,7 +188,7 @@
 			align-items: center;
 			justify-content: center;
 			align-content: center;
-			display: none; /* hide until needed (then flex) */
+			display: none; /* hide until opened */
 		}
 
 		#find-name-modal {
@@ -228,6 +228,13 @@
 			font-family: monospace;
 		}
 
+		#find-name-result-list li:nth-of-type(even) {
+			background-color: lightgrey;
+		}
+		#find-name-result-list li:nth-of-type(odd) {
+			background-color: grey;
+		}
+
 		#find-name-exit {
 			font-size: 12pt;
 			color: black;
@@ -241,11 +248,64 @@
 			cursor: pointer;
 		}
 
-		#find-name-result-list li:nth-of-type(even) {
-			background-color: lightgrey;
+		#rename-modal-container {
+			position: absolute;
+			background-color: rgba(0, 0, 0, 0.4);
+			z-index: 6;
+			top: 0;
+			left: 0;
+			width: 100%;
+			height: 100%;
+			flex-direction: column;
+			align-items: center;
+			justify-content: center;
+			align-content: center;
+			display: none; /* hide until opened */
 		}
-		#find-name-result-list li:nth-of-type(odd) {
-			background-color: grey;
+
+		#rename-modal {
+			flex: 0 0 auto;
+			width: 350px;
+			background-color: #727273;
+			display: flex;
+			flex-direction: column;
+			border-radius: 5px;
+		}
+
+		#rename-input {
+			flex: 0 0 auto;
+			background-color: #272822; /* monokai */
+			color: white;
+			width: 100%;
+			margin: 0;
+			font-size: 28pt;
+			border: none;
+			margin-bottom: 3px;
+		}
+
+		#rename-input:focus{
+			box-shadow: 0px 3px 0px #7977ff;
+			outline: none;
+		}
+
+		#rename-exit {
+			font-size: 12pt;
+			color: black;
+			margin: 0 3px 0;
+			padding: 0;
+			width: 20px;
+			display: inline-block;
+		}
+
+		#rename-exit:hover {
+			cursor: pointer;
+		}
+
+		#rename-label {
+			color: black;
+			margin: 0 3px 0;
+			padding: 0;
+			font-size: 10pt;
 		}
 
 		.response-list-item{
@@ -410,11 +470,18 @@
 				</div>
 			</main>
 		</div>
-		<div id="modal-container" onclick="editor.closeJumpToSymByName(event)">
+		<div id="find-name-modal-container" onclick="editor.closeJumpToSymByName(event)">
 			<div id="find-name-modal">
 				<p id="find-name-exit" onclick="editor.closeJumpToSymByNameUnconditional()">✕</p>
 				<input id="find-name-input" type="text">
 				<ul id="find-name-result-list"></ul>
+			</div>
+		</div>
+		<div id="rename-modal-container" onclick="editor.closeRenameSymbol(event)">
+			<div id="rename-modal">
+				<p id="rename-exit" onclick="editor.closeRenameSymbolUnconditional()">✕</p>
+				<input id="rename-input" type="text">
+				<p id="rename-label">Press enter to save the project and rename</p>
 			</div>
 		</div>
 

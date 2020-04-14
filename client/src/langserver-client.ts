@@ -118,6 +118,11 @@ export interface LspClient {
 	 */
 	getReferences(uri: string, position: lsp.Position, includeDeclaration: boolean): void
 	getReferences(uri: string, position: lsp.Position): void
+	/**
+	 * Request a workspace-wide rename of all references to the current symbol.
+	 * Returns WorkspaceEdit or null.
+	 */
+	renameSymbol(params: lsp.RenameParams): Thenable<lsp.WorkspaceEdit | null>
 
 	getLanguageCompletionCharacters(): string[]
 	getLanguageSignatureCharacters(): string[]
@@ -138,6 +143,10 @@ export interface LspClient {
 	 * Does the server support find all references?
 	 */
 	isReferencesSupported(): boolean
+	/**
+	 * Does the server support rename?
+	 */
+	isRenameSupported(): boolean
 
 	getBaseSettings(): lsp.DidChangeConfigurationParams
 
@@ -641,6 +650,18 @@ export class LspClientImpl extends events.EventEmitter implements LspClient {
 		})
 	}
 
+	/**
+	 * Request a workspace-wide rename of all references to the current symbol.
+	 * Returns WorkspaceEdit or null.
+	 */
+	public renameSymbol(params: lsp.RenameParams): Thenable<lsp.WorkspaceEdit | null> {
+		if (!this.isInitialized || !this.documents[params.textDocument.uri] || !this.isRenameSupported()) {
+			return Promise.reject()
+		}
+
+		return this.connection.sendRequest("textDocument/rename", params)
+	}
+
 	public getUsedDocumentSymbols(uri: string): Thenable<lsp.DocumentSymbol[] | lsp.SymbolInformation[] | null> {
 		if (!this.isInitialized || !this.documents[uri]) {
 			return Promise.reject()
@@ -723,5 +744,12 @@ export class LspClientImpl extends events.EventEmitter implements LspClient {
 	 */
 	public isReferencesSupported() {
 		return !!(this.serverCapabilities && this.serverCapabilities.referencesProvider)
+	}
+
+	/**
+	 * Does the server support rename?
+	 */
+	public isRenameSupported() {
+		return !!(this.serverCapabilities && this.serverCapabilities.renameProvider)
 	}
 }
