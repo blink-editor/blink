@@ -462,6 +462,39 @@ class Editor {
 	}
 
 	async swapToSymbol(rawSymbol: SymbolInfo, updateStack: boolean = true) {
+		// Compares two symbols by decreasing length in terms of number of lines the definition takes.
+		const compareByLength = (a: lsp.SymbolInformation | SymbolInfo, b: lsp.SymbolInformation | SymbolInfo) => {
+			function isSymbolInformation(sym: lsp.SymbolInformation | SymbolInfo): sym is lsp.SymbolInformation {
+				return (sym as lsp.SymbolInformation).location !== undefined
+			}
+
+			let aLength: number = 0
+			let bLength: number = 0
+
+			if (isSymbolInformation(a)) {
+				aLength = a.location.range.end.line - a.location.range.start.line + 1
+			}
+			else {
+				aLength = a.range.end.line - a.range.start.line + 1
+			}
+			if (isSymbolInformation(b)) {
+				bLength = b.location.range.end.line - b.location.range.start.line + 1
+			}
+			else {
+				bLength = b.range.end.line - b.range.start.line + 1
+			}
+
+			// if builtin, goes at the end
+			if ((a as any).rayBensModule === "builtins") {
+				aLength = 0
+			}
+			if ((b as any).rayBensModule === "builtins") {
+				bLength = 0
+			}
+
+			return bLength - aLength
+		}
+
 		const context = (await this.retrieveContextForSymbol(rawSymbol))!
 		const contextSymbol = context.getTopLevelSymbol(rawSymbol.name)!
 		const symbol = contextSymbol.symbol
@@ -469,7 +502,7 @@ class Editor {
 
 		if (updateStack) {
 			// update the navStack
-			if(this.curNavStackIndex != this.navStack.length -1 && this.navStack.length != 0){
+			if (this.curNavStackIndex != this.navStack.length -1 && this.navStack.length != 0) {
 				this.navStack.length = this.curNavStackIndex + 1
 			}
 			this.navStack.push(rawSymbol)
@@ -495,8 +528,8 @@ class Editor {
 		this.activeEditorPane.editor.clearHistory()
 
 		// new callers/callees are fetched ones
-		this.calleesOfActive = callees
-		this.callersOfActive = callers
+		this.calleesOfActive = callees.sort(compareByLength)
+		this.callersOfActive = callers.sort(compareByLength)
 		this.calleeIndex = 0
 		this.callerIndex = 0
 		this.updatePreviewPanes()
@@ -623,7 +656,7 @@ class Editor {
 						leastCount = count
 					}
 				}
-				// this shouldn't happen unless the string is all whitespace/empty
+				// the string is all whitespace/empty
 				if (leastCount === -1) {
 					return origString
 				}
