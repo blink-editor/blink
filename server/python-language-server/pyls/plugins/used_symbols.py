@@ -51,11 +51,21 @@ def pyls_used_document_symbols(config, document):
             },
             'kind': _SYMBOL_KIND_MAP.get(def_type),
             'rayBensModule': def_module,
+            'rayBensBuiltin': _is_internal_definition(first_def) if first_def else False,
             # TODO: rayBensUsageLocation instead?
             'rayBensUsageRange': _ref_range(ref),
         })
 
     return out
+
+
+def _is_internal_definition(definition):
+    return (
+        definition.line is None or
+        definition.column is None or
+        definition.module_path is None or
+        definition.in_builtin_module()
+    )
 
 
 def _container(definition):

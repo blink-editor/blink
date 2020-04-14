@@ -170,6 +170,7 @@ export interface LspClient {
 export interface RayBensSymbolInformation extends lsp.SymbolInformation {
 	rayBensModule: string | undefined
 	rayBensUsageRange: lsp.Range
+	rayBensBuiltin: boolean
 }
 
 export function createTcpRpcConnection(

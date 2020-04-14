@@ -26,10 +26,27 @@ import "codemirror/mode/python/python"
 import "codemirror/addon/hint/show-hint"
 // import "codemirror/addon/hint/show-hint.css"
 
+/**
+ * A reference to a symbol from a built-in Python module.
+ */
+interface BuiltinSymbolReference {
+	builtinSymbol: lsp.SymbolInformation
+}
+
+/**
+ * A symbol that appears in a preview pane. Can be:
+ * - a reference to a symbol in a local Context.
+ * - a reference to a built-in symbol.
+ */
+type PaneSymbol = ContextSymbolReference | BuiltinSymbolReference
+
+/**
+ * An object representing the state of a preview pane.
+ */
 interface PaneObject {
 	editor: CodeMirror.Editor
 	context: Element
-	symbol: ContextSymbolReference | null
+	symbol: PaneSymbol | null
 	isPinned: boolean
 	pinImg: Element | null
 }
@@ -62,8 +79,8 @@ class Editor {
 
 	activeEditorPane: ActiveEditorPane
 
-	calleesOfActive: ContextSymbolReference[] = []
-	callersOfActive: ContextSymbolReference[] = []
+	calleesOfActive: PaneSymbol[] = []
+	callersOfActive: PaneSymbol[] = []
 	calleeIndex = 0
 	callerIndex = 0
 
@@ -348,7 +365,17 @@ class Editor {
 			return
 		}
 
-		this.swapToSymbol(this.calleePanes[index].symbol!)
+		function isBuiltinSymbolReference(s: ContextSymbolReference | BuiltinSymbolReference): s is BuiltinSymbolReference {
+			return (s as BuiltinSymbolReference).builtinSymbol !== undefined
+		}
+
+		const symbol = this.calleePanes[index].symbol
+
+		if (!symbol || isBuiltinSymbolReference(symbol)) {
+			return
+		}
+
+		this.swapToSymbol(symbol)
 	}
 
 	swapToCaller(index) {
@@ -356,7 +383,17 @@ class Editor {
 			return
 		}
 
-		this.swapToSymbol(this.callerPanes[index].symbol!)
+		function isBuiltinSymbolReference(s: ContextSymbolReference | BuiltinSymbolReference): s is BuiltinSymbolReference {
+			return (s as BuiltinSymbolReference).builtinSymbol !== undefined
+		}
+
+		const symbol = this.callerPanes[index].symbol
+
+		if (!symbol || isBuiltinSymbolReference(symbol)) {
+			return
+		}
+
+		this.swapToSymbol(symbol)
 	}
 
 	panePageUp() {
@@ -642,13 +679,32 @@ class Editor {
 	}
 
 	updatePreviewPanes() {
-		const assignSymbols = (symbols: ContextSymbolReference[], index: number, panes: PaneObject[]) => {
+		function isBuiltinSymbolReference(s: ContextSymbolReference | BuiltinSymbolReference): s is BuiltinSymbolReference {
+			return (s as BuiltinSymbolReference).builtinSymbol !== undefined
+		}
+
+		const paneSymbolsEqual = (symbolA: PaneSymbol, symbolB: PaneSymbol): boolean => {
+			if (isBuiltinSymbolReference(symbolA)) {
+				if (!isBuiltinSymbolReference(symbolB)) { return false }
+
+				return symbolA.builtinSymbol.location.uri === symbolB.builtinSymbol.location.uri
+					&& symbolA.builtinSymbol.location.range.start.line === symbolB.builtinSymbol.location.range.start.line
+					&& symbolA.builtinSymbol.location.range.start.character === symbolB.builtinSymbol.location.range.start.character
+					&& symbolA.builtinSymbol.name === symbolB.builtinSymbol.name
+			}
+
+			if (isBuiltinSymbolReference(symbolB)) { return false }
+
+			return this._symbolsEqual(symbolA, symbolB)
+		}
+
+		const assignSymbols = async (symbols: PaneSymbol[], index: number, panes: PaneObject[]) => {
 			const freePanes = panes.filter((pane) => !pane.isPinned)
 
 			const pinnedSymbols = panes
 				.filter((pane) => pane.isPinned)
 				.map((pane) => pane.symbol)
-				.filter((pinnedSymbol): pinnedSymbol is ContextSymbolReference => pinnedSymbol !== null)
+				.filter((pinnedSymbol): pinnedSymbol is PaneSymbol => pinnedSymbol !== null)
 
 			// the index to "start taking symbols from" is the paged offset
 			// but can be bumped forward if any items before it are pinned
@@ -668,7 +724,7 @@ class Editor {
 				// check if this candidate symbol is already in a pinned pane
 				// TODO: may be a document version mismatch if pinned
 				const symbolAlreadyPinned = pinnedSymbols
-					.find((pinnedSymbol) => this._symbolsEqual(pinnedSymbol, rawSymbol))
+					.find((pinnedSymbol) => paneSymbolsEqual(pinnedSymbol, rawSymbol))
 
 				// if the symbol is already pinned, call this function again
 				// to get the next viable symbol after this one.
@@ -686,6 +742,11 @@ class Editor {
 				// then return the one after this (which could recur)
 				if (symbolIndex < symbolIndexStartTakingFrom) {
 					return getNextSymbol()
+				}
+
+				// TODO: display documentation for builtin symbols
+				if (isBuiltinSymbolReference(rawSymbol)) {
+					return [undefined, undefined, `(builtin: ${rawSymbol.builtinSymbol.name})`]
 				}
 
 				// attempt to extract the preview for this symbol
@@ -852,9 +913,10 @@ class Editor {
 				return true
 			})
 
-		// TODO: fix performance - lazy vs eager, loading builtins.pyc file
-		// https://jedi.readthedocs.io/en/latest/_modules/jedi/api/classes.html#BaseDefinition.in_builtin_module
-		const uris: Set<string> = new Set(usedSymbolInfos.map((s) => s.location.uri))
+		// TODO: fix performance - lazy vs eager, analzying builtins
+		const uris: Set<string> = new Set(usedSymbolInfos
+			.filter((symbol) => !symbol.rayBensBuiltin) // don't load builtin contexts - slow
+			.map((s) => s.location.uri))
 
 		const loadContexts: Promise<[string, Context | undefined][]>
 			= Promise.all(Array.from(uris)
@@ -870,8 +932,21 @@ class Editor {
 				return acc
 			}, new Map<string, Context>())
 
+		const foundCalleeDetails = new Set<string>()
+
 		const callees = usedSymbolInfos
-			.map((usedSymbol: client.RayBensSymbolInformation): ContextSymbolReference | undefined => {
+			.map((usedSymbol: client.RayBensSymbolInformation): PaneSymbol | undefined => {
+				if (usedSymbol.rayBensBuiltin) {
+					// skip duplicate builtin callees
+					if (foundCalleeDetails.has(usedSymbol.location.uri + usedSymbol.name)) {
+						return undefined
+					}
+					foundCalleeDetails.add(usedSymbol.location.uri + usedSymbol.name)
+
+					// we won't have a context for a built-in symbol, so return a special type
+					return { builtinSymbol: usedSymbol }
+				}
+
 				const candidateContext = contextForUri.get(usedSymbol.location.uri)
 				if (!candidateContext) { return undefined }
 
@@ -922,7 +997,7 @@ class Editor {
 			},
 		}) ?? []
 
-		let foundCallerDetails = new Set<string>()
+		const foundCallerDetails = new Set<string>()
 		let skippedSelf = false
 
 		const symbolForLocation = async (location: lsp.Location): Promise<ContextSymbolReference | null> => {
@@ -971,7 +1046,17 @@ class Editor {
 	/**
 	 * Compares two symbols by decreasing length in terms of number of lines the definition takes.
 	 */
-	_sortPaneSymbols(a: ContextSymbolReference, b: ContextSymbolReference): number {
+	_sortPaneSymbols(a: PaneSymbol, b: PaneSymbol): number {
+		function isBuiltinSymbolReference(s: ContextSymbolReference | BuiltinSymbolReference): s is BuiltinSymbolReference {
+			return (s as BuiltinSymbolReference).builtinSymbol !== undefined
+		}
+		if (isBuiltinSymbolReference(a)) {
+			return isBuiltinSymbolReference(b) ? 0 : 1
+		}
+		if (isBuiltinSymbolReference(b)) {
+			return -1
+		}
+
 		const aPreviewSymbol = a.context.resolveSymbolReference(a.context.previewForSymbol(a)[0])
 		const bPreviewSymbol = b.context.resolveSymbolReference(b.context.previewForSymbol(b)[0])
 

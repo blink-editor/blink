@@ -35,9 +35,19 @@ def pyls_document_symbols(config, document):
             'selectionRange': _name_range(d),
             'kind': _kind(d),
             'children': children,
-            'rayBensModule': d.module_name
+            'rayBensModule': d.module_name,
+            'rayBensBuiltin': _is_internal_definition(d),
         }
     return [dt for dt in (transform(d) for d in definitions) if dt]
+
+
+def _is_internal_definition(definition):
+    return (
+        definition.line is None or
+        definition.column is None or
+        definition.module_path is None or
+        definition.in_builtin_module()
+    )
 
 
 def pyls_document_symbols_legacy(config, document):
