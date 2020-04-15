@@ -7,6 +7,7 @@ import util
 import random
 
 class Test():
+    """This is an example class that has one function"""
     def foo(self):
         class DeeplyNested():
             def bar(self):
