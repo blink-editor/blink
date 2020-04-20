@@ -217,6 +217,29 @@ export class Context {
 		this._currentDocument = newDocument
 	}
 
+	updateTopLevelChunkDefinition(previousDocument: Document, newContents: string): void {
+		const editedChunkIndex = previousDocument.data!.chunks.length - 1
+
+		/// TODO: what if the eidted chunk adds a new symbol (chunk)?
+		/// should we instead take all old chunks UP TO editedIndex then take editedIndex?
+		/// actually previousDocument will be initialDocument so it's ok
+		const newChunkContents = previousDocument.data!.chunks
+			.map((chunk, i) => (i === editedChunkIndex) ? newContents : chunk.contents)
+
+		const newFile = newChunkContents.join("")
+
+		const newDocument: Document = {
+			file: newFile,
+			version: this._currentDocument.version + 1,
+			data: undefined,
+			saved: false,
+			// TODO: we could have a linked list of documents if we want 👀
+			// parent: previousDocument,
+		}
+
+		this._currentDocument = newDocument
+	}
+
 	replaceEntireFile(previousDocument: Document | null, newFile: string) {
 		// it's fine if the previous document is not the same as our document
 		// (our document may have a symbol request in-flight),

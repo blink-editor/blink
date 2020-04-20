@@ -54,6 +54,7 @@ interface PaneObject {
 interface NewSymbolInContext {
 	context: Context
 	initialDocument: ContextDocument
+	isTopLevelCode: boolean
 }
 
 interface ActiveEditorPane {
@@ -264,17 +265,26 @@ class Editor {
 		const context = activeSymbol.context
 
 		if (isNewSymbol(activeSymbol)) {
-			// uses file instance from time when "new symbol" mode was entered.
-			// relies on the fact that once entering new symbol mode, you can't alter other symbols.
-			const startingFile = activeSymbol.initialDocument.file
-			const lspCode = startingFile === "" ? text : (startingFile + "\n\n" + text)
+			if (activeSymbol.isTopLevelCode) {
+				// update our knowledge of the top level code
+				context.updateTopLevelChunkDefinition(activeSymbol.initialDocument, text)
 
-			// Context doesn't have a concept of a "new symbol" mode
-			// so just replace the file and let it work itself out
-			context.replaceEntireFile(null, lspCode)
+				// send the change to the server so it's up to date
+				const lspCode = context.currentDocument.file
+				this.lspClient.sendChange(activeSymbol.context.uri, { text: lspCode })
+			} else {
+				// uses file instance from time when "new symbol" mode was entered.
+				// relies on the fact that once entering new symbol mode, you can't alter other symbols.
+				const startingFile = activeSymbol.initialDocument.file
+				const lspCode = startingFile === "" ? text : (startingFile + "\n\n" + text)
 
-			// send the change to the server so it's up to date
-			this.lspClient.sendChange(context.uri, { text: lspCode })
+				// Context doesn't have a concept of a "new symbol" mode
+				// so just replace the file and let it work itself out
+				context.replaceEntireFile(null, lspCode)
+
+				// send the change to the server so it's up to date
+				this.lspClient.sendChange(context.uri, { text: lspCode })
+			}
 		} else {
 			// update our knowledge of the active symbol
 			context.updateChunkDefinition(activeSymbol, text)
@@ -678,6 +688,26 @@ class Editor {
 		this.updatePreviewPanes()
 	}
 
+	swapToTopLevelCode(context: Context) {
+		if (!context.currentDocument.data) {
+			console.warn("context does not have symbols yet")
+			return
+		}
+
+		const chunkIndex = context.currentDocument.data.chunks.length - 1
+		const chunk = context.currentDocument.data.chunks[chunkIndex]
+
+		const newSymbol = {
+			context: context,
+			initialDocument: context.currentDocument,
+			isTopLevelCode: true,
+		}
+
+		this.setActiveSymbolToNewSymbol(newSymbol)
+
+		this.activeEditorPane.editor.setValue(chunk.contents)
+	}
+
 	updatePreviewPanes() {
 		function isBuiltinSymbolReference(s: ContextSymbolReference | BuiltinSymbolReference): s is BuiltinSymbolReference {
 			return (s as BuiltinSymbolReference).builtinSymbol !== undefined
@@ -843,6 +873,7 @@ class Editor {
 		this.setActiveSymbolToNewSymbol({
 			context,
 			initialDocument: context.currentDocument,
+			isTopLevelCode: false,
 		})
 	}
 
@@ -1239,7 +1270,7 @@ class Editor {
 				return {
 					name: context.moduleName ?? "Loading",
 					id: context.uri,
-					children: context.getDisplaySymbolTree()
+					children: context.getDisplaySymbolTree().concat([{ name: "Top Level Code", id: Symbol(`TL-${context.uri}`), isTopLevelNode: true, context: context } as any])
 				}
 			})
 
@@ -1249,7 +1280,13 @@ class Editor {
 			"tree.click",
 			(e) => {
 				e.preventDefault()
-				const symbolData = (e.node as DisplaySymbolTree).rayBensSymbol
+
+				if ((e.node as any).isTopLevelNode) {
+					this.swapToTopLevelCode((e.node as any).context)
+					return
+				}
+
+				const symbolData = (e.node as any).rayBensSymbol
 				if (symbolData) {
 					this.swapToSymbol(symbolData)
 				}
