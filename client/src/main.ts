@@ -281,7 +281,7 @@ class Application {
 		window.loadFile("index.html")
 
 		// Open the DevTools.
-		window.webContents.openDevTools()
+		// window.webContents.openDevTools()
 
 		// Emitted when the window is closed.
 		const windowId = window.id

@@ -105,7 +105,7 @@ class Editor {
 				theme: "monokai",
 				readOnly: "nocursor",
 				lineWrapping: wrapping,
-				indentUnit: 4,
+				indentUnit: 2,
 				indentWithTabs: false,
 			})
 
@@ -173,7 +173,7 @@ class Editor {
 			lineNumbers: true,
 			theme: "monokai",
 			gutters: ["CodeMirror-linenumbers", "CodeMirror-lsp"],
-			indentUnit: 4,
+			indentUnit: 2,
 			indentWithTabs: false,
 			extraKeys: Object.assign({
 				Tab: (cm) => {
@@ -860,6 +860,8 @@ class Editor {
 
 		// update server settings (ctags)
 		const baseSettings = this.lspClient.getBaseSettings().settings
+		// baseSettings.pyls.plugins.pyflakes = { enable: false, enabled: false }
+		// baseSettings.pyls.plugins.pylint = { enable: false, enabled: false }
 		baseSettings.pyls.plugins.ctags.tagFiles.push({
 			filePath: path.join(os.tmpdir(), "blink_tags"), // directory of tags file
 			directory: workspacePath // directory of project
