@@ -14,20 +14,20 @@
 	"devDependencies": {
 		"@types/codemirror": "0.0.80",
 		"@types/lodash.debounce": "^4.0.6",
-		"@typescript-eslint/eslint-plugin": "^2.6.1",
-		"@typescript-eslint/parser": "^2.6.1",
-		"electron": "^7.1.0",
-		"eslint": "^6.6.0",
-		"typescript": "^3.7.2"
+		"@typescript-eslint/eslint-plugin": "^2.29.0",
+		"@typescript-eslint/parser": "^2.29.0",
+		"electron": "^7.2.3",
+		"eslint": "^6.8.0",
+		"typescript": "^3.8.3"
 	},
 	"dependencies": {
-		"@fortawesome/fontawesome-free": "^5.11.2",
-		"bootstrap": "^4.3.1",
-		"codemirror": "^5.49.2",
+		"@fortawesome/fontawesome-free": "^5.13.0",
+		"bootstrap": "^4.4.1",
+		"codemirror": "^5.52.2",
 		"jqtree": "^1.4.12",
-		"jquery": "^3.4.1",
+		"jquery": "^3.5.0",
 		"lodash.debounce": "^4.0.8",
 		"vscode-jsonrpc": "^4.0.0",
-		"vscode-languageserver-protocol": "^3.14.1"
+		"vscode-languageserver-protocol": "^3.15.3"
 	}
 }
