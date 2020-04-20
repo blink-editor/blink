@@ -191,22 +191,22 @@ class Application {
 				{ type: "separator" },
 				// Paging preview panes
 				{
-					label: "Page Callers Forward",
+					label: "Page Callees Forward",
 					accelerator: isMac ? "Cmd+Alt+Up" : "Ctrl+Alt+Up",
 					click: () => sendRendererMessage("PanePageUp")
 				},
 				{
-					label: "Page Callers Back",
+					label: "Page Callees Back",
 					accelerator: isMac ? "Cmd+Alt+Down" : "Ctrl+Alt+Down",
 					click: () => sendRendererMessage("PanePageDown")
 				},
 				{
-					label: "Page Callees Forward",
+					label: "Page Callers Forward",
 					accelerator: isMac ? "Cmd+Alt+Right" : "Ctrl+Alt+Right",
 					click: () => sendRendererMessage("PanePageRight")
 				},
 				{
-					label: "Page Callees Back",
+					label: "Page Callers Back",
 					accelerator: isMac ? "Cmd+Alt+Left" : "Ctrl+Alt+Left",
 					click: () => sendRendererMessage("PanePageLeft")
 				},
