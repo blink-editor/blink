@@ -243,13 +243,22 @@ class Editor {
 			this.adapter.openRenameSymbol = this.openRenameSymbol.bind(this)
 
 			this.lspClient.once("initialized", () => {
-				this.openDemoFile()
+				console.log("Initialized")
+
+				this.activeEditorPane.editor.setValue(`# Welcome to Blink!
+# Blink is a new kind of text editor.
+# For more information see https://blink-editor.github.io
+#
+# To get started:
+# - Open an existing project with File > Open Project
+# - Create a new project with File > Create New Project
+#
+# This help text will display when you open the editor.
+`)
+				this.calleePanes[0].editor.setValue(`# Callees will appear here.\n`)
+				this.callerPanes[0].editor.setValue(`# Callers will appear here.\n`)
 			})
 		}, logger)
-	}
-
-	async openDemoFile() {
-		await this.activateProjectFromFile("samples/modules/game.py")
 	}
 
 	/**
